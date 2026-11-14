@@ -1,0 +1,54 @@
+{
+  "sessionId": "bec37c68-test-session",
+  "projectHash": "abc123",
+  "startTime": "2026-06-02T17:32:00.000Z",
+  "lastUpdated": "2026-06-02T17:40:00.000Z",
+  "kind": "main",
+  "messages": [
+    {
+      "id": "m1",
+      "timestamp": "2026-06-02T17:33:25.248Z",
+      "type": "user",
+      "content": [{"text": "brew upgrade gemini-cli"}]
+    },
+    {
+      "id": "m2",
+      "timestamp": "2026-06-02T17:33:27.842Z",
+      "type": "gemini",
+      "content": "I will check Homebrew and upgrade the CLI.",
+      "toolCalls": [
+        {
+          "id": "run_shell_command_1",
+          "name": "run_shell_command",
+          "args": {"command": "brew upgrade gemini-cli"},
+          "result": [{"output": "ok"}]
+        }
+      ]
+    },
+    {
+      "id": "m3",
+      "timestamp": "2026-06-02T17:34:00.000Z",
+      "type": "gemini",
+      "content": "",
+      "toolCalls": [
+        {
+          "id": "read_file_1",
+          "name": "read_file",
+          "args": {"absolute_path": "/Users/underline/demo/README.md"}
+        }
+      ]
+    },
+    {
+      "id": "m4",
+      "timestamp": "2026-06-02T17:34:10.000Z",
+      "type": "info",
+      "content": "Gemini CLI update available"
+    },
+    {
+      "id": "m5",
+      "timestamp": "2026-06-02T17:35:00.000Z",
+      "type": "gemini",
+      "content": "Done: the CLI is up to date."
+    }
+  ]
+}

@@ -82,7 +82,7 @@ public struct RuleEngine: Sendable {
 
         var result: [RiskHit] = []
         for rule in compiled {
-            if let tool = rule.tool, !Self.toolMatches(tool, event.tool) { continue }
+            if let tool = rule.tool, !Self.toolMatches(tool, Self.canonicalTool(event.tool)) { continue }
             if let regex = rule.commandRegex {
                 guard texts.contains(where: { Self.matches(regex, $0) }) else { continue }
             }
@@ -147,6 +147,26 @@ public struct RuleEngine: Sendable {
 
     /// The identity used for muting and de-duplication: the command with runs of
     /// whitespace collapsed, or the first path when there is no command.
+    /// The same action has a different name in every agent: codex says `exec`,
+    /// Gemini says `run_shell_command`, Claude says `Bash`. Rules are written
+    /// against the canonical name, so a rule that covers `Bash` covers all three.
+    public static func canonicalTool(_ tool: String?) -> String? {
+        guard let tool else { return nil }
+        switch tool {
+        case "run_shell_command", "shell", "bash", "exec", "exec_command", "local_shell",
+             "terminal", "list_directory", "glob", "grep_search":
+            return "Bash"
+        case "read_file", "read_many_files", "read":
+            return "Read"
+        case "write_file", "write", "create_file", "apply_patch":
+            return "Write"
+        case "replace", "edit", "edit_file", "str_replace", "apply_diff":
+            return "Edit"
+        default:
+            return tool
+        }
+    }
+
     public static func target(for event: Event) -> String {
         let command = normalizedCommand(event.command ?? "")
         if !command.isEmpty { return command }

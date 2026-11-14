@@ -47,6 +47,13 @@ struct DoctorCommand: ParsableCommand {
                         + "mode \(permissions)  integrity \(integrity)"
                 )
                 Output.write("index        \(sessions) sessions, \(events) events")
+                for agent in Agent.allCases {
+                    let count = try database.eventCount(matching: EventQuery(agents: [agent]))
+                    guard count > 0 else { continue }
+                    let sessionCount = try database.sessions(agents: [agent]).count
+                    Output.write("  \(agent.rawValue.padding(toLength: 12, withPad: " ", startingAt: 0))"
+                        + " \(sessionCount) sessions, \(count) events")
+                }
                 if integrity != "ok" || version != 4 { healthy = false }
             } catch {
                 Output.write("database     FAILED: \(error)")
