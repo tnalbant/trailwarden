@@ -139,6 +139,41 @@ final class ScannerTests: XCTestCase {
         XCTAssertEqual(try store.eventCount(), 1)
     }
 
+    func testScannerAppliesRulesBeforeStoring() throws {
+        try write("a.jsonl", lines: [destructiveLine(1), quotedDeleteLine(1)])
+        let engine = try RuleEngine.builtIn()
+
+        _ = try TranscriptScanner(store: store, redactor: Redactor(), rules: engine).scan(roots: roots())
+
+        let flagged = try store.search("cleanup")
+        XCTAssertEqual(flagged.count, 1)
+        XCTAssertEqual(flagged.first?.risk.map(\.ruleId), ["R1"])
+
+        let quoted = try store.search("quoted")
+        XCTAssertEqual(quoted.count, 1)
+        XCTAssertTrue(quoted.first?.risk.isEmpty ?? false, "echo text is not a destructive delete")
+    }
+
+    func testScannerWithoutRulesLeavesRiskEmpty() throws {
+        try write("a.jsonl", lines: [destructiveLine(1)])
+
+        _ = try scanner().scan(roots: roots())
+
+        XCTAssertTrue(try store.search("cleanup").first?.risk.isEmpty ?? false)
+    }
+
+    private func destructiveLine(_ n: Int) -> String {
+        """
+        {"type":"assistant","sessionId":"s\(n)","timestamp":"2026-11-14T08:00:03.000Z","cwd":"/tmp/demo","gitBranch":"main","message":{"role":"assistant","content":[{"type":"tool_use","id":"toolu_rm","name":"Bash","input":{"command":"rm -rf ~","description":"cleanup"}}]}}
+        """
+    }
+
+    private func quotedDeleteLine(_ n: Int) -> String {
+        """
+        {"type":"assistant","sessionId":"s\(n)","timestamp":"2026-11-14T08:00:04.000Z","cwd":"/tmp/demo","gitBranch":"main","message":{"role":"assistant","content":[{"type":"tool_use","id":"toolu_echo","name":"Bash","input":{"command":"echo 'rm -rf ~'","description":"quoted"}}]}}
+        """
+    }
+
     func testMissingRootIsHarmless() throws {
         let missing = ScanRoot(
             directory: directory.appendingPathComponent("does-not-exist"),

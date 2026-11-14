@@ -103,6 +103,25 @@ public struct Event: Codable, Identifiable, Sendable, Hashable {
         self.rawJSON = rawJSON
     }
 
+    /// A copy carrying fresh rule hits (the parser always produces an empty list).
+    public func withRisk(_ risk: [RiskHit]) -> Event {
+        Event(
+            id: id,
+            ts: ts,
+            agent: agent,
+            sessionId: sessionId,
+            kind: kind,
+            cwd: cwd,
+            gitBranch: gitBranch,
+            tool: tool,
+            command: command,
+            paths: paths,
+            preview: preview,
+            risk: risk,
+            rawJSON: rawJSON
+        )
+    }
+
     /// Stable identity for an event: the same transcript parsed twice yields
     /// the same ids, and two events on the same line still differ (`index`).
     static func makeID(

@@ -21,7 +21,10 @@ let package = Package(
         .package(url: "https://github.com/apple/swift-argument-parser", from: "1.8.0")
     ],
     targets: [
-        .target(name: "TrailwardenCore"),
+        .target(
+            name: "TrailwardenCore",
+            resources: [.process("Resources")]
+        ),
         .executableTarget(
             name: "TrailwardenCLI",
             dependencies: [
