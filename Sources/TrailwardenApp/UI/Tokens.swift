@@ -12,6 +12,10 @@ enum Tokens {
         static let accent = Color(red: 0xE4 / 255, green: 0x57 / 255, blue: 0x2E / 255)
         static let surface = Color(red: 0xF2 / 255, green: 0xEC / 255, blue: 0xE3 / 255)
         static let hairline = Color(red: 0x19 / 255, green: 0x17 / 255, blue: 0x14 / 255).opacity(0.14)
+        // Diff colours: dark enough to stay above 4.5:1 on paper.
+        static let diffAddition = Color(red: 0x1B / 255, green: 0x5E / 255, blue: 0x33 / 255)
+        static let diffRemoval = Color(red: 0x99 / 255, green: 0x2C / 255, blue: 0x1B / 255)
+        static let diffHeader = Color(red: 0x5A / 255, green: 0x54 / 255, blue: 0x4A / 255)
         static let secondary = Color(red: 0x19 / 255, green: 0x17 / 255, blue: 0x14 / 255).opacity(0.66)
     }
 

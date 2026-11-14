@@ -19,7 +19,7 @@ struct TrailwardenApp: App {
         Window("Trailwarden", id: "main") {
             MainWindowView(model: model)
         }
-        .defaultSize(width: 900, height: 620)
+        .defaultSize(width: 1180, height: 720)
         .windowResizability(.contentMinSize)
     }
 }

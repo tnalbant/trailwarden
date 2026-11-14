@@ -4,9 +4,35 @@
 import SwiftUI
 import TrailwardenCore
 
+/// A checkbox the panel actually draws: the stock checkbox renders as a blank
+/// grey square on this palette and is easy to read as disabled.
+private struct FilterChip: View {
+    let title: String
+    @Binding var isOn: Bool
+
+    var body: some View {
+        Button {
+            isOn.toggle()
+        } label: {
+            HStack(spacing: 4) {
+                Image(systemName: isOn ? "checkmark.square.fill" : "square")
+                    .font(.system(size: 11))
+                    .foregroundStyle(isOn ? Tokens.Palette.accent : Tokens.Palette.secondary)
+                Text(title)
+                    .font(Tokens.Typography.text(10.5, weight: isOn ? .medium : .regular))
+                    .foregroundStyle(Tokens.Palette.ink)
+                    .lineLimit(1)
+                    .fixedSize(horizontal: true, vertical: false)
+            }
+        }
+        .buttonStyle(.plain)
+    }
+}
+
 /// Sidebar (project → session) plus the paged event stream.
 struct TimelineView: View {
     @ObservedObject var model: TimelineModel
+    @FocusState private var searchFocused: Bool
 
     private var selectionBinding: Binding<TimelineSelection?> {
         Binding(
@@ -19,8 +45,17 @@ struct TimelineView: View {
         NavigationSplitView {
             sidebar
                 .navigationSplitViewColumnWidth(min: 190, ideal: 230, max: 320)
-        } detail: {
+        } content: {
             stream
+                .navigationSplitViewColumnWidth(min: 420, ideal: 560, max: 900)
+        } detail: {
+            if let event = model.selectedEvent {
+                EventDetailView(event: event)
+                    .navigationSplitViewColumnWidth(min: 280, ideal: 380, max: 560)
+            } else {
+                detailPlaceholder
+                    .navigationSplitViewColumnWidth(min: 280, ideal: 380, max: 560)
+            }
         }
         // The paper palette is light-only, so pin the appearance: a dark system
         // theme otherwise paints the title bar dark and the selected sidebar row
@@ -136,6 +171,7 @@ struct TimelineView: View {
             }
             .labelsHidden()
             .frame(width: 96)
+            .fixedSize()
 
             Picker("", selection: $model.agentFilter) {
                 Text("Tüm ajanlar").tag(Agent?.none)
@@ -145,14 +181,12 @@ struct TimelineView: View {
             }
             .labelsHidden()
             .frame(width: 118)
+            .fixedSize()
 
-            Toggle("Yalnız bulgular", isOn: $model.findingsOnly)
-                .toggleStyle(.checkbox)
-                .font(Tokens.Typography.text(10.5))
-
-            Toggle("Ham akış", isOn: $model.showRawEvents)
-                .toggleStyle(.checkbox)
-                .font(Tokens.Typography.text(10.5))
+            FilterChip(title: "Yalnız bulgular", isOn: $model.findingsOnly)
+                .layoutPriority(1)
+            FilterChip(title: "Ham akış", isOn: $model.showRawEvents)
+                .layoutPriority(1)
                 .help("Token sayaçları ve oturum başlangıçlarını da göster")
 
             Spacer(minLength: 8)
@@ -164,7 +198,8 @@ struct TimelineView: View {
                 TextField("Ara", text: $model.search)
                     .textFieldStyle(.plain)
                     .font(Tokens.Typography.text(11))
-                    .frame(width: 150)
+                    .focused($searchFocused)
+                    .frame(minWidth: 90, idealWidth: 140, maxWidth: 170)
             }
             .padding(.horizontal, 7)
             .padding(.vertical, 4)
@@ -173,13 +208,21 @@ struct TimelineView: View {
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 9)
+        .background {
+            // ⌘F focuses the search field, the way every other list does.
+            Button("Ara") { searchFocused = true }
+                .keyboardShortcut("f", modifiers: .command)
+                .opacity(0)
+                .frame(width: 0, height: 0)
+        }
     }
 
     private var list: some View {
         ScrollView {
             LazyVStack(alignment: .leading, spacing: 0) {
                 ForEach(model.events) { event in
-                    EventRowView(event: event)
+                    EventRowView(event: event, selected: model.selectedEventID == event.id)
+                        .onTapGesture { model.selectedEventID = event.id }
                         .onAppear {
                             if event.id == model.events.last?.id { model.loadMore() }
                         }
@@ -191,6 +234,19 @@ struct TimelineView: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    private var detailPlaceholder: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("Bir olay seç")
+                .font(Tokens.Typography.serif(14))
+            Text("Komut, yollar, diff ve kural gerekçesi burada açılır.")
+                .font(Tokens.Typography.text(11))
+                .foregroundStyle(Tokens.Palette.secondary)
+        }
+        .padding(20)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .background(Tokens.Palette.paper)
     }
 
     private var emptyState: some View {

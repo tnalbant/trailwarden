@@ -45,6 +45,7 @@ final class TimelineModel: ObservableObject {
     @Published var showRawEvents = false { didSet { reload() } }
     @Published var search = "" { didSet { scheduleSearch() } }
 
+    @Published var selectedEventID: String?
     @Published private(set) var events: [Event] = []
     @Published private(set) var total = 0
     @Published private(set) var projects: [ProjectSummary] = []
@@ -75,6 +76,11 @@ final class TimelineModel: ObservableObject {
             sessions = try store.sessions()
             total = try store.eventCount(matching: makeQuery(offset: 0, paged: false))
             events = try store.events(matching: makeQuery(offset: 0))
+            // Open on something rather than an empty panel; a selection the user
+            // made and that is still in the page survives a reload.
+            if selectedEventID == nil || !events.contains(where: { $0.id == selectedEventID }) {
+                selectedEventID = events.first?.id
+            }
             errorMessage = nil
         } catch {
             errorMessage = String(describing: error)
@@ -97,6 +103,11 @@ final class TimelineModel: ObservableObject {
         sessions
             .filter { $0.cwd == cwd }
             .sorted { $0.startedAt > $1.startedAt }
+    }
+
+    var selectedEvent: Event? {
+        guard let selectedEventID else { return nil }
+        return events.first { $0.id == selectedEventID }
     }
 
     var filteredSessions: [SessionSummary] {
