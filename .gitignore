@@ -1,0 +1,33 @@
+# SPDX-License-Identifier: Apache-2.0
+
+# macOS
+.DS_Store
+.AppleDouble
+
+# Xcode / XcodeGen generated project
+*.xcodeproj
+*.xcworkspace
+xcuserdata/
+DerivedData/
+build/
+*.xcresult
+
+# SwiftPM
+.build/
+.swiftpm/
+
+# Never commit real agent transcripts. Only hand-written synthetic fixtures
+# under Tests/**/Fixtures/ are allowed to be tracked as .jsonl.
+*.jsonl
+!Tests/**/Fixtures/**/*.jsonl
+
+# Local secrets / databases
+.env
+*.pem
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
+
+# Editors
+.vscode/
+.idea/
