@@ -32,12 +32,12 @@ jobs:
       - name: Test
         run: swift test
 
-      # Trailkeep must never talk to the network. See docs/PRIVACY.md.
+      # Trailwarden must never talk to the network. See docs/PRIVACY.md.
       - name: No network APIs in Sources
         run: |
           set -euo pipefail
           if grep -RInE 'URLSession|NSURLConnection|URLRequest|CFNetwork|import Network' Sources/; then
-            echo "::error::Network API reference found in Sources/ — Trailkeep stays offline."
+            echo "::error::Network API reference found in Sources/ — Trailwarden stays offline."
             exit 1
           fi
           echo "OK: no network API references."
@@ -46,7 +46,7 @@ jobs:
       - name: No .jsonl outside fixtures
         run: |
           set -euo pipefail
-          strays=$(find . -name '*.jsonl' -not -path './Tests/TrailkeepCoreTests/Fixtures/*' \
+          strays=$(find . -name '*.jsonl' -not -path './Tests/TrailwardenCoreTests/Fixtures/*' \
             -not -path './.build/*' -not -path './.git/*' -print -quit)
           if [ -n "$strays" ]; then
             echo "::error::Unexpected transcript file in the repo: $strays"

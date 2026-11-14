@@ -2,15 +2,15 @@
 // Copyright (c) 2026 Turgay Nalbant
 
 import SwiftUI
-import TrailkeepCore
+import TrailwardenCore
 
 @main
-struct TrailkeepApp: App {
+struct TrailwardenApp: App {
     var body: some Scene {
-        WindowGroup("Trailkeep") {
+        WindowGroup("Trailwarden") {
             VStack(spacing: 8) {
-                Text("Trailkeep").font(.largeTitle)
-                Text("v\(TrailkeepVersion.current)")
+                Text("Trailwarden").font(.largeTitle)
+                Text("v\(TrailwardenVersion.current)")
                     .font(.system(.body, design: .monospaced))
                     .foregroundStyle(.secondary)
             }
