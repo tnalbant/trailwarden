@@ -2,13 +2,13 @@
 // Copyright (c) 2026 Turgay Nalbant
 
 import ArgumentParser
-import TrailkeepCore
+import TrailwardenCore
 
 @main
-struct Trailkeep: ParsableCommand {
+struct Trailwarden: ParsableCommand {
     static let configuration = CommandConfiguration(
-        commandName: "trailkeep",
+        commandName: "trailwarden",
         abstract: "Audit trail for coding agents on this Mac.",
-        version: TrailkeepVersion.current
+        version: TrailwardenVersion.current
     )
 }

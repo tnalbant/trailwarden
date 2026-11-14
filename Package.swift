@@ -8,34 +8,34 @@ import PackageDescription
 // Everything else (JSONL parsing, rules, SQLite/FTS5, MCP) is written in-tree on
 // top of system frameworks, so the audit trail stays inspectable and offline.
 let package = Package(
-    name: "Trailkeep",
+    name: "Trailwarden",
     platforms: [
         .macOS(.v14)
     ],
     products: [
-        .library(name: "TrailkeepCore", targets: ["TrailkeepCore"]),
-        .executable(name: "trailkeep", targets: ["TrailkeepCLI"]),
-        .executable(name: "trailkeep-mcp", targets: ["TrailkeepMCP"]),
+        .library(name: "TrailwardenCore", targets: ["TrailwardenCore"]),
+        .executable(name: "trailwarden", targets: ["TrailwardenCLI"]),
+        .executable(name: "trailwarden-mcp", targets: ["TrailwardenMCP"]),
     ],
     dependencies: [
         .package(url: "https://github.com/apple/swift-argument-parser", from: "1.8.0")
     ],
     targets: [
-        .target(name: "TrailkeepCore"),
+        .target(name: "TrailwardenCore"),
         .executableTarget(
-            name: "TrailkeepCLI",
+            name: "TrailwardenCLI",
             dependencies: [
-                "TrailkeepCore",
+                "TrailwardenCore",
                 .product(name: "ArgumentParser", package: "swift-argument-parser"),
             ]
         ),
         .executableTarget(
-            name: "TrailkeepMCP",
-            dependencies: ["TrailkeepCore"]
+            name: "TrailwardenMCP",
+            dependencies: ["TrailwardenCore"]
         ),
         .testTarget(
-            name: "TrailkeepCoreTests",
-            dependencies: ["TrailkeepCore"]
+            name: "TrailwardenCoreTests",
+            dependencies: ["TrailwardenCore"]
         ),
     ]
 )
