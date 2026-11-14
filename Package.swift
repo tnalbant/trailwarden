@@ -35,7 +35,9 @@ let package = Package(
         ),
         .testTarget(
             name: "TrailwardenCoreTests",
-            dependencies: ["TrailwardenCore"]
+            dependencies: ["TrailwardenCore"],
+            // Fixtures are read from disk via #filePath, not bundled as resources.
+            exclude: ["Fixtures"]
         ),
     ]
 )
