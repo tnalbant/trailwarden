@@ -32,6 +32,7 @@ private struct FilterChip: View {
 /// Sidebar (project → session) plus the paged event stream.
 struct TimelineView: View {
     @ObservedObject var model: TimelineModel
+    var onMute: ((RiskHit, Event) -> Void)?
     @FocusState private var searchFocused: Bool
 
     private var selectionBinding: Binding<TimelineSelection?> {
@@ -50,7 +51,7 @@ struct TimelineView: View {
                 .navigationSplitViewColumnWidth(min: 420, ideal: 560, max: 900)
         } detail: {
             if let event = model.selectedEvent {
-                EventDetailView(event: event)
+                EventDetailView(event: event, onMute: onMute)
                     .navigationSplitViewColumnWidth(min: 280, ideal: 380, max: 560)
             } else {
                 detailPlaceholder

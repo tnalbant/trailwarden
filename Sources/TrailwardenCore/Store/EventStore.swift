@@ -347,6 +347,12 @@ public final class EventStore {
         try statement.step()
     }
 
+    public func removeMute(_ mute: Mute) throws {
+        let statement = try database.prepare("DELETE FROM mutes WHERE rule_id = ? AND target = ?")
+        try statement.bind([.text(mute.ruleId), .text(mute.target)])
+        try statement.step()
+    }
+
     public func mutes(now: Date = Date()) throws -> [Mute] {
         let statement = try database.prepare("SELECT rule_id, target, until FROM mutes WHERE until > ?")
         try statement.bind([.double(now.timeIntervalSince1970)])
@@ -362,6 +368,46 @@ public final class EventStore {
             )
         }
         return result
+    }
+
+    /// Rewrites the rule hits of the listed events and re-derives the session
+    /// rows that count them. The rule set changed, so stored hits are stale.
+    @discardableResult
+    public func replaceRisk(_ hitsByEventID: [String: [RiskHit]]) throws -> Int {
+        guard !hitsByEventID.isEmpty else { return 0 }
+        let encoder = JSONEncoder()
+        let ids = Array(hitsByEventID.keys)
+
+        let lookup = try prepareRowStatement(
+            "SELECT session_id FROM events WHERE id IN (\(ids.map { _ in "?" }.joined(separator: ",")))"
+        )
+        try lookup.bind(ids.map { SQLValue.text($0) })
+        var sessions: Set<String> = []
+        while try lookup.step() {
+            if let session = lookup.text(0) { sessions.insert(session) }
+        }
+
+        try database.transaction {
+            let update = try database.prepare(
+                "UPDATE events SET risk = ?, severity = ?, severity_rank = ? WHERE id = ?"
+            )
+            for (id, hits) in hitsByEventID {
+                let risk = String(decoding: try encoder.encode(hits), as: UTF8.self)
+                let worst = hits.map(\.severity).max()
+                try update.bind([
+                    .text(risk),
+                    worst.map { SQLValue.text($0.rawValue) } ?? .null,
+                    worst.map { SQLValue.int($0.rank) } ?? .null,
+                    .text(id),
+                ])
+                try update.step()
+            }
+        }
+
+        for session in sessions {
+            try refreshSession(session)
+        }
+        return hitsByEventID.count
     }
 
     /// Drops mutes that have run out; called at the start of a scan.
