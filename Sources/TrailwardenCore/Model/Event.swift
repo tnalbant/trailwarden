@@ -28,7 +28,8 @@ public enum Severity: String, Codable, Sendable, Comparable, CaseIterable {
     case warn
     case critical
 
-    private var rank: Int {
+    /// Ordering used by filters (`--severity warn` means warn or critical).
+    public var rank: Int {
         switch self {
         case .info: 0
         case .warn: 1

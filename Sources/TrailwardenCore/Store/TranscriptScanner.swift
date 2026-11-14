@@ -15,10 +15,11 @@ public struct ScanRoot: Sendable {
         self.parser = parser
     }
 
-    /// The two directories Trailwarden reads by default.
-    public static func standard() -> [ScanRoot] {
+    /// The two directories Trailwarden reads by default, optionally narrowed to
+    /// the agents the user asked for.
+    public static func standard(agents: Set<Agent>? = nil) -> [ScanRoot] {
         let home = FileManager.default.homeDirectoryForCurrentUser
-        return [
+        let roots = [
             ScanRoot(
                 directory: home.appendingPathComponent(".claude/projects", isDirectory: true),
                 parser: ClaudeCodeParser()
@@ -28,6 +29,8 @@ public struct ScanRoot: Sendable {
                 parser: CodexParser()
             ),
         ]
+        guard let agents, !agents.isEmpty else { return roots }
+        return roots.filter { agents.contains($0.agent) }
     }
 }
 
