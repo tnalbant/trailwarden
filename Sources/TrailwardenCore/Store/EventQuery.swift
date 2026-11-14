@@ -38,6 +38,9 @@ public struct EventQuery: Sendable {
     public var excludedKinds: Set<EventKind>?
     public var limit: Int?
     public var offset: Int?
+    /// The raw transcript line is a debug view; exports and reports never need
+    /// it, and loading it for 24k events costs tens of megabytes.
+    public var includeRawJSON: Bool
 
     public init(
         since: Date? = nil,
@@ -50,7 +53,8 @@ public struct EventQuery: Sendable {
         search: String? = nil,
         excludedKinds: Set<EventKind>? = nil,
         limit: Int? = nil,
-        offset: Int? = nil
+        offset: Int? = nil,
+        includeRawJSON: Bool = true
     ) {
         self.since = since
         self.until = until
@@ -63,6 +67,7 @@ public struct EventQuery: Sendable {
         self.excludedKinds = excludedKinds
         self.limit = limit
         self.offset = offset
+        self.includeRawJSON = includeRawJSON
     }
 
     /// The search text as an FTS5 phrase, so user input can never inject FTS
@@ -78,7 +83,8 @@ public struct EventQuery: Sendable {
 public extension EventStore {
     /// Events matching the query, newest first.
     func events(matching query: EventQuery) throws -> [Event] {
-        var (sql, values) = try timelineSQL(query, columns: Self.eventColumns)
+        let columns = query.includeRawJSON ? Self.eventColumns : Self.eventColumnsWithoutRaw
+        var (sql, values) = try timelineSQL(query, columns: columns)
         sql += "\nORDER BY events.ts DESC, events.id ASC"
         if let limit = query.limit {
             sql += "\nLIMIT ?"
@@ -149,6 +155,12 @@ public extension EventStore {
     }
 
     // MARK: - SQL
+
+    private static let eventColumnsWithoutRaw = """
+    events.id, events.ts, events.agent, events.session_id, events.kind, events.cwd,
+    events.git_branch, events.tool, events.command, events.paths, events.preview,
+    events.risk, NULL AS raw_json
+    """
 
     private static let eventColumns = """
     events.id, events.ts, events.agent, events.session_id, events.kind, events.cwd,

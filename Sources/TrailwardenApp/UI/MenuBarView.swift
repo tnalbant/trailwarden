@@ -138,6 +138,15 @@ struct MenuBarView: View {
             .buttonStyle(.plain)
 
             Button {
+                openWindow(id: "settings")
+                NSApp.activate(ignoringOtherApps: true)
+            } label: {
+                Text("Ayarlar")
+                    .font(Tokens.Typography.text(11))
+            }
+            .buttonStyle(.plain)
+
+            Button {
                 openWindow(id: "rules")
                 NSApp.activate(ignoringOtherApps: true)
             } label: {

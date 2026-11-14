@@ -295,6 +295,13 @@ public final class EventStore {
         try upsert.step()
     }
 
+    /// Re-derives the given session rows; used after bulk rewrites and pruning.
+    public func refreshSessions(ids: [String]) throws {
+        for id in ids {
+            try refreshSession(id)
+        }
+    }
+
     public func recordScan(
         path: String,
         agent: Agent,
