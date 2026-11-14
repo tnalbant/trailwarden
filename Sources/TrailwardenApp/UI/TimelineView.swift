@@ -1,0 +1,231 @@
+// SPDX-License-Identifier: Apache-2.0
+// Copyright (c) 2026 Turgay Nalbant
+
+import SwiftUI
+import TrailwardenCore
+
+/// Sidebar (project → session) plus the paged event stream.
+struct TimelineView: View {
+    @ObservedObject var model: TimelineModel
+
+    private var selectionBinding: Binding<TimelineSelection?> {
+        Binding(
+            get: { model.selection },
+            set: { if let value = $0 { model.selection = value } }
+        )
+    }
+
+    var body: some View {
+        NavigationSplitView {
+            sidebar
+                .navigationSplitViewColumnWidth(min: 190, ideal: 230, max: 320)
+        } detail: {
+            stream
+        }
+        // The paper palette is light-only, so pin the appearance: a dark system
+        // theme otherwise paints the title bar dark and the selected sidebar row
+        // white-on-white.
+        .preferredColorScheme(.light)
+    }
+
+    // MARK: - Sidebar
+
+    private var sidebar: some View {
+        List(selection: selectionBinding) {
+            Section("Kapsam") {
+                Label("Tüm oturumlar", systemImage: "tray.full")
+                    .tag(TimelineSelection.all)
+            }
+
+            Section("Projeler") {
+                ForEach(model.projects) { project in
+                    DisclosureGroup {
+                        ForEach(model.sessions(inProject: project.cwd)) { session in
+                            sessionLabel(session)
+                                .tag(TimelineSelection.session(session.id))
+                        }
+                        if model.sessions(inProject: project.cwd).isEmpty {
+                            Text("Oturum yok")
+                                .font(Tokens.Typography.text(10))
+                                .foregroundStyle(Tokens.Palette.secondary)
+                        }
+                    } label: {
+                        projectLabel(project)
+                            .tag(TimelineSelection.project(project.cwd))
+                    }
+                }
+            }
+        }
+        .listStyle(.sidebar)
+        .scrollContentBackground(.hidden)
+        .background(Tokens.Palette.paper)
+    }
+
+    private func projectLabel(_ project: ProjectSummary) -> some View {
+        HStack(spacing: 6) {
+            Image(systemName: "folder")
+                .font(.system(size: 10))
+                .foregroundStyle(Tokens.Palette.secondary)
+            VStack(alignment: .leading, spacing: 1) {
+                Text(ProjectName.short(project.cwd))
+                    .font(Tokens.Typography.text(11.5, weight: .medium))
+                    .lineLimit(1)
+                Text("\(project.sessionCount) oturum · \(project.eventCount) olay")
+                    .font(Tokens.Typography.text(9))
+                    .foregroundStyle(Tokens.Palette.secondary)
+            }
+        }
+    }
+
+    private func sessionLabel(_ session: SessionSummary) -> some View {
+        HStack(spacing: 6) {
+            Text(EventFormatting.agentLabel(session.agent))
+                .font(Tokens.Typography.mono(8))
+                .padding(.horizontal, 4)
+                .padding(.vertical, 0.5)
+                .background(Tokens.Palette.surface)
+                .clipShape(RoundedRectangle(cornerRadius: 2.5))
+            Text(Sessions.shortID(session.id))
+                .font(Tokens.Typography.mono(9))
+                .lineLimit(1)
+            Spacer(minLength: 2)
+            if session.criticalCount > 0 {
+                Text("\(session.criticalCount)")
+                    .font(Tokens.Typography.text(9, weight: .medium))
+                    .foregroundStyle(Tokens.Palette.accent)
+            }
+        }
+    }
+
+    // MARK: - Stream
+
+    private var stream: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            header
+            Hairline()
+            filters
+            Hairline()
+            list
+            Hairline()
+            footer
+        }
+        .background(Tokens.Palette.paper)
+        .foregroundStyle(Tokens.Palette.ink)
+    }
+
+    private var header: some View {
+        HStack(alignment: .firstTextBaseline) {
+            Text(model.selectionTitle)
+                .font(Tokens.Typography.serif(16, weight: .semibold))
+                .lineLimit(1)
+            Spacer()
+            Text("\(model.total) olay")
+                .font(Tokens.Typography.mono(10))
+                .foregroundStyle(Tokens.Palette.secondary)
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+    }
+
+    private var filters: some View {
+        HStack(spacing: 10) {
+            Picker("", selection: $model.window) {
+                ForEach(TimelineWindow.allCases) { window in
+                    Text(window.rawValue).tag(window)
+                }
+            }
+            .labelsHidden()
+            .frame(width: 96)
+
+            Picker("", selection: $model.agentFilter) {
+                Text("Tüm ajanlar").tag(Agent?.none)
+                ForEach(Agent.allCases, id: \.self) { agent in
+                    Text(EventFormatting.agentLabel(agent)).tag(Agent?.some(agent))
+                }
+            }
+            .labelsHidden()
+            .frame(width: 118)
+
+            Toggle("Yalnız bulgular", isOn: $model.findingsOnly)
+                .toggleStyle(.checkbox)
+                .font(Tokens.Typography.text(10.5))
+
+            Toggle("Ham akış", isOn: $model.showRawEvents)
+                .toggleStyle(.checkbox)
+                .font(Tokens.Typography.text(10.5))
+                .help("Token sayaçları ve oturum başlangıçlarını da göster")
+
+            Spacer(minLength: 8)
+
+            HStack(spacing: 4) {
+                Image(systemName: "magnifyingglass")
+                    .font(.system(size: 10))
+                    .foregroundStyle(Tokens.Palette.secondary)
+                TextField("Ara", text: $model.search)
+                    .textFieldStyle(.plain)
+                    .font(Tokens.Typography.text(11))
+                    .frame(width: 150)
+            }
+            .padding(.horizontal, 7)
+            .padding(.vertical, 4)
+            .background(Tokens.Palette.surface)
+            .clipShape(RoundedRectangle(cornerRadius: 5))
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 9)
+    }
+
+    private var list: some View {
+        ScrollView {
+            LazyVStack(alignment: .leading, spacing: 0) {
+                ForEach(model.events) { event in
+                    EventRowView(event: event)
+                        .onAppear {
+                            if event.id == model.events.last?.id { model.loadMore() }
+                        }
+                    Hairline()
+                }
+                if model.events.isEmpty {
+                    emptyState
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    private var emptyState: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("Bu aralıkta olay yok.")
+                .font(Tokens.Typography.serif(14))
+            Text("Zaman aralığını genişlet, filtreleri kaldır ya da yeni bir tarama yap.")
+                .font(Tokens.Typography.text(11))
+                .foregroundStyle(Tokens.Palette.secondary)
+        }
+        .padding(24)
+    }
+
+    private var footer: some View {
+        HStack {
+            if let error = model.errorMessage {
+                Text(error)
+                    .font(Tokens.Typography.text(10))
+                    .foregroundStyle(Tokens.Palette.accent)
+                    .lineLimit(1)
+            } else {
+                Text(model.events.isEmpty
+                     ? "0 olay"
+                     : "\(model.events.count) / \(model.total) olay")
+                    .font(Tokens.Typography.mono(9.5))
+                    .foregroundStyle(Tokens.Palette.secondary)
+            }
+            Spacer()
+            if model.events.count < model.total {
+                Button("Daha fazla") { model.loadMore() }
+                    .buttonStyle(.plain)
+                    .font(Tokens.Typography.text(10.5, weight: .medium))
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 8)
+    }
+}

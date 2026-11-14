@@ -12,7 +12,7 @@ enum Tokens {
         static let accent = Color(red: 0xE4 / 255, green: 0x57 / 255, blue: 0x2E / 255)
         static let surface = Color(red: 0xF2 / 255, green: 0xEC / 255, blue: 0xE3 / 255)
         static let hairline = Color(red: 0x19 / 255, green: 0x17 / 255, blue: 0x14 / 255).opacity(0.14)
-        static let secondary = Color(red: 0x19 / 255, green: 0x17 / 255, blue: 0x14 / 255).opacity(0.6)
+        static let secondary = Color(red: 0x19 / 255, green: 0x17 / 255, blue: 0x14 / 255).opacity(0.66)
     }
 
     enum Typography {
@@ -24,8 +24,8 @@ enum Tokens {
             .system(size: size, weight: weight)
         }
 
-        static func mono(_ size: CGFloat) -> Font {
-            .system(size: size, design: .monospaced)
+        static func mono(_ size: CGFloat, weight: Font.Weight = .regular) -> Font {
+            .system(size: size, weight: weight, design: .monospaced)
         }
     }
 
