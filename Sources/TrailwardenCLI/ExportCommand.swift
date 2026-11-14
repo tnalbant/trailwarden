@@ -48,9 +48,9 @@ struct ExportCommand: ParsableCommand {
         let engine = try RuleEngine.builtIn(mutes: database.mutes())
         _ = try TranscriptScanner(store: database, rules: engine).scan(roots: ScanRoot.standard(agents: agents))
 
-        let events = try database.events(
-            matching: EventQuery(since: sinceDate, agents: agents, minimumSeverity: severity)
-        )
+        var query = EventQuery(since: sinceDate, agents: agents, minimumSeverity: severity)
+        query.includeRawJSON = false
+        let events = try database.events(matching: query)
         let sessions = try database.sessions(agents: agents)
         let until = Date()
         let selection = AuditSelection(
@@ -61,41 +61,32 @@ struct ExportCommand: ParsableCommand {
             generatedAt: until
         )
 
+        // The app writes through the same writer, so the two cannot drift apart.
+        let format: AuditFormat = json ? .json : .markdown
         let redactor = Redactor(level: redact)
-        let body: String
-        if json {
-            body = String(
-                decoding: try JSONReport.data(
-                    sessions: sessions,
-                    events: events,
-                    selection: selection,
-                    redactor: redactor
-                ),
-                as: UTF8.self
-            )
-        } else {
-            body = MarkdownReport.render(
-                sessions: sessions,
-                events: events.map { redactor.redactForExport($0) },
-                selection: selection
-            )
-        }
 
         if let out {
-            let url = URL(fileURLWithPath: out)
-            try FileManager.default.createDirectory(
-                at: url.deletingLastPathComponent(),
-                withIntermediateDirectories: true
+            let outcome = try ExportWriter.write(
+                format: format,
+                sessions: sessions,
+                events: events,
+                selection: selection,
+                redactor: redactor,
+                to: URL(fileURLWithPath: out)
             )
-            try body.write(to: url, atomically: true, encoding: .utf8)
-            try FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: url.path)
-            let summary = AuditReport.summarize(sessions: sessions, events: events)
             Output.write(
-                "wrote \(url.path) — \(summary.events) events, \(summary.findings) findings "
-                    + "(\(summary.critical) critical)"
+                "wrote \(outcome.url.path) — \(outcome.events) events, \(outcome.findings) findings "
+                    + "(\(outcome.critical) critical)"
             )
         } else {
-            Output.write(body)
+            let data = try ExportWriter.data(
+                format: format,
+                sessions: sessions,
+                events: events,
+                selection: selection,
+                redactor: redactor
+            )
+            Output.write(String(decoding: data, as: UTF8.self))
         }
 
         if AuditReport.summarize(sessions: sessions, events: events).critical > 0 {

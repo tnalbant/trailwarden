@@ -217,6 +217,59 @@ final class AppModel: ObservableObject {
     }
 
     @Published private(set) var ruleHitCounts: [String: Int] = [:]
+    @Published private(set) var maintenanceStatus: String?
+
+    /// Deletes events older than the retention window; file signatures are kept,
+    /// so a later scan does not bring them back.
+    func prune(retentionDays: Int) async {
+        let url = databaseURL
+        let message = await Task.detached(priority: .utility) { () -> String in
+            do {
+                let store = try EventStore(url: url)
+                let report = try store.prune(eventsOlderThanDays: retentionDays)
+                return "Silinen: \(report.removedEvents) olay, \(report.removedSessions) oturum"
+            } catch {
+                return "Temizlik başarısız: \(error)"
+            }
+        }.value
+        maintenanceStatus = message
+        refresh()
+    }
+
+    /// Writes the same audit record the CLI produces, through the same writer.
+    func export(format: AuditFormat, days: Int, to url: URL) async {
+        let database = databaseURL
+        let message = await Task.detached(priority: .userInitiated) { () -> String in
+            do {
+                let store = try EventStore(url: database)
+                var query = EventQuery(since: Date().addingTimeInterval(-Double(days) * 86_400))
+                query.includeRawJSON = false
+                let events = try store.events(matching: query)
+                let sessions = try store.sessions(agents: nil)
+                let selection = AuditSelection(
+                    since: query.since,
+                    until: Date(),
+                    agents: [],
+                    minimumSeverity: nil,
+                    generatedAt: Date()
+                )
+                let outcome = try ExportWriter.write(
+                    format: format,
+                    sessions: sessions,
+                    events: events,
+                    selection: selection,
+                    to: url
+                )
+                return String(
+                    format: "%@ · %d olay, %d bulgu · %.2f sn",
+                    url.lastPathComponent, outcome.events, outcome.findings, outcome.duration
+                )
+            } catch {
+                return "Dışa aktarma başarısız: \(error)"
+            }
+        }.value
+        maintenanceStatus = message
+    }
 
     // MARK: - Onboarding
 
