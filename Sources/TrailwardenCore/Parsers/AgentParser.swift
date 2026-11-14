@@ -10,7 +10,13 @@ import Foundation
 /// `ParseResult.skippedLines` instead of aborting the file.
 public protocol AgentParser: Sendable {
     var agent: Agent { get }
+    /// Transcript files this parser understands; the scanner skips the rest.
+    var fileExtension: String { get }
     func parse(file: URL) throws -> ParseResult
+}
+
+public extension AgentParser {
+    var fileExtension: String { "jsonl" }
 }
 
 /// The outcome of parsing a single transcript file.

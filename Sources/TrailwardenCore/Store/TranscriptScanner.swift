@@ -28,6 +28,11 @@ public struct ScanRoot: Sendable {
                 directory: home.appendingPathComponent(".codex/sessions", isDirectory: true),
                 parser: CodexParser()
             ),
+            // Gemini CLI keeps one JSON document per session under tmp/<project>/chats.
+            ScanRoot(
+                directory: home.appendingPathComponent(".gemini/tmp", isDirectory: true),
+                parser: GeminiCLIParser()
+            ),
         ]
         guard let agents, !agents.isEmpty else { return roots }
         return roots.filter { agents.contains($0.agent) }
@@ -76,7 +81,7 @@ public struct TranscriptScanner {
         ) else { return }
 
         for case let url as URL in enumerator {
-            guard url.pathExtension == "jsonl" else { continue }
+            guard url.pathExtension == root.parser.fileExtension else { continue }
             let values = try? url.resourceValues(forKeys: keys)
             guard values?.isRegularFile == true else { continue }
             report.filesSeen += 1

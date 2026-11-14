@@ -3,7 +3,7 @@
 # Trailwarden
 
 **The audit trail for your coding agents.** Trailwarden reads the transcripts that
-Claude Code and Codex already write to your Mac, turns them into a timeline you
+Claude Code, Codex and Gemini CLI already write to your Mac, turns them into a timeline you
 can actually read, flags risky commands (wide `rm -rf`, secret-file access,
 `curl … | sh`, force pushes), and exports a redacted audit record you can hand to
 someone else.
@@ -29,7 +29,7 @@ at all (CI fails if `URLSession` or friends ever show up in `Sources/`).
   `trailwarden_audit`, `trailwarden_rules`).
 
 It is a **read-only observer**: Trailwarden does not run agents, does not intercept
-them, and does not modify their files. It reads `~/.claude` and `~/.codex` the
+them, and does not modify their files. It reads `~/.claude`, `~/.codex` and `~/.gemini` the
 same way you would, and keeps its own SQLite index under
 `~/Library/Application Support/Trailwarden/`.
 
