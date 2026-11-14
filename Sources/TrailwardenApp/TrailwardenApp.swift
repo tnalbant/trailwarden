@@ -1,12 +1,18 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright (c) 2026 Turgay Nalbant
 
+import AppKit
 import SwiftUI
 import TrailwardenCore
 
 @main
 struct TrailwardenApp: App {
     @StateObject private var model = AppModel()
+
+    init() {
+        // Two windows (panel, rules) must not merge into a tab group.
+        NSWindow.allowsAutomaticWindowTabbing = false
+    }
 
     var body: some Scene {
         MenuBarExtra {
@@ -20,6 +26,12 @@ struct TrailwardenApp: App {
             MainWindowView(model: model)
         }
         .defaultSize(width: 1180, height: 720)
+        .windowResizability(.contentMinSize)
+
+        Window("Kurallar", id: "rules") {
+            RulesView(model: model)
+        }
+        .defaultSize(width: 820, height: 620)
         .windowResizability(.contentMinSize)
     }
 }

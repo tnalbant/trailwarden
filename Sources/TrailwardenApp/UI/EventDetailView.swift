@@ -9,6 +9,7 @@ import TrailwardenCore
 /// agent actually ran — never wrapped, so a one-line command stays one line.
 struct EventDetailView: View {
     let event: Event
+    var onMute: ((RiskHit, Event) -> Void)?
 
     @State private var copiedField: String?
 
@@ -80,6 +81,14 @@ struct EventDetailView: View {
                     Text(hit.message)
                         .font(Tokens.Typography.text(10.5))
                         .fixedSize(horizontal: false, vertical: true)
+                    Spacer(minLength: 4)
+                    if let onMute {
+                        Button("30 gün sustur") { onMute(hit, event) }
+                            .buttonStyle(.plain)
+                            .font(Tokens.Typography.text(9, weight: .medium))
+                            .foregroundStyle(Tokens.Palette.accent)
+                            .help("Bu durumu 30 gün boyunca işaretleme")
+                    }
                 }
             }
         }

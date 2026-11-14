@@ -137,6 +137,16 @@ struct MenuBarView: View {
             }
             .buttonStyle(.plain)
 
+            Button {
+                openWindow(id: "rules")
+                NSApp.activate(ignoringOtherApps: true)
+            } label: {
+                Text("Kurallar")
+                    .font(Tokens.Typography.text(11, weight: .medium))
+                    .foregroundStyle(Tokens.Palette.ink)
+            }
+            .buttonStyle(.plain)
+
             Spacer()
 
             if model.isScanning {

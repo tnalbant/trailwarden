@@ -15,7 +15,13 @@ struct MainWindowView: View {
     }
 
     var body: some View {
-        TimelineView(model: timeline)
+        TimelineView(model: timeline, onMute: { hit, event in
+            let target = RuleEngine.target(for: event)
+            Task {
+                await model.mute(ruleId: hit.ruleId, target: target)
+                timeline.reload()
+            }
+        })
             .frame(minWidth: 780, minHeight: 480)
             .toolbar {
                 ToolbarItem(placement: .primaryAction) {

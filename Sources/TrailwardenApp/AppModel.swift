@@ -39,6 +39,13 @@ final class AppModel: ObservableObject {
     @Published var errorMessage: String?
     @Published var onboardingDone: Bool
 
+    // Rules screen state: the effective rule list, the active mutes, and the
+    // outcome of the last re-run.
+    @Published private(set) var rules: [Rule] = []
+    @Published private(set) var mutes: [Mute] = []
+    @Published private(set) var ruleStatus: String?
+    @Published private(set) var isReapplying = false
+
     let databaseURL: URL
 
     init(databaseURL: URL? = nil) {
@@ -46,6 +53,7 @@ final class AppModel: ObservableObject {
             ?? (try? EventStore.defaultURL())
             ?? URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("trailwarden.sqlite")
         self.onboardingDone = UserDefaults.standard.bool(forKey: Self.onboardingKey)
+        loadRules()
         refresh()
     }
 
@@ -104,6 +112,111 @@ final class AppModel: ObservableObject {
         lastScanSummary = "\(outcome.events) events indexed"
         refresh()
     }
+
+    // MARK: - Rules
+
+    private var preferencesURL: URL? {
+        try? RulePreferences.defaultURL()
+    }
+
+    func loadRules() {
+        do {
+            let builtIn = try RuleCatalog.builtIn()
+            let stored = try preferencesURL.map { try RulePreferences.load(from: $0) } ?? []
+            rules = RulePreferences.apply(stored, to: builtIn)
+            mutes = try EventStore(url: databaseURL).mutes()
+        } catch {
+            errorMessage = String(describing: error)
+        }
+    }
+
+    /// Turns a rule off or on, or re-grades it. The edit is saved, then the whole
+    /// index is re-run so the timeline reflects it immediately.
+    func updateRule(_ ruleId: String, enabled: Bool? = nil, severity: Severity? = nil) async {
+        guard let index = rules.firstIndex(where: { $0.id == ruleId }) else { return }
+        let current = rules[index]
+        rules[index] = current.with(
+            enabled: enabled ?? current.isEnabled,
+            severity: severity ?? current.severity
+        )
+        await saveAndReapply()
+    }
+
+    /// Silences one rule for one situation (the normalized command, or the first
+    /// path when there is no command) for 30 days.
+    func mute(ruleId: String, target: String, days: Int = 30) async {
+        let mute = Mute(
+            ruleId: ruleId,
+            target: target,
+            until: Date().addingTimeInterval(Double(days) * 86_400)
+        )
+        do {
+            let store = try EventStore(url: databaseURL)
+            try store.addMute(mute)
+            mutes = try store.mutes()
+        } catch {
+            errorMessage = String(describing: error)
+            return
+        }
+        await reapplyRules()
+    }
+
+    func removeMute(_ mute: Mute) async {
+        do {
+            let store = try EventStore(url: databaseURL)
+            try store.removeMute(mute)
+            mutes = try store.mutes()
+        } catch {
+            errorMessage = String(describing: error)
+            return
+        }
+        await reapplyRules()
+    }
+
+    private func saveAndReapply() async {
+        do {
+            if let url = preferencesURL {
+                try RulePreferences.save(RulePreferences.preferences(from: rules), to: url)
+            }
+        } catch {
+            errorMessage = String(describing: error)
+            return
+        }
+        await reapplyRules()
+    }
+
+    /// Re-runs the rules over the stored index. Runs off the main actor because
+    /// the store is not `Sendable`; only the summary text comes back.
+    func reapplyRules() async {
+        guard !isReapplying else { return }
+        isReapplying = true
+        defer { isReapplying = false }
+
+        let rulesCopy = rules
+        let mutesCopy = mutes
+        let url = databaseURL
+        let summary = await Task.detached(priority: .userInitiated) { () -> (String, [String: Int]) in
+            do {
+                let store = try EventStore(url: url)
+                let engine = try RuleEngine(rules: rulesCopy, mutes: mutesCopy)
+                let report = try engine.reapply(to: store)
+                let counts = try store.ruleHitCounts(matching: EventQuery(onlyFindings: true))
+                let text = String(
+                    format: "%d olay tarandı · %d olay güncellendi · %.2f sn",
+                    report.events, report.changed, report.duration
+                )
+                return (text, counts)
+            } catch {
+                return ("Hata: \(error)", [:])
+            }
+        }.value
+
+        ruleStatus = summary.0
+        ruleHitCounts = summary.1
+        refresh()
+    }
+
+    @Published private(set) var ruleHitCounts: [String: Int] = [:]
 
     // MARK: - Onboarding
 
