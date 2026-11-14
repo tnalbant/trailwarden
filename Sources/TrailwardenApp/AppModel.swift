@@ -218,6 +218,30 @@ final class AppModel: ObservableObject {
 
     @Published private(set) var ruleHitCounts: [String: Int] = [:]
     @Published private(set) var maintenanceStatus: String?
+    @Published private(set) var usage: [Agent: TokenTotals] = [:]
+    @Published private(set) var dailyUsage: [DailyTokens] = []
+    @Published private(set) var usageUpdatedAt: Date?
+
+    /// Tokens come from the transcript; a price would not, so none is printed.
+    func loadUsage(days: Int = 30) async {
+        let database = databaseURL
+        let since = Date().addingTimeInterval(-Double(days) * 86_400)
+        let loaded = await Task.detached(priority: .utility) { () -> ([Agent: TokenTotals], [DailyTokens]) in
+            do {
+                let store = try EventStore(url: database)
+                return (
+                    try store.tokenTotalsByAgent(since: since),
+                    try store.dailyTokens(since: since)
+                )
+            } catch {
+                NSLog("loadUsage failed: %@", String(describing: error))
+                return ([:], [])
+            }
+        }.value
+        usage = loaded.0
+        dailyUsage = loaded.1
+        usageUpdatedAt = Date()
+    }
 
     /// Deletes events older than the retention window; file signatures are kept,
     /// so a later scan does not bring them back.

@@ -26,7 +26,6 @@ struct MenuBarView: View {
         .frame(width: Tokens.Metrics.panelWidth)
         .background(Tokens.Palette.paper)
         .foregroundStyle(Tokens.Palette.ink)
-        .preferredColorScheme(.light)
     }
 
     private var header: some View {
@@ -134,6 +133,15 @@ struct MenuBarView: View {
                 Text("Panoyu aç")
                     .font(Tokens.Typography.text(11, weight: .medium))
                     .foregroundStyle(Tokens.Palette.accent)
+            }
+            .buttonStyle(.plain)
+
+            Button {
+                openWindow(id: "usage")
+                NSApp.activate(ignoringOtherApps: true)
+            } label: {
+                Text("Kullanım")
+                    .font(Tokens.Typography.text(11))
             }
             .buttonStyle(.plain)
 

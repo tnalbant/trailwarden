@@ -22,7 +22,6 @@ struct RulesView: View {
         .frame(minWidth: 760, minHeight: 580)
         .background(Tokens.Palette.paper)
         .foregroundStyle(Tokens.Palette.ink)
-        .preferredColorScheme(.light)
         .onAppear {
             model.loadRules()
             Task { await model.reapplyRules() }

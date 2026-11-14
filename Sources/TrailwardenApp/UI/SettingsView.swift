@@ -10,6 +10,7 @@ import TrailwardenCore
 struct SettingsView: View {
     @ObservedObject var model: AppModel
 
+    @AppStorage(AppearanceMode.storageKey) private var appearance = AppearanceMode.system.rawValue
     @AppStorage("trailwarden.retentionDays") private var retentionDays = 90
     @AppStorage("trailwarden.exportFormat") private var exportFormat = AuditFormat.markdown.rawValue
     @State private var roots: [TranscriptRoot] = AppModel.transcriptRoots()
@@ -23,6 +24,8 @@ struct SettingsView: View {
             VStack(alignment: .leading, spacing: 18) {
                 header
                 Hairline()
+                appearanceSection
+                Hairline()
                 rootsSection
                 Hairline()
                 retentionSection
@@ -35,7 +38,6 @@ struct SettingsView: View {
         }
         .background(Tokens.Palette.paper)
         .foregroundStyle(Tokens.Palette.ink)
-        .preferredColorScheme(.light)
     }
 
     private var header: some View {
@@ -44,6 +46,26 @@ struct SettingsView: View {
                 .font(Tokens.Typography.serif(18, weight: .semibold))
             Text("v\(TrailwardenVersion.current) · \(model.snapshot.totalEvents) olay · \(model.snapshot.sessions.count) oturum")
                 .font(Tokens.Typography.mono(9.5))
+                .foregroundStyle(Tokens.Palette.secondary)
+        }
+    }
+
+    private var appearanceSection: some View {
+        VStack(alignment: .leading, spacing: 7) {
+            SectionLabel(text: "Görünüm")
+            Picker("", selection: $appearance) {
+                ForEach(AppearanceMode.allCases) { mode in
+                    Text(mode.label).tag(mode.rawValue)
+                }
+            }
+            .pickerStyle(.segmented)
+            .labelsHidden()
+            .frame(width: 260)
+            .onChange(of: appearance) { _, value in
+                AppearanceMode(rawValue: value)?.apply()
+            }
+            Text("Otomatik, macOS'un açık/koyu ayarını izler.")
+                .font(Tokens.Typography.text(9.5))
                 .foregroundStyle(Tokens.Palette.secondary)
         }
     }

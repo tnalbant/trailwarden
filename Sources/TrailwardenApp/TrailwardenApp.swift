@@ -9,10 +9,7 @@ import TrailwardenCore
 struct TrailwardenApp: App {
     @StateObject private var model = AppModel()
 
-    init() {
-        // Two windows (panel, rules) must not merge into a tab group.
-        NSWindow.allowsAutomaticWindowTabbing = false
-    }
+    @NSApplicationDelegateAdaptor(TrailwardenDelegate.self) private var delegate
 
     var body: some Scene {
         MenuBarExtra {
@@ -32,6 +29,12 @@ struct TrailwardenApp: App {
             RulesView(model: model)
         }
         .defaultSize(width: 820, height: 620)
+        .windowResizability(.contentMinSize)
+
+        Window("Kullanım", id: "usage") {
+            UsageView(model: model)
+        }
+        .defaultSize(width: 700, height: 560)
         .windowResizability(.contentMinSize)
 
         Window("Ayarlar", id: "settings") {
