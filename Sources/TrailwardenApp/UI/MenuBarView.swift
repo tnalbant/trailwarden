@@ -26,6 +26,7 @@ struct MenuBarView: View {
         .frame(width: Tokens.Metrics.panelWidth)
         .background(Tokens.Palette.paper)
         .foregroundStyle(Tokens.Palette.ink)
+        .preferredColorScheme(.light)
     }
 
     private var header: some View {
@@ -101,7 +102,7 @@ struct MenuBarView: View {
 
     private func sessionRow(_ session: SessionSummary) -> some View {
         HStack(alignment: .firstTextBaseline, spacing: 8) {
-            Text(session.agent == .claudeCode ? "claude" : "codex")
+            Text(EventFormatting.agentLabel(session.agent))
                 .font(Tokens.Typography.mono(8.5))
                 .padding(.horizontal, 5)
                 .padding(.vertical, 1)
