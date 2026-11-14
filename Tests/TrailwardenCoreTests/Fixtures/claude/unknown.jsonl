@@ -1,0 +1,3 @@
+{"type": "future-a", "sessionId": "sess-x"}
+{"type": "future-b", "x": 1}
+{"type": "assistant", "sessionId": "sess-x", "timestamp": "2026-11-14T10:00:00.000Z", "cwd": "/tmp/unknown", "gitBranch": "main", "message": {"role": "assistant", "content": [{"type": "text", "text": "Only real event here."}]}}
