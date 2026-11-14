@@ -9,6 +9,7 @@ struct Trailwarden: ParsableCommand {
     static let configuration = CommandConfiguration(
         commandName: "trailwarden",
         abstract: "Audit trail for coding agents on this Mac.",
-        version: TrailwardenVersion.current
+        version: TrailwardenVersion.current,
+        subcommands: [RulesCommand.self]
     )
 }

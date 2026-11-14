@@ -49,10 +49,12 @@ public struct ScanReport: Sendable, Equatable {
 public struct TranscriptScanner {
     private let store: EventStore
     private let redactor: Redactor
+    private let rules: RuleEngine?
 
-    public init(store: EventStore, redactor: Redactor = Redactor()) {
+    public init(store: EventStore, redactor: Redactor = Redactor(), rules: RuleEngine? = nil) {
         self.store = store
         self.redactor = redactor
+        self.rules = rules
     }
 
     public func scan(roots: [ScanRoot]) throws -> ScanReport {
@@ -88,7 +90,10 @@ public struct TranscriptScanner {
 
             do {
                 let result = try root.parser.parse(file: url)
-                let events = result.events.map { redactor.redact($0) }
+                // Rules run on the raw text, then the store only ever sees the
+                // masked copy: a hit carries its message, never the secret.
+                let annotated = rules?.annotate(result.events) ?? result.events
+                let events = annotated.map { redactor.redact($0) }
                 let stored = try store.insert(events: events)
                 try store.recordScan(
                     path: url.path,

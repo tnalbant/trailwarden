@@ -1,0 +1,124 @@
+[
+  {
+    "id": "R1",
+    "title": "Yıkıcı silme",
+    "severity": "critical",
+    "match": {
+      "tool": "Bash",
+      "commandRegex": "(?:^|[;&|]\\s*|\\$\\()\\s*rm\\s+(?:-[a-zA-Z]*[rf][a-zA-Z]*\\s+)+(?:~|/|\\$HOME|\\*)(?=[\\s/'\\\"*]|$)"
+    },
+    "message": "Ev dizinini veya dosya sisteminin kökünü hedefleyen geri dönüşsüz silme"
+  },
+  {
+    "id": "R2",
+    "title": "İndirip çalıştırma",
+    "severity": "critical",
+    "match": {
+      "tool": "Bash",
+      "commandRegex": "(?:^|[;&|]\\s*|\\$\\()\\s*(?:curl|wget)\\b[^|;&\\n]*\\|\\s*(?:sudo\\s+)?(?:ba|z|da)?sh\\b"
+    },
+    "message": "Uzaktan indirilen içerik doğrudan kabuğa veriliyor"
+  },
+  {
+    "id": "R3",
+    "title": "Yükseltilmiş yetki",
+    "severity": "warn",
+    "match": {
+      "tool": "Bash",
+      "commandRegex": "(?:^|[;&|]\\s*|\\$\\()\\s*sudo\\b"
+    },
+    "message": "Komut yönetici yetkisiyle çalışıyor"
+  },
+  {
+    "id": "R4",
+    "title": "Sır dosyası erişimi",
+    "severity": "critical",
+    "match": {
+      "pathGlobs": [
+        "**/.ssh",
+        "**/.ssh/**",
+        "**/.aws",
+        "**/.aws/**",
+        "**/.gnupg",
+        "**/.gnupg/**",
+        "**/.config/gh",
+        "**/.config/gh/**",
+        "**/.env",
+        "**/.env.*",
+        "**/*.pem",
+        "**/id_rsa",
+        "**/id_ed25519",
+        "**/*keychain*"
+      ]
+    },
+    "message": "Kimlik bilgisi içerebilecek dosya"
+  },
+  {
+    "id": "R5",
+    "title": "Force push",
+    "severity": "warn",
+    "match": {
+      "tool": "Bash",
+      "commandRegex": "(?:^|[;&|]\\s*|\\$\\()\\s*git\\s+push\\b[^\\n]*(?:--force(?:-with-lease)?\\b|\\s-f\\b|\\+[A-Za-z])"
+    },
+    "message": "Uzak geçmişi geri dönüşsüz değiştirebilir"
+  },
+  {
+    "id": "R6",
+    "title": "İzin değişikliği",
+    "severity": "warn",
+    "match": {
+      "tool": "Bash",
+      "commandRegex": "(?:^|[;&|]\\s*|\\$\\()\\s*(?:chmod\\s+(?:-R\\s+)?777\\b|chown\\s+-R\\b)"
+    },
+    "message": "Dosya izinleri genişletiliyor"
+  },
+  {
+    "id": "R7",
+    "title": "Veri gönderimi",
+    "severity": "critical",
+    "match": {
+      "tool": "Bash",
+      "commandRegex": "(?:^|[;&|]\\s*|\\$\\()\\s*curl\\b[^\\n]*(?:\\s(?:-d|--data|--data-binary|--data-raw)\\s*@)"
+    },
+    "message": "Yerel dosya içeriği ağ üzerinden gönderiliyor"
+  },
+  {
+    "id": "R8",
+    "title": "Ayrıcalıklı konteyner",
+    "severity": "warn",
+    "match": {
+      "tool": "Bash",
+      "commandRegex": "(?:^|[;&|]\\s*|\\$\\()\\s*docker\\s+run\\b[^\\n]*(?:--privileged\\b|--net[= ]host\\b|-v\\s+/:/host)"
+    },
+    "message": "Konteyner ana makine kaynaklarına geniş yetkiyle bağlanıyor"
+  },
+  {
+    "id": "R9",
+    "title": "Çalışma dizini dışına yazma",
+    "severity": "warn",
+    "match": {
+      "tool": "Bash",
+      "commandRegex": "(?:^|[;&|]\\s*|\\$\\()\\s*(?:cp|mv|install|tee|touch|mkdir|ln|truncate)\\b|>>?\\s",
+      "pathGlobs": [
+        "/etc/**",
+        "/usr/**",
+        "~/Library/LaunchAgents",
+        "~/Library/LaunchAgents/**",
+        "../../**",
+        ".."
+      ]
+    },
+    "message": "Proje dizininin dışına yazılıyor"
+  },
+  {
+    "id": "R10",
+    "title": "Geri dönüşsüz git işlemi",
+    "severity": "warn",
+    "match": {
+      "tool": "Bash",
+      "commandRegex": "(?:^|[;&|]\\s*|\\$\\()\\s*(?:git\\s+clean\\b[^\\n]*-[a-zA-Z]*[fd]x|git\\s+reset\\s+--hard\\b|find\\b[^\\n]*\\s-delete\\b)"
+    },
+    "message": "İzlenmeyen dosyalar veya yerel değişiklikler geri alınamaz şekilde siliniyor"
+  }
+]

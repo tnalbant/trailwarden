@@ -158,7 +158,15 @@ public final class EventStore {
             VALUES (new.rowid, new.preview, new.command, new.tool);
         END
         """)
-        try database.execute("PRAGMA user_version = 2")
+        try database.execute("""
+        CREATE TABLE IF NOT EXISTS mutes (
+            rule_id TEXT NOT NULL,
+            target TEXT NOT NULL,
+            until REAL NOT NULL,
+            PRIMARY KEY (rule_id, target)
+        )
+        """)
+        try database.execute("PRAGMA user_version = 3")
     }
 
     private func userVersion() throws -> Int {
@@ -291,6 +299,52 @@ public final class EventStore {
             .double(Date().timeIntervalSince1970),
         ])
         try statement.step()
+    }
+
+    // MARK: - Mutes
+
+    /// Silences one `(rule, target)` pair until `mute.until`.
+    public func addMute(_ mute: Mute) throws {
+        let statement = try database.prepare("""
+        INSERT OR REPLACE INTO mutes (rule_id, target, until) VALUES (?,?,?)
+        """)
+        try statement.bind([
+            .text(mute.ruleId),
+            .text(mute.target),
+            .double(mute.until.timeIntervalSince1970),
+        ])
+        try statement.step()
+    }
+
+    public func mutes(now: Date = Date()) throws -> [Mute] {
+        let statement = try database.prepare("SELECT rule_id, target, until FROM mutes WHERE until > ?")
+        try statement.bind([.double(now.timeIntervalSince1970)])
+        var result: [Mute] = []
+        while try statement.step() {
+            guard let ruleId = statement.text(0), let target = statement.text(1) else { continue }
+            result.append(
+                Mute(
+                    ruleId: ruleId,
+                    target: target,
+                    until: Date(timeIntervalSince1970: statement.double(2) ?? 0)
+                )
+            )
+        }
+        return result
+    }
+
+    /// Drops mutes that have run out; called at the start of a scan.
+    @discardableResult
+    public func removeExpiredMutes(now: Date = Date()) throws -> Int {
+        let statement = try database.prepare("DELETE FROM mutes WHERE until <= ?")
+        try statement.bind([.double(now.timeIntervalSince1970)])
+        try statement.step()
+        return try count("mutes")
+    }
+
+    private func count(_ table: String) throws -> Int {
+        let statement = try database.prepare("SELECT COUNT(*) FROM \(table)")
+        return try statement.step() ? (statement.int(0) ?? 0) : 0
     }
 
     // MARK: - Reading
