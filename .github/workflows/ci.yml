@@ -1,0 +1,55 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright (c) 2026 Turgay Nalbant
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-test:
+    name: Build and test
+    runs-on: macos-15
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Toolchain
+        run: |
+          swift --version
+          xcodebuild -version
+
+      - name: Build
+        run: swift build --build-tests
+
+      - name: Test
+        run: swift test
+
+      # Trailkeep must never talk to the network. See docs/PRIVACY.md.
+      - name: No network APIs in Sources
+        run: |
+          set -euo pipefail
+          if grep -RInE 'URLSession|NSURLConnection|URLRequest|CFNetwork|import Network' Sources/; then
+            echo "::error::Network API reference found in Sources/ — Trailkeep stays offline."
+            exit 1
+          fi
+          echo "OK: no network API references."
+
+      # Real agent transcripts must never be committed; only synthetic fixtures.
+      - name: No .jsonl outside fixtures
+        run: |
+          set -euo pipefail
+          strays=$(find . -name '*.jsonl' -not -path './Tests/TrailkeepCoreTests/Fixtures/*' \
+            -not -path './.build/*' -not -path './.git/*' -print -quit)
+          if [ -n "$strays" ]; then
+            echo "::error::Unexpected transcript file in the repo: $strays"
+            exit 1
+          fi
+          echo "OK: no stray .jsonl files."

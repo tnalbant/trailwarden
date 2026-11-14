@@ -1,0 +1,77 @@
+<!-- SPDX-License-Identifier: Apache-2.0 -->
+
+# Trailkeep
+
+**The audit trail for your coding agents.** Trailkeep reads the transcripts that
+Claude Code and Codex already write to your Mac, turns them into a timeline you
+can actually read, flags risky commands (wide `rm -rf`, secret-file access,
+`curl … | sh`, force pushes), and exports a redacted audit record you can hand to
+someone else.
+
+Nothing leaves the machine: no account, no server, no telemetry, no network code
+at all (CI fails if `URLSession` or friends ever show up in `Sources/`).
+
+> Status: **pre-alpha (v0.1.0-dev)**. The plan and the daily progress log live in
+> the private project workspace; this repository is the product itself.
+
+## What it does
+
+- **Timeline** — every session, every tool call, grouped by project, with the
+  branch and working directory the agent ran in.
+- **Risk flags** — a data-driven rule set (10 rules in v1) marks the commands you
+  would want to have seen before they ran: destructive deletes, `sudo`,
+  credential-file reads, data posted to the network, force pushes.
+- **Audit export** — `trailkeep export --md` produces a human-readable, redacted
+  record for a date range (API keys, tokens, private keys and long base64 blobs
+  are masked; home-directory paths are shortened to `~`).
+- **MCP server** — `trailkeep-mcp` speaks JSON-RPC over stdio so other agents can
+  query the same data (`trailkeep_sessions`, `trailkeep_events`,
+  `trailkeep_audit`, `trailkeep_rules`).
+
+It is a **read-only observer**: Trailkeep does not run agents, does not intercept
+them, and does not modify their files. It reads `~/.claude` and `~/.codex` the
+same way you would, and keeps its own SQLite index under
+`~/Library/Application Support/Trailkeep/`.
+
+## Requirements
+
+- macOS 14 (Sonoma) or later
+- Swift 6 toolchain (Xcode 16+)
+
+## Development
+
+```bash
+swift build          # TrailkeepCore, trailkeep (CLI), trailkeep-mcp
+swift test
+xcodegen generate    # produces Trailkeep.xcodeproj for the menu-bar app
+open Trailkeep.xcodeproj
+```
+
+The Xcode project is generated, not committed: `project.yml` is the source of
+truth. Install XcodeGen with `brew install xcodegen`.
+
+### Layout
+
+```
+Sources/TrailkeepCore   parsers, event model, rule engine, store, redaction
+Sources/TrailkeepCLI    `trailkeep` command line tool
+Sources/TrailkeepMCP    stdio MCP server
+Sources/TrailkeepApp    SwiftUI menu-bar app (driven by project.yml)
+Tests/                  synthetic fixtures only — real transcripts are never committed
+```
+
+## Privacy
+
+Trailkeep is built for people who do not want their agent transcripts uploaded
+anywhere. Two rules follow from that and are enforced in CI:
+
+1. No networking code in `Sources/`.
+2. No real `.jsonl` transcript in the repository; tests use hand-written
+   synthetic fixtures only.
+
+The index database is created with mode `0600`. See `docs/` for the threat model
+once v0.1.0 lands.
+
+## License
+
+Apache-2.0. Every source file carries an SPDX header.
