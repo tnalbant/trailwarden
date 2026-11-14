@@ -61,7 +61,6 @@ struct TimelineView: View {
         // The paper palette is light-only, so pin the appearance: a dark system
         // theme otherwise paints the title bar dark and the selected sidebar row
         // white-on-white.
-        .preferredColorScheme(.light)
     }
 
     // MARK: - Sidebar

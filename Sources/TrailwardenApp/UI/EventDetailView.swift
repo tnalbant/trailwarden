@@ -10,6 +10,7 @@ import TrailwardenCore
 struct EventDetailView: View {
     let event: Event
     var onMute: ((RiskHit, Event) -> Void)?
+    @State private var copiedResume = false
 
     @State private var copiedField: String?
 
@@ -31,12 +32,44 @@ struct EventDetailView: View {
                 if let diff { diffSection(diff) }
                 if !event.paths.isEmpty { pathsSection }
                 if let raw = event.rawJSON { rawSection(raw) }
+                resumeSection
             }
             .padding(16)
             .frame(maxWidth: .infinity, alignment: .leading)
         }
         .background(Tokens.Palette.paper)
         .foregroundStyle(Tokens.Palette.ink)
+    }
+
+    // MARK: - Resume
+
+    /// The one action people ask a history browser for: carry on from here.
+    private var resumeSection: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            if let command = ResumeCommand.command(
+                agent: event.agent,
+                sessionId: event.sessionId,
+                cwd: event.cwd
+            ) {
+                SectionLabel(text: "Bu oturumu sürdür")
+                HStack(spacing: 8) {
+                    Text(command)
+                        .font(Tokens.Typography.mono(9.5))
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                        .textSelection(.enabled)
+                    Spacer(minLength: 6)
+                    Button(copiedResume ? "Kopyalandı" : "Kopyala") {
+                        NSPasteboard.general.clearContents()
+                        NSPasteboard.general.setString(command, forType: .string)
+                        copiedResume = true
+                    }
+                    .buttonStyle(.plain)
+                    .font(Tokens.Typography.text(10, weight: .medium))
+                    .foregroundStyle(Tokens.Palette.accent)
+                }
+            }
+        }
     }
 
     // MARK: - Sections
