@@ -104,6 +104,7 @@ public final class EventStore {
             preview TEXT,
             risk TEXT NOT NULL,
             severity TEXT,
+            severity_rank INTEGER,
             raw_json TEXT
         )
         """)
@@ -166,7 +167,25 @@ public final class EventStore {
             PRIMARY KEY (rule_id, target)
         )
         """)
-        try database.execute("PRAGMA user_version = 3")
+        // v4 adds a numeric severity rank so `--severity warn` is a range scan
+        // instead of a string comparison (alphabetically "critical" < "warn").
+        if try userVersion() < 4, try !columnExists("severity_rank", in: "events") {
+            try database.execute("ALTER TABLE events ADD COLUMN severity_rank INTEGER")
+        }
+        try database.execute("PRAGMA user_version = 4")
+    }
+
+    /// Row statements for the query layer; keeps the database handle private.
+    func prepareRowStatement(_ sql: String) throws -> SQLiteStatement {
+        try database.prepare(sql)
+    }
+
+    private func columnExists(_ column: String, in table: String) throws -> Bool {
+        let statement = try database.prepare("PRAGMA table_info(\(table))")
+        while try statement.step() {
+            if statement.text(1) == column { return true }
+        }
+        return false
     }
 
     private func userVersion() throws -> Int {
@@ -178,8 +197,8 @@ public final class EventStore {
 
     private static let insertEventSQL = """
     INSERT OR REPLACE INTO events
-        (id, session_id, agent, kind, ts, cwd, git_branch, tool, command, paths, preview, risk, severity, raw_json)
-    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+        (id, session_id, agent, kind, ts, cwd, git_branch, tool, command, paths, preview, risk, severity, severity_rank, raw_json)
+    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
     """
 
     /// Inserts or replaces events and refreshes the affected session rows.
@@ -204,8 +223,8 @@ public final class EventStore {
             for event in events {
                 let paths = String(decoding: try encoder.encode(event.paths), as: UTF8.self)
                 let risk = String(decoding: try encoder.encode(event.risk), as: UTF8.self)
-                let severity = event.risk.map(\.severity).max()?.rawValue
-                try insert.bind([
+                let severity = event.risk.map(\.severity).max()
+                let values: [SQLValue] = [
                     .text(event.id),
                     .text(event.sessionId),
                     .text(event.agent.rawValue),
@@ -218,9 +237,11 @@ public final class EventStore {
                     .text(paths),
                     event.preview.map { SQLValue.text($0) } ?? .null,
                     .text(risk),
-                    severity.map { SQLValue.text($0) } ?? .null,
+                    severity.map { SQLValue.text($0.rawValue) } ?? .null,
+                    severity.map { SQLValue.int($0.rank) } ?? .null,
                     Self.cappedRawJSON(event.rawJSON).map { SQLValue.text($0) } ?? .null,
-                ])
+                ]
+                try insert.bind(values)
                 // The FTS index is maintained by the events_ai / events_au
                 // triggers, so this stays a single statement per event.
                 try insert.step()
@@ -299,6 +320,16 @@ public final class EventStore {
             .double(Date().timeIntervalSince1970),
         ])
         try statement.step()
+    }
+
+    // MARK: - Diagnostics
+
+    public func schemaVersion() throws -> Int { try userVersion() }
+
+    public func integrityCheck() throws -> String {
+        let statement = try database.prepare("PRAGMA integrity_check")
+        guard try statement.step(), let value = statement.text(0) else { return "unknown" }
+        return value
     }
 
     // MARK: - Mutes
@@ -436,7 +467,7 @@ public final class EventStore {
         return result.sorted { $0.ts > $1.ts }
     }
 
-    private static func event(from statement: SQLiteStatement) -> Event? {
+    static func event(from statement: SQLiteStatement) -> Event? {
         guard
             let id = statement.text(0),
             let agentRaw = statement.text(2),
