@@ -3,7 +3,7 @@
 # Trailwarden
 
 **The audit trail for your coding agents.** Trailwarden reads the transcripts that
-Claude Code, Codex and Gemini CLI already write to your Mac, turns them into a timeline you
+Claude Code, Codex, Gemini CLI and Hermes Agent already write to your Mac, turns them into a timeline you
 can actually read, flags risky commands (wide `rm -rf`, secret-file access,
 `curl … | sh`, force pushes), and exports a redacted audit record you can hand to
 someone else.
@@ -46,6 +46,9 @@ real project appears in them.
 - **MCP server** — `trailwarden-mcp` speaks JSON-RPC over stdio so other agents can
   query the same data (`trailwarden_sessions`, `trailwarden_events`,
   `trailwarden_audit`, `trailwarden_rules`).
+
+Agents that keep history in SQLite (Hermes: `~/.hermes/state.db`) are read
+incrementally through a watermark, so a scan only parses what is new.
 
 It is a **read-only observer**: Trailwarden does not run agents, does not intercept
 them, and does not modify their files. It reads `~/.claude`, `~/.codex` and `~/.gemini` the

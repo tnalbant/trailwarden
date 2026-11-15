@@ -39,7 +39,10 @@ struct ScanCommand: ParsableCommand {
         let engine = try RuleEngine.builtIn(mutes: database.mutes())
         let scanner = TranscriptScanner(store: database, rules: engine)
 
-        let report = try scanner.scan(roots: ScanRoot.standard(agents: agents))
+        let report = try scanner.scan(
+            roots: ScanRoot.standard(agents: agents),
+            databases: ScanRoot.standardDatabases(agents: agents)
+        )
         let query = EventQuery(
             since: sinceDate,
             agents: agents,

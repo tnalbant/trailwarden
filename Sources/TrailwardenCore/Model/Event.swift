@@ -9,6 +9,7 @@ public enum Agent: String, Codable, Sendable, CaseIterable {
     case codex = "codex"
     case opencode = "opencode"
     case gemini = "gemini"
+    case hermes = "hermes"
 }
 
 /// What kind of thing happened inside a session.

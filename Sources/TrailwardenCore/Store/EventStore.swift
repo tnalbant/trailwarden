@@ -295,6 +295,16 @@ public final class EventStore {
         try upsert.step()
     }
 
+    /// The newest event stored for an agent — the watermark for a database source.
+    public func latestTimestamp(agent: Agent) throws -> Date? {
+        let statement = try prepareRowStatement(
+            "SELECT MAX(ts) FROM events WHERE agent = ?"
+        )
+        try statement.bind([.text(agent.rawValue)])
+        guard try statement.step(), let value = statement.double(0) else { return nil }
+        return Date(timeIntervalSince1970: value)
+    }
+
     /// Re-derives the given session rows; used after bulk rewrites and pruning.
     public func refreshSessions(ids: [String]) throws {
         for id in ids {

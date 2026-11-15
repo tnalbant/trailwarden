@@ -15,6 +15,13 @@ public struct ScanRoot: Sendable {
         self.parser = parser
     }
 
+    /// Agents whose history lives in a database rather than in files.
+    public static func standardDatabases(agents: Set<Agent>? = nil) -> [DatabaseSource] {
+        let source = DatabaseSource(database: HermesDatabaseParser.defaultURL, parser: HermesDatabaseParser())
+        guard let agents, !agents.isEmpty else { return [source] }
+        return agents.contains(.hermes) ? [source] : []
+    }
+
     /// The two directories Trailwarden reads by default, optionally narrowed to
     /// the agents the user asked for.
     public static func standard(agents: Set<Agent>? = nil) -> [ScanRoot] {
@@ -65,12 +72,39 @@ public struct TranscriptScanner {
         self.rules = rules
     }
 
-    public func scan(roots: [ScanRoot]) throws -> ScanReport {
+    public func scan(roots: [ScanRoot], databases: [DatabaseSource] = []) throws -> ScanReport {
         var report = ScanReport()
         for root in roots {
             scan(root: root, into: &report)
         }
+        for source in databases {
+            scan(database: source, into: &report)
+        }
         return report
+    }
+
+    /// Agents that keep history in SQLite are read incrementally: only rows newer
+    /// than the newest event already stored for that agent.
+    private func scan(database source: DatabaseSource, into report: inout ScanReport) {
+        guard FileManager.default.fileExists(atPath: source.database.path) else { return }
+        report.filesSeen += 1
+
+        do {
+            let since = try store.latestTimestamp(agent: source.agent)
+            let result = try source.parser.parse(database: source.database, since: since)
+            guard !result.events.isEmpty else {
+                report.filesParsed += 1
+                return
+            }
+            let annotated = rules?.annotate(result.events) ?? result.events
+            let events = annotated.map { redactor.redact($0) }
+            let stored = try store.insert(events: events)
+            report.filesParsed += 1
+            report.eventsStored += stored
+            report.skippedLines += result.skippedLines
+        } catch {
+            report.failures.append("\(source.database.lastPathComponent): \(error)")
+        }
     }
 
     private func scan(root: ScanRoot, into report: inout ScanReport) {
