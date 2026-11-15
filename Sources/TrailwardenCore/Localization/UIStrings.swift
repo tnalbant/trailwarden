@@ -15,6 +15,8 @@ public enum UIString: String, CaseIterable, Sendable {
     case windowRules, windowUsage, windowSettings, openDashboard, recentSessions
     /// Activity feed — what the agent did, not how many rows the database holds
     case whatHappened, nothingRiskyToday, todayFeed, timelineTab, messagesToday
+    /// Recovery from a filter combination that matches nothing
+    case clearFilters
     // Counts
     case events, event, findings, sessions, eventCount, sessionMeta, sessionCritical
     case projectMeta, liveCount, liveTooltip, zeroEvents, eventsRatio
@@ -71,6 +73,7 @@ public enum UITranslations {
         .todayFeed: "Today",
         .timelineTab: "Timeline",
         .messagesToday: "%d messages",
+        .clearFilters: "Clear filters",
 
         .events: "events",
         .event: "event",

@@ -23,6 +23,7 @@ extension UITranslations {
         .todayFeed: "Heute",
         .timelineTab: "Zeitleiste",
         .messagesToday: "%d Nachrichten",
+        .clearFilters: "Filter zurücksetzen",
 
         .events: "Ereignisse",
         .event: "Ereignis",
