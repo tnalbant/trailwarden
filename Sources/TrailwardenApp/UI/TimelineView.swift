@@ -254,12 +254,25 @@ struct TimelineView: View {
     }
 
     private var emptyState: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: 8) {
             Text(L(.noEventsInRange))
                 .font(Tokens.Typography.serif(14))
             Text(L(.noEventsHint))
                 .font(Tokens.Typography.text(11))
                 .foregroundStyle(Tokens.Palette.secondary)
+            // A filter combination that matches nothing should not be a dead end.
+            // Findings-only plus one session is the easy way to get here.
+            Button(L(.clearFilters)) {
+                model.findingsOnly = false
+                model.agentFilter = nil
+                model.search = ""
+                model.selection = .all
+                model.window = .month
+            }
+            .buttonStyle(.plain)
+            .font(Tokens.Typography.text(11, weight: .medium))
+            .foregroundStyle(Tokens.Palette.accent)
+            .padding(.top, 2)
         }
         .padding(24)
     }

@@ -64,13 +64,22 @@ struct MainWindowView: View {
         .foregroundStyle(Tokens.Palette.ink)
         .task {
             #if DEBUG
-                switch ProcessInfo.processInfo.environment["TRAILWARDEN_SELECT_FIRST"] {
+                let environment = ProcessInfo.processInfo.environment
+                if environment["TRAILWARDEN_SHOW_FINDINGS"] == "1" {
+                    try? await Task.sleep(for: .seconds(1))
+                    showFindings()
+                }
+                switch environment["TRAILWARDEN_SELECT_FIRST"] {
                 case "1":
                     try? await Task.sleep(for: .seconds(1))
-                    timeline.selectedEventID = timeline.events.first?.id
+                    if let sessionID = timeline.events.first?.sessionId {
+                        open(sessionID)
+                    }
                 case "tool":
                     try? await Task.sleep(for: .seconds(1))
-                    timeline.selectedEventID = timeline.events.first { $0.command != nil }?.id
+                    if let sessionID = timeline.events.first(where: { $0.command != nil })?.sessionId {
+                        open(sessionID)
+                    }
                 default:
                     break
                 }
@@ -160,6 +169,12 @@ struct MainWindowView: View {
     /// "2 critical" is an invitation, not a label: it opens the timeline with the
     /// finding filter on and today's range, so the two events are the only rows.
     private func showFindings() {
+        // A finding view is a fresh question: today's findings across every
+        // session. Leaving the previous session or search in place is how the
+        // pane ended up empty and looking broken.
+        timeline.selection = .all
+        timeline.agentFilter = nil
+        timeline.search = ""
         timeline.window = .day
         timeline.findingsOnly = true
         mode = .timeline
@@ -169,6 +184,11 @@ struct MainWindowView: View {
     /// timeline is the record. The range widens first, or an older session would
     /// be filtered out by the current preset.
     private func open(_ sessionID: String) {
+        // Opening a session means its whole story, so any finding/agent filter
+        // from a previous visit is cleared rather than silently applied.
+        timeline.findingsOnly = false
+        timeline.agentFilter = nil
+        timeline.search = ""
         timeline.window = .everything
         timeline.selection = .session(sessionID)
         mode = .timeline
