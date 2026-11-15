@@ -56,17 +56,30 @@ struct MenuBarView: View {
         VStack(alignment: .leading, spacing: 5) {
             SectionLabel(text: L(.today))
             if let critical = model.snapshot.latestCritical {
-                HStack(alignment: .firstTextBaseline, spacing: 5) {
-                    Text("\(model.snapshot.criticalToday)")
-                        .font(Tokens.Typography.serif(20, weight: .semibold))
-                        .foregroundStyle(Tokens.Palette.accent)
-                    Text(L(.severityCritical))
-                        .font(Tokens.Typography.text(10))
-                        .foregroundStyle(Tokens.Palette.secondary)
-                    Text(time(critical.time))
-                        .font(Tokens.Typography.mono(9))
-                        .foregroundStyle(Tokens.Palette.tertiary)
+                Button {
+                    model.findingsRequested += 1
+                    openWindow(id: "main")
+                    NSApp.activate(ignoringOtherApps: true)
+                } label: {
+                    HStack(alignment: .firstTextBaseline, spacing: 5) {
+                        Text("\(model.snapshot.criticalToday)")
+                            .font(Tokens.Typography.serif(20, weight: .semibold))
+                            .foregroundStyle(Tokens.Palette.accent)
+                        Text(L(.severityCritical))
+                            .font(Tokens.Typography.text(10))
+                            .foregroundStyle(Tokens.Palette.secondary)
+                        Text(time(critical.time))
+                            .font(Tokens.Typography.mono(9))
+                            .foregroundStyle(Tokens.Palette.tertiary)
+                        Spacer(minLength: 0)
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 8, weight: .semibold))
+                            .foregroundStyle(Tokens.Palette.tertiary)
+                    }
+                    .contentShape(Rectangle())
                 }
+                .buttonStyle(.plain)
+                .help(L(.whatHappened))
                 if let rule = critical.ruleMessage {
                     Text(rule)
                         .font(Tokens.Typography.text(10))
@@ -132,8 +145,9 @@ struct MenuBarView: View {
         } label: {
             HStack(alignment: .firstTextBaseline, spacing: 6) {
                 Text(time(item.time))
-                    .font(Tokens.Typography.mono(9))
+                    .font(Tokens.Typography.mono(8.5))
                     .foregroundStyle(Tokens.Palette.tertiary)
+                    .frame(width: 74, alignment: .leading)
                 Text(item.label)
                     .font(Tokens.Typography.mono(9, weight: .medium))
                     .foregroundStyle(item.isMessage ? Tokens.Palette.secondary : Tokens.Palette.ink)

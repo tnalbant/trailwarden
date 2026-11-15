@@ -40,6 +40,9 @@ final class AppModel: ObservableObject {
     /// Set by the menu bar when a session row is clicked; the main window picks
     /// it up, switches the timeline to that session, and clears it again.
     @Published var sessionToOpen: String?
+    /// Bumped when the reader asks to see today's criticals; the window watches
+    /// it and switches to the timeline with the finding filter on.
+    @Published var findingsRequested = 0
     @Published private(set) var isScanning = false
     /// Sessions that wrote something in the last two minutes.
     @Published private(set) var liveSessions: Set<String> = []
@@ -104,7 +107,12 @@ final class AppModel: ObservableObject {
         }
         snapshot.messagesToday = today.filter { $0.kind == .message }.count
         snapshot.recentActions = ActivityDigest.items(from: today, limit: 6)
-        snapshot.latestCritical = snapshot.recentActions.first { $0.severity == .critical }
+        // Searched across the whole day, not across the six newest rows: a
+        // critical from 09:00 is still today's critical at 21:00.
+        let worstToday = today
+            .filter { $0.risk.contains { $0.severity == .critical } }
+            .max { $0.ts < $1.ts }
+        snapshot.latestCritical = worstToday.map(ActivityDigest.item(from:))
         return snapshot
     }
 
