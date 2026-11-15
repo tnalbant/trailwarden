@@ -34,31 +34,23 @@ struct FeedView: View {
                         sectionView(section)
                     }
                 }
-                .padding(.horizontal, Tokens.Metrics.gutter)
-                .padding(.vertical, 16)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
             }
         }
     }
 
     private var header: some View {
         HStack(alignment: .firstTextBaseline, spacing: 10) {
-            Text(L(.todayFeed))
-                .font(Tokens.Typography.serif(15, weight: .semibold))
             Text(dateLabel)
-                .font(Tokens.Typography.mono(10))
-                .foregroundStyle(Tokens.Palette.secondary)
+                .font(Tokens.Typography.serif(15, weight: .semibold))
             Spacer()
-            if model.criticalCount > 0 {
-                Text(Lf(.sessionCritical, [model.criticalCount]))
-                    .font(Tokens.Typography.text(10, weight: .medium))
-                    .foregroundStyle(Tokens.Palette.accent)
-            }
             if model.isLoading {
                 ProgressView().controlSize(.small)
             }
         }
-        .padding(.horizontal, Tokens.Metrics.gutter)
-        .padding(.vertical, 10)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 11)
     }
 
     private var emptyState: some View {
@@ -74,12 +66,15 @@ struct FeedView: View {
 
     private func sectionView(_ section: FeedModel.Section) -> some View {
         VStack(alignment: .leading, spacing: 6) {
-            HStack(alignment: .firstTextBaseline, spacing: 8) {
+            HStack(alignment: .firstTextBaseline, spacing: 6) {
+                Image(systemName: "folder")
+                    .font(.system(size: 10))
+                    .foregroundStyle(Tokens.Palette.secondary)
                 Text(section.title)
-                    .font(Tokens.Typography.serif(13, weight: .semibold))
+                    .font(Tokens.Typography.text(11.5, weight: .medium))
                 Text("\(section.items.count)")
-                    .font(Tokens.Typography.mono(9))
-                    .foregroundStyle(Tokens.Palette.tertiary)
+                    .font(Tokens.Typography.text(9))
+                    .foregroundStyle(Tokens.Palette.secondary)
                 if section.criticalCount > 0 {
                     Circle()
                         .fill(Tokens.Palette.severity(.critical))
@@ -104,7 +99,7 @@ struct FeedView: View {
                 Text(time(item.time))
                     .font(Tokens.Typography.mono(9.5))
                     .foregroundStyle(Tokens.Palette.tertiary)
-                    .frame(width: 38, alignment: .leading)
+                    .frame(width: 86, alignment: .leading)
 
                 Text(item.label)
                     .font(Tokens.Typography.mono(9))
@@ -152,8 +147,6 @@ struct FeedView: View {
     }
 
     private func time(_ date: Date) -> String {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "HH:mm"
-        return formatter.string(from: date)
+        EventFormatting.stamp(date)
     }
 }

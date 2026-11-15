@@ -95,7 +95,7 @@ struct EventDetailView: View {
                 Text(event.tool ?? event.kind.rawValue)
                     .font(Tokens.Typography.mono(9.5, weight: .medium))
                 Spacer()
-                Text(EventFormatting.time(event.ts))
+                Text(EventFormatting.stamp(event.ts))
                     .font(Tokens.Typography.mono(9.5))
                     .foregroundStyle(Tokens.Palette.secondary)
             }
