@@ -23,6 +23,7 @@ struct MainWindowView: View {
     @StateObject private var timeline: TimelineModel
     @StateObject private var feed: FeedModel
     @State private var mode: Mode = .feed
+    @FocusState private var searchFocused: Bool
 
     init(model: AppModel) {
         self.model = model
@@ -50,7 +51,10 @@ struct MainWindowView: View {
                 timelineView
             }
         }
-        .frame(minWidth: 780, minHeight: 480)
+        // Three columns need 200 + 400 + 340 plus two dividers. Below that the
+        // split view squeezed them and the panes clipped their own content — the
+        // sidebar cut on the left, timestamps losing their first digit.
+        .frame(minWidth: 960, minHeight: 520)
         .background(Tokens.Palette.paper)
         .foregroundStyle(Tokens.Palette.ink)
         .task {
@@ -115,6 +119,10 @@ struct MainWindowView: View {
                 .help(selectionHelp)
             }
 
+            if mode == .timeline {
+                searchField
+            }
+
             Spacer()
 
             if model.snapshot.criticalToday > 0 {
@@ -154,6 +162,31 @@ struct MainWindowView: View {
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 10)
+    }
+
+    /// The search belongs to the timeline, but it reads better in the window row
+    /// than squeezed into the filter bar, where it either wrapped or clipped.
+    private var searchField: some View {
+        HStack(spacing: 4) {
+            Image(systemName: "magnifyingglass")
+                .font(.system(size: 10))
+                .foregroundStyle(Tokens.Palette.tertiary)
+            TextField(L(.searchPlaceholder), text: $timeline.search)
+                .textFieldStyle(.plain)
+                .font(Tokens.Typography.text(11))
+                .focused($searchFocused)
+        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 4)
+        .background(Tokens.Palette.surface)
+        .clipShape(RoundedRectangle(cornerRadius: 5))
+        .frame(minWidth: 140, idealWidth: 200, maxWidth: 240)
+        .background {
+            Button("") { searchFocused = true }
+                .keyboardShortcut("f", modifiers: .command)
+                .opacity(0)
+                .frame(width: 0, height: 0)
+        }
     }
 
     /// The row shows a shortened id; hovering spells out what it is.

@@ -35,7 +35,6 @@ struct TimelineView: View {
     @ObservedObject var model: TimelineModel
     var onMute: ((RiskHit, Event) -> Void)?
     var liveSessionIDs: Set<String> = []
-    @FocusState private var searchFocused: Bool
 
     private var selectionBinding: Binding<TimelineSelection?> {
         Binding(
@@ -55,9 +54,9 @@ struct TimelineView: View {
         // own row keeps the space it reserves.
         HSplitView {
             sidebar
-                .frame(minWidth: 200, idealWidth: 240, maxWidth: 320)
+                .frame(minWidth: 200, idealWidth: 240, maxWidth: 300)
             stream
-                .frame(minWidth: 380, idealWidth: 620)
+                .frame(minWidth: 400, idealWidth: 620)
             Group {
                 if let event = model.selectedEvent {
                     EventDetailView(event: event, onMute: onMute)
@@ -163,55 +162,44 @@ struct TimelineView: View {
     }
 
     private var filters: some View {
+        // The search field moved to the window row, where there was empty space and
+        // room to breathe; four controls fit in this column at its minimum width.
         HStack(spacing: 10) {
-            Picker("", selection: $model.window) {
-                ForEach(TimelineWindow.allCases) { window in
-                    Text(window.shortLabel).tag(window)
-                }
-            }
-            .labelsHidden()
-            .fixedSize()
-
-            Picker("", selection: $model.agentFilter) {
-                Text(L(.allAgents)).tag(Agent?.none)
-                ForEach(Agent.allCases, id: \.self) { agent in
-                    Text(EventFormatting.agentLabel(agent)).tag(Agent?.some(agent))
-                }
-            }
-            .labelsHidden()
-            .fixedSize()
-
-            FilterChip(title: L(.onlyFindings), isOn: $model.findingsOnly)
-                .layoutPriority(1)
-            FilterChip(title: L(.rawStream), isOn: $model.showRawEvents)
-                .layoutPriority(1)
-                .help(L(.showCountersHint))
-
-            Spacer(minLength: 8)
-
-            HStack(spacing: 4) {
-                Image(systemName: "magnifyingglass")
-                    .font(.system(size: 10))
-                    .foregroundStyle(Tokens.Palette.secondary)
-                TextField("Ara", text: $model.search)
-                    .textFieldStyle(.plain)
-                    .font(Tokens.Typography.text(11))
-                    .focused($searchFocused)
-                    .frame(minWidth: 90, idealWidth: 140, maxWidth: 170)
-            }
-            .padding(.horizontal, 7)
-            .padding(.vertical, 4)
-            .background(Tokens.Palette.surface)
-            .clipShape(RoundedRectangle(cornerRadius: 5))
+            rangePicker
+            agentPicker
+            toggles
+            Spacer(minLength: 0)
         }
-        .padding(.horizontal, 16)
+        .padding(.horizontal, 12)
         .padding(.vertical, 9)
-        .background {
-            // ⌘F focuses the search field, the way every other list does.
-            Button("Ara") { searchFocused = true }
-                .keyboardShortcut("f", modifiers: .command)
-                .opacity(0)
-                .frame(width: 0, height: 0)
+    }
+
+    private var rangePicker: some View {
+        Picker("", selection: $model.window) {
+            ForEach(TimelineWindow.allCases) { window in
+                Text(window.shortLabel).tag(window)
+            }
+        }
+        .labelsHidden()
+        .fixedSize()
+    }
+
+    private var agentPicker: some View {
+        Picker("", selection: $model.agentFilter) {
+            Text(L(.allAgents)).tag(Agent?.none)
+            ForEach(Agent.allCases, id: \.self) { agent in
+                Text(EventFormatting.agentLabel(agent)).tag(Agent?.some(agent))
+            }
+        }
+        .labelsHidden()
+        .fixedSize()
+    }
+
+    private var toggles: some View {
+        HStack(spacing: 10) {
+            FilterChip(title: L(.onlyFindings), isOn: $model.findingsOnly)
+            FilterChip(title: L(.rawStream), isOn: $model.showRawEvents)
+                .help(L(.showCountersHint))
         }
     }
 

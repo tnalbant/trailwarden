@@ -11,6 +11,7 @@ extension UITranslations {
         .allTime: "Tümü",
         .allSessions: "Tüm oturumlar",
         .labelSession: "Oturum",
+        .searchPlaceholder: "Ara",
         .scope: "Kapsam",
         .projects: "Projeler",
 

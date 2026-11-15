@@ -11,6 +11,7 @@ extension UITranslations {
         .allTime: "Gesamt",
         .allSessions: "Alle Sitzungen",
         .labelSession: "Sitzung",
+        .searchPlaceholder: "Suchen",
         .scope: "Bereich",
         .projects: "Projekte",
 
