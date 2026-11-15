@@ -107,6 +107,31 @@ final class TimelineQueryTests: XCTestCase {
         XCTAssertTrue(hostile.isEmpty, "quoted input is a phrase, not an FTS expression")
     }
 
+    func testSearchMatchesTheStartOfAWord() throws {
+        try seed()
+
+        // Typing the beginning of a token has to find it: the whole point of a
+        // search box is that you need not remember the exact word.
+        let events = try store.events(matching: EventQuery(search: "rele"))
+        XCTAssertEqual(events.map(\.id), ["e4", "e2", "e1"])
+    }
+
+    func testEveryWordHasToAppearButOrderDoesNotMatter() throws {
+        try seed()
+
+        let events = try store.events(matching: EventQuery(search: "notes release"))
+        XCTAssertEqual(events.map(\.id), ["e2", "e1"], "both words, any order")
+    }
+
+    func testSearchOfPunctuationAloneFiltersNothing() throws {
+        try seed()
+
+        // A dash has no tokens; it must not become a syntax error, and it must not
+        // silently empty the list either.
+        let events = try store.events(matching: EventQuery(search: " - "))
+        XCTAssertEqual(events.count, 5)
+    }
+
     func testSearchCombinesWithFilters() throws {
         try seed()
         let events = try store.events(matching: EventQuery(minimumSeverity: .warn, search: "release"))
