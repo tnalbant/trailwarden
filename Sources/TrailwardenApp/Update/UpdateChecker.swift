@@ -21,9 +21,15 @@ final class UpdateChecker: ObservableObject {
         case failed
     }
 
-    /// Where the published feed lives. Kept as a constant rather than a setting so
-    /// that a build cannot be talked into reading somewhere else at runtime.
-    static let publishedFeed = URL(string: "https://tnalbant.com/trailwarden/latest.json")!
+    /// Where the published feed lives: an asset named `latest.json` on the newest
+    /// GitHub release. The `releases/latest/download/` path is GitHub's stable
+    /// redirect to that asset, so publishing a release is the whole update —
+    /// there is no other place to keep in sync.
+    ///
+    /// Kept as a constant rather than a setting so that a build cannot be talked
+    /// into reading somewhere else at runtime.
+    static let publishedFeed = URL(
+        string: "https://github.com/tnalbant/trailwarden/releases/latest/download/latest.json")!
 
     @Published private(set) var state: State = .idle
 
