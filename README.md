@@ -14,6 +14,19 @@ at all (CI fails if `URLSession` or friends ever show up in `Sources/`).
 > Status: **pre-alpha (v0.1.0-dev)**. The plan and the daily progress log live in
 > the private project workspace; this repository is the product itself.
 
+## Screenshots
+
+Light, with the timeline, the filters and the inspector:
+
+![Timeline](docs/screenshots/timeline-light.png)
+
+Dark, on the usage screen:
+
+![Usage](docs/screenshots/usage-dark.png)
+
+Both were taken against an invented database (`scripts/seed-demo.py`), so no
+real project appears in them.
+
 ## What it does
 
 - **Timeline** — every session, every tool call, grouped by project, with the
@@ -24,6 +37,12 @@ at all (CI fails if `URLSession` or friends ever show up in `Sources/`).
 - **Audit export** — `trailwarden export --md` produces a human-readable, redacted
   record for a date range (API keys, tokens, private keys and long base64 blobs
   are masked; home-directory paths are shortened to `~`).
+- **Usage** — a 30-day token chart and a per-agent breakdown, from the counters
+  the agents already write. No price is printed: the same token costs different
+  money depending on plan and model.
+- **Resume** — the exact command to carry on from a session (`claude --resume`,
+  `codex resume`, `gemini --resume`), quoted and ready to copy.
+- **Appearance** — follows macOS light/dark, or pinned in Settings.
 - **MCP server** — `trailwarden-mcp` speaks JSON-RPC over stdio so other agents can
   query the same data (`trailwarden_sessions`, `trailwarden_events`,
   `trailwarden_audit`, `trailwarden_rules`).
@@ -37,6 +56,17 @@ same way you would, and keeps its own SQLite index under
 
 - macOS 14 (Sonoma) or later
 - Swift 6 toolchain (Xcode 16+)
+
+## Try it without your own data
+
+```bash
+python3 scripts/seed-demo.py /tmp/trailwarden-demo.sqlite
+TRAILWARDEN_DB=/tmp/trailwarden-demo.sqlite \
+  ~/dev/.trailwarden-derived/Build/Products/Debug/Trailwarden.app/Contents/MacOS/Trailwarden
+```
+
+`TRAILWARDEN_DB` points the app at another index — the demo, or a copy taken
+for a bug report.
 
 ## Development
 
