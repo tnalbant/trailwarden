@@ -10,10 +10,11 @@ struct Snapshot: Sendable, Equatable {
     var warnToday = 0
     var sessions: [SessionSummary] = []
     var totalEvents = 0
-
-    var recentSessions: [SessionSummary] {
-        Array(sessions.sorted { $0.startedAt > $1.startedAt }.prefix(5))
-    }
+    /// What the agent actually did today, newest first. The panel leads with
+    /// these because "hermes · ~ · 6 events" tells a reader nothing.
+    var recentActions: [ActivityItem] = []
+    var latestCritical: ActivityItem?
+    var messagesToday = 0
 }
 
 /// One transcript directory shown during onboarding.
@@ -36,6 +37,9 @@ final class AppModel: ObservableObject {
     static let onboardingKey = "trailwarden.onboarding.complete"
 
     @Published private(set) var snapshot = Snapshot()
+    /// Set by the menu bar when a session row is clicked; the main window picks
+    /// it up, switches the timeline to that session, and clears it again.
+    @Published var sessionToOpen: String?
     @Published private(set) var isScanning = false
     /// Sessions that wrote something in the last two minutes.
     @Published private(set) var liveSessions: Set<String> = []
@@ -90,7 +94,7 @@ final class AppModel: ObservableObject {
         snapshot.totalEvents = try store.eventCount()
 
         let startOfDay = Calendar.current.startOfDay(for: Date())
-        let today = try store.events(matching: EventQuery(since: startOfDay, onlyFindings: true))
+        let today = try store.events(matching: EventQuery(since: startOfDay, limit: 500))
         for event in today {
             switch event.risk.map(\.severity).max() {
             case .critical: snapshot.criticalToday += 1
@@ -98,6 +102,9 @@ final class AppModel: ObservableObject {
             default: break
             }
         }
+        snapshot.messagesToday = today.filter { $0.kind == .message }.count
+        snapshot.recentActions = ActivityDigest.items(from: today, limit: 6)
+        snapshot.latestCritical = snapshot.recentActions.first { $0.severity == .critical }
         return snapshot
     }
 

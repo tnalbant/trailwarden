@@ -5,6 +5,12 @@ import AppKit
 import SwiftUI
 import TrailwardenCore
 
+/// The menu bar panel: a five-second answer to three questions — is anything
+/// wrong, what did the agent just do, and how do I get to the detail.
+///
+/// It used to lead with "hermes · ~ · 6 events" rows, which are all identical to
+/// a reader, and with a database count nobody asked for. Rows are actions now:
+/// the tool, the thing it touched, the time.
 struct MenuBarView: View {
     @AppStorage(LocalizationStore.defaultsKey) private var language = AppLanguage.system.rawValue
     @ObservedObject var model: AppModel
@@ -15,9 +21,9 @@ struct MenuBarView: View {
             header
             Hairline()
             if model.onboardingDone {
-                summary
+                status
                 Hairline()
-                recentSessions
+                activity
             } else {
                 OnboardingView(model: model)
             }
@@ -42,130 +48,131 @@ struct MenuBarView: View {
         .padding(.vertical, 11)
     }
 
-    private var summary: some View {
-        VStack(alignment: .leading, spacing: 7) {
+    // MARK: - Status
+
+    /// One sentence about today's risk, not a count without a subject: the
+    /// number only means something next to the command that caused it.
+    private var status: some View {
+        VStack(alignment: .leading, spacing: 5) {
             SectionLabel(text: L(.today))
-            HStack(alignment: .firstTextBaseline, spacing: 20) {
-                metric(model.snapshot.criticalToday, label: L(.severityCritical), tinted: true)
-                metric(model.snapshot.warnToday, label: L(.severityWarning), tinted: false)
-                Spacer()
-                VStack(alignment: .trailing, spacing: 1) {
-                    Text("\(model.snapshot.totalEvents)")
-                        .font(Tokens.Typography.mono(11))
-                    Text(L(.events))
-                        .font(Tokens.Typography.text(9))
+            if let critical = model.snapshot.latestCritical {
+                HStack(alignment: .firstTextBaseline, spacing: 5) {
+                    Text("\(model.snapshot.criticalToday)")
+                        .font(Tokens.Typography.serif(20, weight: .semibold))
+                        .foregroundStyle(Tokens.Palette.accent)
+                    Text(L(.severityCritical))
+                        .font(Tokens.Typography.text(10))
                         .foregroundStyle(Tokens.Palette.secondary)
+                    Text(time(critical.time))
+                        .font(Tokens.Typography.mono(9))
+                        .foregroundStyle(Tokens.Palette.tertiary)
                 }
-            }
-            if model.snapshot.totalEvents == 0 {
+                if let rule = critical.ruleMessage {
+                    Text(rule)
+                        .font(Tokens.Typography.text(10))
+                        .foregroundStyle(Tokens.Palette.secondary)
+                        .lineLimit(1)
+                }
+                if !critical.detail.isEmpty {
+                    Text(critical.detail)
+                        .font(Tokens.Typography.mono(9.5))
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                }
+            } else if model.snapshot.totalEvents == 0 {
                 Text(model.isScanning ? L(.scanning) : L(.noDataYet))
                     .font(Tokens.Typography.text(10.5))
                     .foregroundStyle(Tokens.Palette.secondary)
-            } else if let error = model.errorMessage {
+            } else {
+                Text(L(.nothingRiskyToday))
+                    .font(Tokens.Typography.text(11))
+                    .foregroundStyle(Tokens.Palette.secondary)
+            }
+            if let error = model.errorMessage {
                 Text(error)
                     .font(Tokens.Typography.text(10))
                     .foregroundStyle(Tokens.Palette.accent)
                     .lineLimit(2)
             }
+            if model.snapshot.messagesToday > 0 {
+                Text(Lf(.messagesToday, [model.snapshot.messagesToday]))
+                    .font(Tokens.Typography.text(9))
+                    .foregroundStyle(Tokens.Palette.tertiary)
+            }
         }
         .padding(.horizontal, Tokens.Metrics.gutter)
-        .padding(.vertical, 12)
+        .padding(.vertical, 11)
     }
 
-    private func metric(_ value: Int, label: String, tinted: Bool) -> some View {
-        HStack(alignment: .firstTextBaseline, spacing: 4) {
-            Text("\(value)")
-                .font(Tokens.Typography.serif(22, weight: .semibold))
-                .foregroundStyle(tinted && value > 0 ? Tokens.Palette.accent : Tokens.Palette.ink)
-            Text(label)
-                .font(Tokens.Typography.text(10))
-                .foregroundStyle(Tokens.Palette.secondary)
-        }
-    }
+    // MARK: - Activity
 
-    private var recentSessions: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            SectionLabel(text: "Son oturumlar")
-            if model.snapshot.recentSessions.isEmpty {
+    private var activity: some View {
+        VStack(alignment: .leading, spacing: 7) {
+            SectionLabel(text: L(.whatHappened))
+            if model.snapshot.recentActions.isEmpty {
                 Text(L(.noSessionsFound))
                     .font(Tokens.Typography.text(10.5))
                     .foregroundStyle(Tokens.Palette.secondary)
             } else {
-                ForEach(model.snapshot.recentSessions) { session in
-                    sessionRow(session)
+                ForEach(model.snapshot.recentActions) { item in
+                    actionRow(item)
                 }
             }
         }
         .padding(.horizontal, Tokens.Metrics.gutter)
-        .padding(.vertical, 12)
+        .padding(.vertical, 11)
     }
 
-    private func sessionRow(_ session: SessionSummary) -> some View {
-        HStack(alignment: .firstTextBaseline, spacing: 8) {
-            Text(EventFormatting.agentLabel(session.agent))
-                .font(Tokens.Typography.mono(8.5))
-                .padding(.horizontal, 5)
-                .padding(.vertical, 1)
-                .background(Tokens.Palette.surface)
-                .clipShape(RoundedRectangle(cornerRadius: 3))
-            VStack(alignment: .leading, spacing: 1) {
-                Text(projectName(session.cwd))
-                    .font(Tokens.Typography.mono(10.5))
+    /// A row opens the timeline on the session it belongs to.
+    private func actionRow(_ item: ActivityItem) -> some View {
+        Button {
+            model.sessionToOpen = item.sessionID
+            openWindow(id: "main")
+            NSApp.activate(ignoringOtherApps: true)
+        } label: {
+            HStack(alignment: .firstTextBaseline, spacing: 6) {
+                Text(time(item.time))
+                    .font(Tokens.Typography.mono(9))
+                    .foregroundStyle(Tokens.Palette.tertiary)
+                Text(item.label)
+                    .font(Tokens.Typography.mono(9, weight: .medium))
+                    .foregroundStyle(item.isMessage ? Tokens.Palette.secondary : Tokens.Palette.ink)
+                Text(item.detail)
+                    .font(Tokens.Typography.text(9.5))
+                    .foregroundStyle(item.isMessage ? Tokens.Palette.tertiary : Tokens.Palette.secondary)
                     .lineLimit(1)
-                Text(Lf(.sessionMeta, [time(session.startedAt), session.eventCount]))
-                    .font(Tokens.Typography.text(9))
-                    .foregroundStyle(Tokens.Palette.secondary)
+                    .truncationMode(.middle)
+                Spacer(minLength: 2)
+                if let severity = item.severity {
+                    Circle()
+                        .fill(Tokens.Palette.severity(severity))
+                        .frame(width: 5, height: 5)
+                }
             }
-            Spacer(minLength: 4)
-            if session.criticalCount > 0 {
-                Text(Lf(.sessionCritical, [session.criticalCount]))
-                    .font(Tokens.Typography.text(9, weight: .medium))
-                    .foregroundStyle(Tokens.Palette.accent)
-            }
+            .contentShape(Rectangle())
         }
+        .buttonStyle(.plain)
+        .help(item.ruleMessage ?? item.detail)
     }
+
+    // MARK: - Footer
 
     private var footer: some View {
-        HStack(spacing: 10) {
-            Button {
+        HStack(spacing: 8) {
+            footerButton(L(.openDashboard), tint: Tokens.Palette.accent, weight: .medium) {
                 openWindow(id: "main")
-                NSApp.activate(ignoringOtherApps: true)
-            } label: {
-                Text(L(.openDashboard))
-                    .font(Tokens.Typography.text(11, weight: .medium))
-                    .foregroundStyle(Tokens.Palette.accent)
             }
-            .buttonStyle(.plain)
-
-            Button {
+            footerButton(L(.windowUsage)) {
                 openWindow(id: "usage")
-                NSApp.activate(ignoringOtherApps: true)
-            } label: {
-                Text(L(.windowUsage))
-                    .font(Tokens.Typography.text(11))
             }
-            .buttonStyle(.plain)
-
-            Button {
+            footerButton(L(.windowSettings)) {
                 openWindow(id: "settings")
-                NSApp.activate(ignoringOtherApps: true)
-            } label: {
-                Text(L(.windowSettings))
-                    .font(Tokens.Typography.text(11))
             }
-            .buttonStyle(.plain)
-
-            Button {
+            footerButton(L(.windowRules), weight: .medium) {
                 openWindow(id: "rules")
-                NSApp.activate(ignoringOtherApps: true)
-            } label: {
-                Text(L(.windowRules))
-                    .font(Tokens.Typography.text(11, weight: .medium))
-                    .foregroundStyle(Tokens.Palette.ink)
             }
-            .buttonStyle(.plain)
 
-            Spacer()
+            Spacer(minLength: 4)
 
             if !model.liveSessions.isEmpty {
                 Text(Lf(.liveCount, [model.liveSessions.count]))
@@ -177,33 +184,37 @@ struct MenuBarView: View {
                 ProgressView()
                     .controlSize(.small)
             } else if model.onboardingDone {
-                // During onboarding the big button already starts the scan.
-                Button {
+                footerButton(L(.scan), weight: .medium) {
                     Task { await model.scan() }
-                } label: {
-                    Text(L(.scan))
-                        .font(Tokens.Typography.text(11, weight: .medium))
                 }
-                .buttonStyle(.plain)
             }
 
-            Button {
+            footerButton(L(.quit), tint: Tokens.Palette.secondary) {
                 NSApp.terminate(nil)
-            } label: {
-                Text(L(.quit))
-                    .font(Tokens.Typography.text(11))
-                    .foregroundStyle(Tokens.Palette.secondary)
             }
-            .buttonStyle(.plain)
         }
         .padding(.horizontal, Tokens.Metrics.gutter)
         .padding(.vertical, 10)
     }
 
-    private func projectName(_ cwd: String?) -> String {
-        guard let cwd else { return "—" }
-        let shortened = Redactor().shortenHome(cwd)
-        return shortened.split(separator: "/").last.map(String.init) ?? shortened
+    private func footerButton(
+        _ title: String,
+        tint: Color = Tokens.Palette.ink,
+        weight: Font.Weight = .regular,
+        action: @escaping () -> Void)
+        -> some View
+    {
+        Button {
+            action()
+            NSApp.activate(ignoringOtherApps: true)
+        } label: {
+            Text(title)
+                .font(Tokens.Typography.text(11, weight: weight))
+                .foregroundStyle(tint)
+                .lineLimit(1)
+                .fixedSize(horizontal: true, vertical: false)
+        }
+        .buttonStyle(.plain)
     }
 
     private func time(_ date: Date) -> String {
