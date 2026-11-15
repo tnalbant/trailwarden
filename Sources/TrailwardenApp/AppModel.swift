@@ -51,7 +51,12 @@ final class AppModel: ObservableObject {
     let databaseURL: URL
 
     init(databaseURL: URL? = nil) {
+        // TRAILWARDEN_DB lets the app be opened against another index — the demo
+        // database, or a copy taken for a screenshot — without touching the real one.
+        let override = ProcessInfo.processInfo.environment["TRAILWARDEN_DB"]
+            .map { URL(fileURLWithPath: $0) }
         self.databaseURL = databaseURL
+            ?? override
             ?? (try? EventStore.defaultURL())
             ?? URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("trailwarden.sqlite")
         self.onboardingDone = UserDefaults.standard.bool(forKey: Self.onboardingKey)

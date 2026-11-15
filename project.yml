@@ -38,6 +38,7 @@ targets:
         product: TrailwardenCore
     settings:
       base:
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         PRODUCT_BUNDLE_IDENTIFIER: app.trailwarden
         PRODUCT_NAME: Trailwarden
         GENERATE_INFOPLIST_FILE: YES
