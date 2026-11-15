@@ -147,8 +147,8 @@ struct TimelineView: View {
 
     private var stream: some View {
         VStack(alignment: .leading, spacing: 0) {
-            header
-            Hairline()
+            // No header of its own: the split view's toolbar sits right here and
+            // painted over it. The selection title lives in the window's top row.
             filters
             Hairline()
             list
@@ -158,20 +158,6 @@ struct TimelineView: View {
         .background(Tokens.Palette.paper)
         .foregroundStyle(Tokens.Palette.ink)
         .tint(Tokens.Palette.accent)
-    }
-
-    private var header: some View {
-        HStack(alignment: .firstTextBaseline) {
-            Text(model.selectionTitle)
-                .font(Tokens.Typography.serif(16, weight: .semibold))
-                .lineLimit(1)
-            Spacer()
-            Text(Lf(.eventCount, [model.total]))
-                .font(Tokens.Typography.mono(10))
-                .foregroundStyle(Tokens.Palette.secondary)
-        }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 8)
     }
 
     private var filters: some View {

@@ -38,9 +38,7 @@ struct MainWindowView: View {
     }
 
     var body: some View {
-        VStack(spacing: 0) {
-            chrome
-            Hairline()
+        Group {
             switch mode {
             case .feed:
                 FeedView(model: feed) { sessionID in
@@ -49,6 +47,17 @@ struct MainWindowView: View {
             case .timeline:
                 timelineView
             }
+        }
+        // A plain VStack put the mode switch above a NavigationSplitView that
+        // draws its own toolbar, and the toolbar then painted over the top of the
+        // content: the switch was half cut and the stream header disappeared.
+        // As a safe-area inset the row reserves its own space instead.
+        .safeAreaInset(edge: .top, spacing: 0) {
+            VStack(spacing: 0) {
+                chrome
+                Hairline()
+            }
+            .background(Tokens.Palette.paper)
         }
         .frame(minWidth: 780, minHeight: 480)
         .background(Tokens.Palette.paper)
@@ -104,6 +113,13 @@ struct MainWindowView: View {
             .pickerStyle(.segmented)
             .labelsHidden()
             .frame(width: 220)
+
+            if mode == .timeline {
+                Text(timeline.selectionTitle)
+                    .font(Tokens.Typography.text(11, weight: .medium))
+                    .foregroundStyle(Tokens.Palette.secondary)
+                    .lineLimit(1)
+            }
 
             Spacer()
 
