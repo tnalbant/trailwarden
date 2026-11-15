@@ -11,6 +11,7 @@ struct SettingsView: View {
     @ObservedObject var model: AppModel
 
     @AppStorage(AppearanceMode.storageKey) private var appearance = AppearanceMode.system.rawValue
+    @AppStorage(LocalizationStore.defaultsKey) private var language = AppLanguage.system.rawValue
     @AppStorage("trailwarden.retentionDays") private var retentionDays = 90
     @AppStorage("trailwarden.exportFormat") private var exportFormat = AuditFormat.markdown.rawValue
     @State private var roots: [TranscriptRoot] = AppModel.transcriptRoots()
@@ -25,6 +26,8 @@ struct SettingsView: View {
                 header
                 Hairline()
                 appearanceSection
+                Hairline()
+                languageSection
                 Hairline()
                 rootsSection
                 Hairline()
@@ -43,9 +46,9 @@ struct SettingsView: View {
 
     private var header: some View {
         VStack(alignment: .leading, spacing: 3) {
-            Text("Ayarlar")
+            Text(L(.windowSettings))
                 .font(Tokens.Typography.serif(18, weight: .semibold))
-            Text("v\(TrailwardenVersion.current) · \(model.snapshot.totalEvents) olay · \(model.snapshot.sessions.count) oturum")
+            Text(Lf(.settingsVersion, [TrailwardenVersion.current, model.snapshot.totalEvents, model.snapshot.sessions.count]))
                 .font(Tokens.Typography.mono(9.5))
                 .foregroundStyle(Tokens.Palette.secondary)
         }
@@ -53,7 +56,7 @@ struct SettingsView: View {
 
     private var appearanceSection: some View {
         VStack(alignment: .leading, spacing: 7) {
-            SectionLabel(text: "Görünüm")
+            SectionLabel(text: L(.appearance))
             Picker("", selection: $appearance) {
                 ForEach(AppearanceMode.allCases) { mode in
                     Text(mode.label).tag(mode.rawValue)
@@ -65,7 +68,24 @@ struct SettingsView: View {
             .onChange(of: appearance) { _, value in
                 AppearanceMode(rawValue: value)?.apply()
             }
-            Text("Otomatik, macOS'un açık/koyu ayarını izler.")
+            Text(L(.appearanceHint))
+                .font(Tokens.Typography.text(9.5))
+                .foregroundStyle(Tokens.Palette.secondary)
+        }
+    }
+
+    private var languageSection: some View {
+        VStack(alignment: .leading, spacing: 7) {
+            SectionLabel(text: L(.languageSection))
+            Picker("", selection: $language) {
+                Text(L(.languageSystem)).tag(AppLanguage.system.rawValue)
+                ForEach(AppLanguage.translated) { option in
+                    Text(option.endonym).tag(option.rawValue)
+                }
+            }
+            .labelsHidden()
+            .frame(width: 260)
+            Text(L(.languageHint))
                 .font(Tokens.Typography.text(9.5))
                 .foregroundStyle(Tokens.Palette.secondary)
         }
@@ -73,7 +93,7 @@ struct SettingsView: View {
 
     private var rootsSection: some View {
         VStack(alignment: .leading, spacing: 7) {
-            SectionLabel(text: "Taranan dizinler")
+            SectionLabel(text: L(.scannedDirs))
             ForEach(roots) { root in
                 HStack(alignment: .firstTextBaseline) {
                     Text(EventFormatting.agentLabel(root.agent))
@@ -84,12 +104,12 @@ struct SettingsView: View {
                         .lineLimit(1)
                         .truncationMode(.middle)
                     Spacer(minLength: 6)
-                    Text(root.exists ? "\(root.files) dosya" : "yok")
+                    Text(root.exists ? Lf(.filesCount, [root.files]) : L(.missingFolder))
                         .font(Tokens.Typography.text(9))
                         .foregroundStyle(Tokens.Palette.secondary)
                 }
             }
-            Text("Dizinler varsayılan konumlardan okunur; dosyalar yerinde kalır, yalnız okunur.")
+            Text(L(.dirsHint))
                 .font(Tokens.Typography.text(9.5))
                 .foregroundStyle(Tokens.Palette.secondary)
         }
@@ -97,20 +117,20 @@ struct SettingsView: View {
 
     private var retentionSection: some View {
         VStack(alignment: .leading, spacing: 7) {
-            SectionLabel(text: "Saklama")
+            SectionLabel(text: L(.retention))
             HStack(spacing: 8) {
                 Stepper(value: $retentionDays, in: 30...365, step: 30) {
-                    Text("\(retentionDays) gün")
+                    Text(Lf(.retentionDays, [retentionDays]))
                         .font(Tokens.Typography.text(11))
                 }
-                Button("Şimdi temizle") {
+                Button(L(.cleanupNow)) {
                     Task { await model.prune(retentionDays: retentionDays) }
                 }
                 .buttonStyle(.plain)
                 .font(Tokens.Typography.text(10, weight: .medium))
                 .foregroundStyle(Tokens.Palette.accent)
             }
-            Text("Bu süreden eski olaylar indeksten silinir. Dosya imzaları bilerek korunur, böylece sonraki tarama silineni geri getirmez.")
+            Text(L(.retentionHint))
                 .font(Tokens.Typography.text(9.5))
                 .foregroundStyle(Tokens.Palette.secondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -119,7 +139,7 @@ struct SettingsView: View {
 
     private var exportSection: some View {
         VStack(alignment: .leading, spacing: 7) {
-            SectionLabel(text: "Dışa aktarma")
+            SectionLabel(text: L(.exportSection))
             HStack(spacing: 10) {
                 Picker("", selection: $exportFormat) {
                     ForEach(AuditFormat.allCases) { f in
@@ -128,16 +148,16 @@ struct SettingsView: View {
                 }
                 .labelsHidden()
                 .frame(width: 120)
-                Button("Dışa aktar…") { exportNow() }
+                Button(L(.exportAction)) { exportNow() }
                     .buttonStyle(.plain)
                     .font(Tokens.Typography.text(10.5, weight: .medium))
                     .foregroundStyle(Tokens.Palette.accent)
                 Spacer()
-                Text("Son 30 gün")
+                Text(L(.exportRange))
                     .font(Tokens.Typography.text(9.5))
                     .foregroundStyle(Tokens.Palette.secondary)
             }
-            Text("CLI'daki `trailwarden export` ile aynı içerik: maskelenmiş, kullanıcı adı `~` ile kısaltılmış, dosya izni 600.")
+            Text(L(.exportHint))
                 .font(Tokens.Typography.text(9.5))
                 .foregroundStyle(Tokens.Palette.secondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -151,8 +171,8 @@ struct SettingsView: View {
 
     private var privacySection: some View {
         VStack(alignment: .leading, spacing: 4) {
-            SectionLabel(text: "Gizlilik")
-            Text("Ağ erişimi yok. Hiçbir veri cihazdan çıkmaz; dışa aktarma yalnız senin seçtiğin dosyaya yazar.")
+            SectionLabel(text: L(.privacySection))
+            Text(L(.privacyText))
                 .font(Tokens.Typography.text(10))
                 .foregroundStyle(Tokens.Palette.secondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -163,7 +183,7 @@ struct SettingsView: View {
         let panel = NSSavePanel()
         panel.nameFieldStringValue = ExportWriter.suggestedFilename(format: format)
         panel.canCreateDirectories = true
-        panel.message = "Maskelenmiş denetim kaydı yazılacak"
+        panel.message = L(.privacyBadge)
         guard panel.runModal() == .OK, let url = panel.url else { return }
         Task {
             await model.export(format: format, days: 30, to: url)

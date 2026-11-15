@@ -7,12 +7,13 @@ import TrailwardenCore
 /// First run: show what is read, say plainly that nothing leaves the machine,
 /// then index.
 struct OnboardingView: View {
+    @AppStorage(LocalizationStore.defaultsKey) private var language = AppLanguage.system.rawValue
     @ObservedObject var model: AppModel
     @State private var roots: [TranscriptRoot] = AppModel.transcriptRoots()
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("Ne okuyorum?")
+            Text(L(.onboardingTitle))
                 .font(Tokens.Typography.serif(13, weight: .semibold))
 
             ForEach(roots) { root in
@@ -21,7 +22,7 @@ struct OnboardingView: View {
                         Text(root.agent.rawValue)
                             .font(Tokens.Typography.mono(9))
                         Spacer()
-                        Text(root.exists ? "\(root.files) dosya" : "yok")
+                        Text(root.exists ? Lf(.filesCount, [root.files]) : "yok")
                             .font(Tokens.Typography.text(9))
                             .foregroundStyle(Tokens.Palette.secondary)
                     }
@@ -33,7 +34,7 @@ struct OnboardingView: View {
                 }
             }
 
-            Text("Hiçbir veri cihazdan çıkmaz: ağ erişimi yok, her şey bu Mac'te kalır. Dosyaların yerinde kalır, yalnız okunur.")
+            Text(L(.onboardingPrivacy))
                 .font(Tokens.Typography.text(10))
                 .foregroundStyle(Tokens.Palette.secondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -44,7 +45,7 @@ struct OnboardingView: View {
                     model.finishOnboarding()
                 }
             } label: {
-                Text(model.isScanning ? "Taranıyor…" : "Taramayı başlat")
+                Text(model.isScanning ? L(.scanning) : L(.startScan))
                     .font(Tokens.Typography.text(11, weight: .semibold))
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 6)

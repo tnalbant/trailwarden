@@ -8,6 +8,7 @@ import TrailwardenCore
 /// The right column: what exactly happened, why it was flagged, and the text the
 /// agent actually ran — never wrapped, so a one-line command stays one line.
 struct EventDetailView: View {
+    @AppStorage(LocalizationStore.defaultsKey) private var language = AppLanguage.system.rawValue
     let event: Event
     var onMute: ((RiskHit, Event) -> Void)?
     @State private var copiedResume = false
@@ -24,10 +25,10 @@ struct EventDetailView: View {
                 header
                 if !event.risk.isEmpty { riskSection }
                 if let command = event.command {
-                    textSection("Komut", command, field: "command", wraps: false)
+                    textSection(L(.labelCommand), command, field: "command", wraps: false)
                 }
                 if let preview = event.preview, event.command == nil {
-                    textSection("Metin", preview, field: "preview", wraps: true)
+                    textSection(L(.labelText), preview, field: "preview", wraps: true)
                 }
                 if let diff { diffSection(diff) }
                 if !event.paths.isEmpty { pathsSection }
@@ -51,7 +52,7 @@ struct EventDetailView: View {
                 sessionId: event.sessionId,
                 cwd: event.cwd
             ) {
-                SectionLabel(text: "Bu oturumu sürdür")
+                SectionLabel(text: L(.resumeSession))
                 HStack(spacing: 8) {
                     Text(command)
                         .font(Tokens.Typography.mono(9.5))
@@ -59,7 +60,7 @@ struct EventDetailView: View {
                         .truncationMode(.middle)
                         .textSelection(.enabled)
                     Spacer(minLength: 6)
-                    Button(copiedResume ? "Kopyalandı" : "Kopyala") {
+                    Button(copiedResume ? L(.copied) : L(.copy)) {
                         NSPasteboard.general.clearContents()
                         NSPasteboard.general.setString(command, forType: .string)
                         copiedResume = true
@@ -105,7 +106,7 @@ struct EventDetailView: View {
 
     private var riskSection: some View {
         VStack(alignment: .leading, spacing: 5) {
-            SectionLabel(text: "Neden işaretlendi")
+            SectionLabel(text: L(.whyFlagged))
             ForEach(event.risk, id: \.ruleId) { hit in
                 HStack(alignment: .firstTextBaseline, spacing: 6) {
                     Text(hit.ruleId)
@@ -116,11 +117,11 @@ struct EventDetailView: View {
                         .fixedSize(horizontal: false, vertical: true)
                     Spacer(minLength: 4)
                     if let onMute {
-                        Button("30 gün sustur") { onMute(hit, event) }
+                        Button(L(.muteThirtyDays)) { onMute(hit, event) }
                             .buttonStyle(.plain)
                             .font(Tokens.Typography.text(9, weight: .medium))
                             .foregroundStyle(Tokens.Palette.accent)
-                            .help("Bu durumu 30 gün boyunca işaretleme")
+                            .help(L(.muteThirtyDaysHint))
                     }
                 }
             }
@@ -165,7 +166,7 @@ struct EventDetailView: View {
     private func diffSection(_ lines: [DiffLine]) -> some View {
         VStack(alignment: .leading, spacing: 5) {
             HStack {
-                SectionLabel(text: "Diff")
+                SectionLabel(text: L(.labelDiff))
                 Spacer()
                 copyButton("diff", lines.map { prefix(for: $0.kind) + $0.text }.joined(separator: "\n"))
             }
@@ -187,7 +188,7 @@ struct EventDetailView: View {
 
     private var pathsSection: some View {
         VStack(alignment: .leading, spacing: 5) {
-            SectionLabel(text: "Yollar")
+            SectionLabel(text: L(.labelPaths))
             ForEach(event.paths, id: \.self) { path in
                 Text(ProjectName.display(path))
                     .font(Tokens.Typography.mono(9.5))
@@ -220,7 +221,7 @@ struct EventDetailView: View {
                 if copiedField == field { copiedField = nil }
             }
         } label: {
-            Text(copiedField == field ? "Kopyalandı" : "Kopyala")
+            Text(copiedField == field ? L(.copied) : L(.copy))
                 .font(Tokens.Typography.text(9.5, weight: .medium))
                 .foregroundStyle(Tokens.Palette.accent)
         }

@@ -25,19 +25,19 @@ struct TrailwardenApp: App {
         .defaultSize(width: 1180, height: 720)
         .windowResizability(.contentMinSize)
 
-        Window("Kurallar", id: "rules") {
+        Window(L(.windowRules), id: "rules") {
             RulesView(model: model)
         }
         .defaultSize(width: 820, height: 620)
         .windowResizability(.contentMinSize)
 
-        Window("Kullanım", id: "usage") {
+        Window(L(.windowUsage), id: "usage") {
             UsageView(model: model)
         }
         .defaultSize(width: 700, height: 560)
         .windowResizability(.contentMinSize)
 
-        Window("Ayarlar", id: "settings") {
+        Window(L(.windowSettings), id: "settings") {
             SettingsView(model: model)
         }
         .defaultSize(width: 640, height: 560)

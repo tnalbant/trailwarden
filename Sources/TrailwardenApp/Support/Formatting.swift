@@ -40,7 +40,7 @@ enum EventFormatting {
     static func day(_ date: Date) -> String {
         let formatter = DateFormatter()
         formatter.dateFormat = "d MMM"
-        formatter.locale = Locale(identifier: "tr_TR")
+        formatter.locale = LocalizationStore.current.locale
         return formatter.string(from: date)
     }
 

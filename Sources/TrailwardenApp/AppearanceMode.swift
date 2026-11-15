@@ -2,6 +2,7 @@
 // Copyright (c) 2026 Turgay Nalbant
 
 import AppKit
+import TrailwardenCore
 
 /// Follow the system, or pin one appearance. Stored as a string so the choice
 /// survives restarts and can be changed from Settings or `defaults write`.
@@ -15,10 +16,11 @@ enum AppearanceMode: String, CaseIterable, Identifiable {
     var id: String { rawValue }
 
     var label: String {
+        let localizer = LocalizationStore.current
         switch self {
-        case .system: return "Otomatik"
-        case .light: return "Açık"
-        case .dark: return "Koyu"
+        case .system: return localizer.text(.appearanceAutomatic)
+        case .light: return localizer.text(.appearanceLight)
+        case .dark: return localizer.text(.appearanceDark)
         }
     }
 

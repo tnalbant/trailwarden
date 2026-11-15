@@ -7,6 +7,7 @@ import TrailwardenCore
 /// The rules window: every rule with its state, its severity, the reason it
 /// fires, how many events it currently hits, plus the mutes that silence it.
 struct RulesView: View {
+    @AppStorage(LocalizationStore.defaultsKey) private var language = AppLanguage.system.rawValue
     @ObservedObject var model: AppModel
 
     var body: some View {
@@ -33,9 +34,9 @@ struct RulesView: View {
 
     private var header: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text("Kurallar")
+            Text(L(.windowRules))
                 .font(Tokens.Typography.serif(18, weight: .semibold))
-            Text("Bir kuralı kapatmak ya da şiddetini değiştirmek indeksi hemen yeniden değerlendirir; geçmiş olaylar da yeni duruma göre işaretlenir.")
+            Text(L(.rulesIntro))
                 .font(Tokens.Typography.text(10.5))
                 .foregroundStyle(Tokens.Palette.secondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -69,7 +70,7 @@ struct RulesView: View {
                     .foregroundStyle(rule.isEnabled ? Tokens.Palette.accent : Tokens.Palette.secondary)
             }
             .buttonStyle(.plain)
-            .help(rule.isEnabled ? "Kuralı kapat" : "Kuralı aç")
+            .help(rule.isEnabled ? L(.disableRule) : L(.enableRule))
 
             Text(rule.id)
                 .font(Tokens.Typography.mono(10, weight: .medium))
@@ -77,7 +78,7 @@ struct RulesView: View {
                 .frame(width: 26, alignment: .leading)
 
             VStack(alignment: .leading, spacing: 2) {
-                Text(rule.title)
+                Text(rule.localizedTitle(LocalizationStore.current))
                     .font(Tokens.Typography.text(12, weight: .medium))
                     .foregroundStyle(rule.isEnabled ? Tokens.Palette.ink : Tokens.Palette.secondary)
                 Text(ruleMatchSummary(rule))
@@ -85,7 +86,7 @@ struct RulesView: View {
                     .foregroundStyle(Tokens.Palette.secondary)
                     .lineLimit(1)
                     .truncationMode(.middle)
-                Text(rule.message)
+                Text(rule.localizedMessage(LocalizationStore.current))
                     .font(Tokens.Typography.text(10))
                     .foregroundStyle(Tokens.Palette.secondary)
                     .lineLimit(2)
@@ -95,12 +96,12 @@ struct RulesView: View {
             Spacer(minLength: 8)
 
             VStack(alignment: .trailing, spacing: 4) {
-                Text("\(model.ruleHitCounts[rule.id] ?? 0) olay")
+                Text(Lf(.ruleHits, [model.ruleHitCounts[rule.id] ?? 0]))
                     .font(Tokens.Typography.mono(9))
                     .foregroundStyle(Tokens.Palette.secondary)
                 Picker("", selection: severityBinding(rule)) {
                     ForEach([Severity.info, Severity.warn, Severity.critical], id: \.self) { severity in
-                        Text(severity.label).tag(severity)
+                        Text(LocalizationStore.current.severity(severity)).tag(severity)
                     }
                 }
                 .labelsHidden()
@@ -124,10 +125,10 @@ struct RulesView: View {
 
     private func ruleMatchSummary(_ rule: Rule) -> String {
         var parts: [String] = []
-        if let tool = rule.match.tool { parts.append("araç: \(tool)") }
+        if let tool = rule.match.tool { parts.append(Lf(.ruleTool, [tool])) }
         if let regex = rule.match.commandRegex { parts.append("/\(regex)/") }
         if let globs = rule.match.pathGlobs { parts.append(globs.joined(separator: " ")) }
-        return parts.isEmpty ? "her olay" : parts.joined(separator: " · ")
+        return parts.isEmpty ? L(.ruleMatchesAll) : parts.joined(separator: " · ")
     }
 
     // MARK: - Mutes
@@ -135,14 +136,14 @@ struct RulesView: View {
     private var muteList: some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack {
-                SectionLabel(text: "Susturulanlar")
+                SectionLabel(text: L(.mutedRules))
                 Spacer()
                 Text("\(model.mutes.count)")
                     .font(Tokens.Typography.mono(9))
                     .foregroundStyle(Tokens.Palette.secondary)
             }
             if model.mutes.isEmpty {
-                Text("Susturma yok. Bir olayın detayından \"30 gün sustur\" ile ekleyebilirsin.")
+                Text(L(.noMutes))
                     .font(Tokens.Typography.text(10))
                     .foregroundStyle(Tokens.Palette.secondary)
             } else {
@@ -159,7 +160,7 @@ struct RulesView: View {
                         Text(remainingDays(mute))
                             .font(Tokens.Typography.text(9))
                             .foregroundStyle(Tokens.Palette.secondary)
-                        Button("Kaldır") {
+                        Button(L(.removeMute)) {
                             Task { await model.removeMute(mute) }
                         }
                         .buttonStyle(.plain)
@@ -176,7 +177,7 @@ struct RulesView: View {
 
     private func remainingDays(_ mute: Mute) -> String {
         let days = Int(ceil(mute.until.timeIntervalSinceNow / 86_400))
-        return days > 0 ? "\(days) gün" : "bitti"
+        return days > 0 ? Lf(.daysLeft, [days]) : L(.muteExpired)
     }
 
     // MARK: - Footer
@@ -185,7 +186,7 @@ struct RulesView: View {
         HStack(spacing: 10) {
             if model.isReapplying {
                 ProgressView().controlSize(.small)
-                Text("İndeks yeniden değerlendiriliyor…")
+                Text(L(.reapplying))
                     .font(Tokens.Typography.text(10))
                     .foregroundStyle(Tokens.Palette.secondary)
             } else if let status = model.ruleStatus {
@@ -197,7 +198,7 @@ struct RulesView: View {
             Button {
                 Task { await model.reapplyRules() }
             } label: {
-                Text("Yeniden değerlendir")
+                Text(L(.reapply))
                     .font(Tokens.Typography.text(10.5, weight: .medium))
                     .foregroundStyle(Tokens.Palette.accent)
             }

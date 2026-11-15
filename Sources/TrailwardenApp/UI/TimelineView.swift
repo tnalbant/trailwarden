@@ -31,6 +31,7 @@ private struct FilterChip: View {
 
 /// Sidebar (project → session) plus the paged event stream.
 struct TimelineView: View {
+    @AppStorage(LocalizationStore.defaultsKey) private var language = AppLanguage.system.rawValue
     @ObservedObject var model: TimelineModel
     var onMute: ((RiskHit, Event) -> Void)?
     var liveSessionIDs: Set<String> = []
@@ -68,12 +69,12 @@ struct TimelineView: View {
 
     private var sidebar: some View {
         List(selection: selectionBinding) {
-            Section("Kapsam") {
-                Label("Tüm oturumlar", systemImage: "tray.full")
+            Section(L(.scope)) {
+                Label(L(.allSessions), systemImage: "tray.full")
                     .tag(TimelineSelection.all)
             }
 
-            Section("Projeler") {
+            Section(L(.projects)) {
                 ForEach(model.projects) { project in
                     DisclosureGroup {
                         ForEach(model.sessions(inProject: project.cwd)) { session in
@@ -81,7 +82,7 @@ struct TimelineView: View {
                                 .tag(TimelineSelection.session(session.id))
                         }
                         if model.sessions(inProject: project.cwd).isEmpty {
-                            Text("Oturum yok")
+                            Text(L(.noSessionSelected))
                                 .font(Tokens.Typography.text(10))
                                 .foregroundStyle(Tokens.Palette.secondary)
                         }
@@ -106,7 +107,7 @@ struct TimelineView: View {
                 Text(ProjectName.short(project.cwd))
                     .font(Tokens.Typography.text(11.5, weight: .medium))
                     .lineLimit(1)
-                Text("\(project.sessionCount) oturum · \(project.eventCount) olay")
+                Text(Lf(.projectMeta, [project.sessionCount, project.eventCount]))
                     .font(Tokens.Typography.text(9))
                     .foregroundStyle(Tokens.Palette.secondary)
             }
@@ -129,7 +130,7 @@ struct TimelineView: View {
                 Circle()
                     .fill(Tokens.Palette.accent)
                     .frame(width: 5, height: 5)
-                    .help("Bu oturum son 2 dakikada yazdı — ajan hâlâ çalışıyor olabilir")
+                    .help(L(.liveTooltip))
             }
             if session.criticalCount > 0 {
                 Text("\(session.criticalCount)")
@@ -162,7 +163,7 @@ struct TimelineView: View {
                 .font(Tokens.Typography.serif(16, weight: .semibold))
                 .lineLimit(1)
             Spacer()
-            Text("\(model.total) olay")
+            Text(Lf(.eventCount, [model.total]))
                 .font(Tokens.Typography.mono(10))
                 .foregroundStyle(Tokens.Palette.secondary)
         }
@@ -182,7 +183,7 @@ struct TimelineView: View {
             .fixedSize()
 
             Picker("", selection: $model.agentFilter) {
-                Text("Tüm ajanlar").tag(Agent?.none)
+                Text(L(.allAgents)).tag(Agent?.none)
                 ForEach(Agent.allCases, id: \.self) { agent in
                     Text(EventFormatting.agentLabel(agent)).tag(Agent?.some(agent))
                 }
@@ -191,11 +192,11 @@ struct TimelineView: View {
             .frame(width: 118)
             .fixedSize()
 
-            FilterChip(title: "Yalnız bulgular", isOn: $model.findingsOnly)
+            FilterChip(title: L(.onlyFindings), isOn: $model.findingsOnly)
                 .layoutPriority(1)
-            FilterChip(title: "Ham akış", isOn: $model.showRawEvents)
+            FilterChip(title: L(.rawStream), isOn: $model.showRawEvents)
                 .layoutPriority(1)
-                .help("Token sayaçları ve oturum başlangıçlarını da göster")
+                .help(L(.showCountersHint))
 
             Spacer(minLength: 8)
 
@@ -246,9 +247,9 @@ struct TimelineView: View {
 
     private var detailPlaceholder: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text("Bir olay seç")
+            Text(L(.pickEvent))
                 .font(Tokens.Typography.serif(14))
-            Text("Komut, yollar, diff ve kural gerekçesi burada açılır.")
+            Text(L(.pickEventHint))
                 .font(Tokens.Typography.text(11))
                 .foregroundStyle(Tokens.Palette.secondary)
         }
@@ -259,9 +260,9 @@ struct TimelineView: View {
 
     private var emptyState: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text("Bu aralıkta olay yok.")
+            Text(L(.noEventsInRange))
                 .font(Tokens.Typography.serif(14))
-            Text("Zaman aralığını genişlet, filtreleri kaldır ya da yeni bir tarama yap.")
+            Text(L(.noEventsHint))
                 .font(Tokens.Typography.text(11))
                 .foregroundStyle(Tokens.Palette.secondary)
         }
@@ -278,13 +279,13 @@ struct TimelineView: View {
             } else {
                 Text(model.events.isEmpty
                      ? "0 olay"
-                     : "\(model.events.count) / \(model.total) olay")
+                     : Lf(.eventsRatio, [model.events.count, model.total]))
                     .font(Tokens.Typography.mono(9.5))
                     .foregroundStyle(Tokens.Palette.secondary)
             }
             Spacer()
             if model.events.count < model.total {
-                Button("Daha fazla") { model.loadMore() }
+                Button(L(.loadMore)) { model.loadMore() }
                     .buttonStyle(.plain)
                     .font(Tokens.Typography.text(10.5, weight: .medium))
             }
