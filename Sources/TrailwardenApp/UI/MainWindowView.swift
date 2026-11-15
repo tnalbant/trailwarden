@@ -28,6 +28,13 @@ struct MainWindowView: View {
         self.model = model
         _timeline = StateObject(wrappedValue: TimelineModel(databaseURL: model.databaseURL))
         _feed = StateObject(wrappedValue: FeedModel(databaseURL: model.databaseURL))
+        #if DEBUG
+            // UI checks need to land on a given screen without a hand on the mouse.
+            // Release builds never see this.
+            if ProcessInfo.processInfo.environment["TRAILWARDEN_OPEN_MODE"] == "timeline" {
+                _mode = State(initialValue: .timeline)
+            }
+        #endif
     }
 
     var body: some View {
@@ -46,6 +53,20 @@ struct MainWindowView: View {
         .frame(minWidth: 780, minHeight: 480)
         .background(Tokens.Palette.paper)
         .foregroundStyle(Tokens.Palette.ink)
+        .task {
+            #if DEBUG
+                switch ProcessInfo.processInfo.environment["TRAILWARDEN_SELECT_FIRST"] {
+                case "1":
+                    try? await Task.sleep(for: .seconds(1))
+                    timeline.selectedEventID = timeline.events.first?.id
+                case "tool":
+                    try? await Task.sleep(for: .seconds(1))
+                    timeline.selectedEventID = timeline.events.first { $0.command != nil }?.id
+                default:
+                    break
+                }
+            #endif
+        }
         .onChange(of: model.findingsRequested) { _, _ in
             showFindings()
         }

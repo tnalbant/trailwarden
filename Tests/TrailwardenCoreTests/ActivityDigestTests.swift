@@ -100,6 +100,14 @@ final class ActivityDigestTests: XCTestCase {
         XCTAssertEqual(items.first?.id, "e0")
     }
 
+    func testWiderDetailLimitShowsMoreOfTheCommand() {
+        let long = String(repeating: "y", count: 200)
+        let narrow = ActivityDigest.item(from: event(command: long))
+        let wide = ActivityDigest.item(from: event(command: long), detailLimit: 200)
+        XCTAssertLessThan(narrow.detail.count, wide.detail.count)
+        XCTAssertLessThanOrEqual(wide.detail.count, 201)
+    }
+
     func testMessageRowsAreMarkedAsSuch() {
         let item = ActivityDigest.item(from: event(
             kind: .message, tool: nil, preview: "şu dosyaya bak"))

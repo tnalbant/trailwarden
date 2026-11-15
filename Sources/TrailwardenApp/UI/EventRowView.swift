@@ -12,14 +12,6 @@ extension Severity {
         case .info: Tokens.Palette.secondary
         }
     }
-
-    var label: String {
-        switch self {
-        case .critical: "kritik"
-        case .warn: LocalizationStore.current.severity(.warn)
-        case .info: "bilgi"
-        }
-    }
 }
 
 /// One line of the event stream: time, agent, tool, the command or text, and the
@@ -43,7 +35,8 @@ struct EventRowView: View {
                 Text(EventFormatting.stamp(event.ts))
                     .font(Tokens.Typography.mono(9.5))
                     .foregroundStyle(Tokens.Palette.secondary)
-                    .frame(width: 86, alignment: .leading)
+                    .fixedSize()
+                    .frame(width: 88, alignment: .leading)
 
                 Text(EventFormatting.agentLabel(event.agent))
                     .font(Tokens.Typography.mono(8.5))
@@ -65,14 +58,16 @@ struct EventRowView: View {
                     Text(event.preview ?? event.command ?? "—")
                         .font(Tokens.Typography.mono(10))
                         .foregroundStyle(Tokens.Palette.ink.opacity(0.82))
-                        .lineLimit(1)
-                        .truncationMode(.tail)
+                        .lineLimit(2)
+                        .truncationMode(.middle)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .frame(maxWidth: .infinity, alignment: .leading)
                 }
-
-                Spacer(minLength: 0)
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
             .padding(.leading, 9)
-            .padding(.vertical, 5)
+            .padding(.trailing, 12)
+            .padding(.vertical, 6)
         }
         .background(selected ? Tokens.Palette.surface : Color.clear)
         .contentShape(Rectangle())

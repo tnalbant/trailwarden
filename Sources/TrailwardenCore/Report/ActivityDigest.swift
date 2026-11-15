@@ -29,12 +29,17 @@ public struct ActivityItem: Sendable, Identifiable, Equatable {
 
 public enum ActivityDigest {
     /// A row shows this much of a command; the rest is one click away.
-    static let detailLimit = 90
+    public static let detailLimit = 90
 
     /// Newest first, without the rows that are bookkeeping rather than activity:
     /// token counters, session markers and permission prompts say nothing about
     /// what the agent did.
-    public static func items(from events: [Event], limit: Int = 40) -> [ActivityItem] {
+    public static func items(
+        from events: [Event],
+        limit: Int = 40,
+        detailLimit: Int = ActivityDigest.detailLimit)
+        -> [ActivityItem]
+    {
         events
             .filter { event in
                 switch event.kind {
@@ -44,10 +49,13 @@ public enum ActivityDigest {
             }
             .sorted { $0.ts > $1.ts }
             .prefix(limit)
-            .map(item(from:))
+            .map { item(from: $0, detailLimit: detailLimit) }
     }
 
-    public static func item(from event: Event) -> ActivityItem {
+    public static func item(
+        from event: Event,
+        detailLimit: Int = ActivityDigest.detailLimit) -> ActivityItem
+    {
         let hit = event.risk.max { $0.severity < $1.severity }
         return ActivityItem(
             id: event.id,
@@ -55,7 +63,7 @@ public enum ActivityDigest {
             agent: event.agent,
             sessionID: event.sessionId,
             label: label(for: event),
-            detail: detail(for: event) ?? "",
+            detail: detail(for: event, limit: detailLimit) ?? "",
             project: project(from: event.cwd),
             severity: hit?.severity,
             ruleMessage: hit?.message,
@@ -72,7 +80,7 @@ public enum ActivityDigest {
         }
     }
 
-    static func detail(for event: Event) -> String? {
+    static func detail(for event: Event, limit: Int = ActivityDigest.detailLimit) -> String? {
         let raw: String?
         if let command = event.command, !command.isEmpty {
             raw = command
@@ -83,18 +91,18 @@ public enum ActivityDigest {
             raw = event.preview
         }
         guard let raw, !raw.isEmpty else { return nil }
-        return collapse(raw)
+        return collapse(raw, limit: limit)
     }
 
     /// Transcripts are full of newlines and runs of spaces. One line reads better
     /// in a row, and the untouched text is in the detail view.
-    static func collapse(_ text: String) -> String {
+    static func collapse(_ text: String, limit: Int = ActivityDigest.detailLimit) -> String {
         let flattened = text
             .replacingOccurrences(of: "\n", with: " ⏎ ")
             .split(whereSeparator: \.isWhitespace)
             .joined(separator: " ")
-        guard flattened.count > detailLimit else { return flattened }
-        return String(flattened.prefix(detailLimit)) + "…"
+        guard flattened.count > limit else { return flattened }
+        return String(flattened.prefix(limit)) + "…"
     }
 
     /// Always "15 Nov 21:00", never a bare "21:00". A row that shows only a time
@@ -103,7 +111,10 @@ public enum ActivityDigest {
     public static func stamp(_ date: Date, locale: Locale = .current) -> String {
         let formatter = DateFormatter()
         formatter.locale = locale
-        formatter.setLocalizedDateFormatFromTemplate("dMMMHHmm")
+        // An explicit pattern, not a template: the template renders as
+        // "Nov 15 at 21:00" in en_US, which does not fit a row and reads like a
+        // sentence rather than a stamp.
+        formatter.dateFormat = "d MMM HH:mm"
         return formatter.string(from: date)
     }
 

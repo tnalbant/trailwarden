@@ -112,7 +112,7 @@ final class AppModel: ObservableObject {
         let worstToday = today
             .filter { $0.risk.contains { $0.severity == .critical } }
             .max { $0.ts < $1.ts }
-        snapshot.latestCritical = worstToday.map(ActivityDigest.item(from:))
+        snapshot.latestCritical = worstToday.map { ActivityDigest.item(from: $0) }
         return snapshot
     }
 
