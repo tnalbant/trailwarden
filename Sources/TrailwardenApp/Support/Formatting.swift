@@ -50,6 +50,7 @@ enum EventFormatting {
         case .codex: return "codex"
         case .opencode: return "opencode"
         case .gemini: return "gemini"
+        case .hermes: return "hermes"
         }
     }
 }

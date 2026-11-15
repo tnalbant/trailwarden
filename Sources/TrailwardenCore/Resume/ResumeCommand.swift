@@ -26,6 +26,8 @@ public enum ResumeCommand {
             return "\(changeDirectory)gemini --resume \(sessionId)"
         case .opencode:
             return "\(changeDirectory)opencode --session \(sessionId)"
+        case .hermes:
+            return "\(changeDirectory)hermes --resume \(sessionId)"
         }
     }
 

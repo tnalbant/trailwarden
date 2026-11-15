@@ -112,7 +112,7 @@ final class AppModel: ObservableObject {
                 let store = try EventStore(url: url)
                 let engine = try RuleEngine.builtIn(mutes: store.mutes())
                 let report = try TranscriptScanner(store: store, rules: engine)
-                    .scan(roots: ScanRoot.standard())
+                    .scan(roots: ScanRoot.standard(), databases: ScanRoot.standardDatabases())
                 return (report.eventsStored, report.failures.first)
             } catch {
                 return (0, String(describing: error))

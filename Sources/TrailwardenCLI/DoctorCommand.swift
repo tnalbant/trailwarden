@@ -63,6 +63,12 @@ struct DoctorCommand: ParsableCommand {
             Output.write("database     \(databaseURL.path)  not created yet (run `trailwarden scan`)")
         }
 
+        for source in ScanRoot.standardDatabases() {
+            let exists = FileManager.default.fileExists(atPath: source.database.path)
+            Output.write("db \(source.agent.rawValue.padding(toLength: 16, withPad: " ", startingAt: 0))"
+                + " \(source.database.path)  \(exists ? "readable" : "absent")")
+        }
+
         for root in ScanRoot.standard() {
             var isDirectory: ObjCBool = false
             let present = FileManager.default.fileExists(atPath: root.directory.path, isDirectory: &isDirectory)
