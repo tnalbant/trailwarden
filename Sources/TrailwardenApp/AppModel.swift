@@ -122,7 +122,7 @@ final class AppModel: ObservableObject {
         if let failure = outcome.failure {
             errorMessage = failure
         }
-        lastScanSummary = "\(outcome.events) events indexed"
+        lastScanSummary = LocalizationStore.current.format(.eventCount, outcome.events)
         refresh()
     }
 
@@ -214,13 +214,12 @@ final class AppModel: ObservableObject {
                 let engine = try RuleEngine(rules: rulesCopy, mutes: mutesCopy)
                 let report = try engine.reapply(to: store)
                 let counts = try store.ruleHitCounts(matching: EventQuery(onlyFindings: true))
-                let text = String(
-                    format: "%d olay tarandı · %d olay güncellendi · %.2f sn",
-                    report.events, report.changed, report.duration
+                let text = LocalizationStore.current.format(
+                    .statusScan, report.events, report.changed, report.duration
                 )
                 return (text, counts)
             } catch {
-                return ("Hata: \(error)", [:])
+                return (LocalizationStore.current.format(.statusError, "\(error)"), [:])
             }
         }.value
 
@@ -264,9 +263,11 @@ final class AppModel: ObservableObject {
             do {
                 let store = try EventStore(url: url)
                 let report = try store.prune(eventsOlderThanDays: retentionDays)
-                return "Silinen: \(report.removedEvents) olay, \(report.removedSessions) oturum"
+                return LocalizationStore.current.format(
+                    .statusPrune, report.removedEvents, report.removedSessions
+                )
             } catch {
-                return "Temizlik başarısız: \(error)"
+                return LocalizationStore.current.format(.statusPruneFailed, "\(error)")
             }
         }.value
         maintenanceStatus = message
@@ -297,12 +298,12 @@ final class AppModel: ObservableObject {
                     selection: selection,
                     to: url
                 )
-                return String(
-                    format: "%@ · %d olay, %d bulgu · %.2f sn",
+                return LocalizationStore.current.format(
+                    .statusExport,
                     url.lastPathComponent, outcome.events, outcome.findings, outcome.duration
                 )
             } catch {
-                return "Dışa aktarma başarısız: \(error)"
+                return LocalizationStore.current.format(.statusExportFailed, "\(error)")
             }
         }.value
         maintenanceStatus = message

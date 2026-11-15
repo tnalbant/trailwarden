@@ -13,12 +13,22 @@ enum TimelineSelection: Hashable {
 
 /// Preset time windows in the filter bar.
 enum TimelineWindow: String, CaseIterable, Identifiable {
-    case day = "Bugün"
-    case week = "7 gün"
-    case month = "30 gün"
-    case everything = "Tümü"
+    case day
+    case week
+    case month
+    case everything
 
     var id: String { rawValue }
+
+    var label: String {
+        let localizer = LocalizationStore.current
+        switch self {
+        case .day: return localizer.text(.today)
+        case .week: return localizer.text(.last7Days)
+        case .month: return localizer.text(.last30Days)
+        case .everything: return localizer.text(.allTime)
+        }
+    }
 
     var since: Date? {
         switch self {
@@ -120,7 +130,7 @@ final class TimelineModel: ObservableObject {
 
     var selectionTitle: String {
         switch selection {
-        case .all: return "Tüm oturumlar"
+        case .all: return LocalizationStore.current.text(.allSessions)
         case .project(let cwd): return ProjectName.short(cwd)
         case .session(let id): return Sessions.shortID(id)
         }

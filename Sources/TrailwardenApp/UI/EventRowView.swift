@@ -16,7 +16,7 @@ extension Severity {
     var label: String {
         switch self {
         case .critical: return "kritik"
-        case .warn: return "uyarı"
+        case .warn: return LocalizationStore.current.severity(.warn)
         case .info: return "bilgi"
         }
     }
@@ -25,6 +25,7 @@ extension Severity {
 /// One line of the event stream: time, agent, tool, the command or text, and the
 /// worst rule hit as a coloured strip on the left.
 struct EventRowView: View {
+    @AppStorage(LocalizationStore.defaultsKey) private var language = AppLanguage.system.rawValue
     let event: Event
     var selected = false
 
@@ -56,7 +57,7 @@ struct EventRowView: View {
                         Text(event.tool ?? event.kind.rawValue)
                             .font(Tokens.Typography.mono(9.5, weight: .medium))
                         ForEach(event.risk, id: \.ruleId) { hit in
-                            Text("\(hit.ruleId) \(hit.severity.label)")
+                            Text("\(hit.ruleId) \(LocalizationStore.current.severity(hit.severity))")
                                 .font(Tokens.Typography.text(8.5, weight: .medium))
                                 .foregroundStyle(hit.severity.tint)
                         }

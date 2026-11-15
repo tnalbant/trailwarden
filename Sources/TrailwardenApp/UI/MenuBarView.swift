@@ -6,6 +6,7 @@ import SwiftUI
 import TrailwardenCore
 
 struct MenuBarView: View {
+    @AppStorage(LocalizationStore.defaultsKey) private var language = AppLanguage.system.rawValue
     @ObservedObject var model: AppModel
     @Environment(\.openWindow) private var openWindow
 
@@ -43,21 +44,21 @@ struct MenuBarView: View {
 
     private var summary: some View {
         VStack(alignment: .leading, spacing: 7) {
-            SectionLabel(text: "Bugün")
+            SectionLabel(text: L(.today))
             HStack(alignment: .firstTextBaseline, spacing: 20) {
-                metric(model.snapshot.criticalToday, label: "kritik", tinted: true)
-                metric(model.snapshot.warnToday, label: "uyarı", tinted: false)
+                metric(model.snapshot.criticalToday, label: L(.severityCritical), tinted: true)
+                metric(model.snapshot.warnToday, label: L(.severityWarning), tinted: false)
                 Spacer()
                 VStack(alignment: .trailing, spacing: 1) {
                     Text("\(model.snapshot.totalEvents)")
                         .font(Tokens.Typography.mono(11))
-                    Text("olay")
+                    Text(L(.events))
                         .font(Tokens.Typography.text(9))
                         .foregroundStyle(Tokens.Palette.secondary)
                 }
             }
             if model.snapshot.totalEvents == 0 {
-                Text(model.isScanning ? "Taranıyor…" : "Henüz veri yok — Tara'ya bas.")
+                Text(model.isScanning ? L(.scanning) : L(.noDataYet))
                     .font(Tokens.Typography.text(10.5))
                     .foregroundStyle(Tokens.Palette.secondary)
             } else if let error = model.errorMessage {
@@ -86,7 +87,7 @@ struct MenuBarView: View {
         VStack(alignment: .leading, spacing: 8) {
             SectionLabel(text: "Son oturumlar")
             if model.snapshot.recentSessions.isEmpty {
-                Text("Oturum bulunamadı.")
+                Text(L(.noSessionsFound))
                     .font(Tokens.Typography.text(10.5))
                     .foregroundStyle(Tokens.Palette.secondary)
             } else {
@@ -111,13 +112,13 @@ struct MenuBarView: View {
                 Text(projectName(session.cwd))
                     .font(Tokens.Typography.mono(10.5))
                     .lineLimit(1)
-                Text("\(time(session.startedAt)) · \(session.eventCount) olay")
+                Text(Lf(.sessionMeta, [time(session.startedAt), session.eventCount]))
                     .font(Tokens.Typography.text(9))
                     .foregroundStyle(Tokens.Palette.secondary)
             }
             Spacer(minLength: 4)
             if session.criticalCount > 0 {
-                Text("\(session.criticalCount) kritik")
+                Text(Lf(.sessionCritical, [session.criticalCount]))
                     .font(Tokens.Typography.text(9, weight: .medium))
                     .foregroundStyle(Tokens.Palette.accent)
             }
@@ -130,7 +131,7 @@ struct MenuBarView: View {
                 openWindow(id: "main")
                 NSApp.activate(ignoringOtherApps: true)
             } label: {
-                Text("Panoyu aç")
+                Text(L(.openDashboard))
                     .font(Tokens.Typography.text(11, weight: .medium))
                     .foregroundStyle(Tokens.Palette.accent)
             }
@@ -140,7 +141,7 @@ struct MenuBarView: View {
                 openWindow(id: "usage")
                 NSApp.activate(ignoringOtherApps: true)
             } label: {
-                Text("Kullanım")
+                Text(L(.windowUsage))
                     .font(Tokens.Typography.text(11))
             }
             .buttonStyle(.plain)
@@ -149,7 +150,7 @@ struct MenuBarView: View {
                 openWindow(id: "settings")
                 NSApp.activate(ignoringOtherApps: true)
             } label: {
-                Text("Ayarlar")
+                Text(L(.windowSettings))
                     .font(Tokens.Typography.text(11))
             }
             .buttonStyle(.plain)
@@ -158,7 +159,7 @@ struct MenuBarView: View {
                 openWindow(id: "rules")
                 NSApp.activate(ignoringOtherApps: true)
             } label: {
-                Text("Kurallar")
+                Text(L(.windowRules))
                     .font(Tokens.Typography.text(11, weight: .medium))
                     .foregroundStyle(Tokens.Palette.ink)
             }
@@ -167,7 +168,7 @@ struct MenuBarView: View {
             Spacer()
 
             if !model.liveSessions.isEmpty {
-                Text("\(model.liveSessions.count) canlı")
+                Text(Lf(.liveCount, [model.liveSessions.count]))
                     .font(Tokens.Typography.mono(9, weight: .medium))
                     .foregroundStyle(Tokens.Palette.accent)
             }
@@ -180,7 +181,7 @@ struct MenuBarView: View {
                 Button {
                     Task { await model.scan() }
                 } label: {
-                    Text("Tara")
+                    Text(L(.scan))
                         .font(Tokens.Typography.text(11, weight: .medium))
                 }
                 .buttonStyle(.plain)
@@ -189,7 +190,7 @@ struct MenuBarView: View {
             Button {
                 NSApp.terminate(nil)
             } label: {
-                Text("Çık")
+                Text(L(.quit))
                     .font(Tokens.Typography.text(11))
                     .foregroundStyle(Tokens.Palette.secondary)
             }

@@ -9,6 +9,7 @@ import TrailwardenCore
 /// transcripts; no price is shown because a token's price depends on the plan,
 /// the model and the day, and a wrong number is worse than none.
 struct UsageView: View {
+    @AppStorage(LocalizationStore.defaultsKey) private var language = AppLanguage.system.rawValue
     @ObservedObject var model: AppModel
     @State private var days = 30
     private let ranges = [7, 30, 90]
@@ -39,9 +40,9 @@ struct UsageView: View {
 
     private var header: some View {
         VStack(alignment: .leading, spacing: 3) {
-            Text("Kullanım")
+            Text(L(.windowUsage))
                 .font(Tokens.Typography.serif(19, weight: .semibold))
-            Text("Son \(days) gün · \(Self.tokens(total)) token · \(model.dailyUsage.count) gün")
+            Text(Lf(.usageSummary, [days, Self.tokens(total), model.dailyUsage.count]))
                 .font(Tokens.Typography.mono(10))
                 .foregroundStyle(Tokens.Palette.secondary)
         }
@@ -49,7 +50,7 @@ struct UsageView: View {
         .overlay(alignment: .topTrailing) {
             Picker("", selection: $days) {
                 ForEach(ranges, id: \.self) { value in
-                    Text("\(value) gün").tag(value)
+                    Text(Lf(.daysLeft, [value])).tag(value)
                 }
             }
             .pickerStyle(.segmented)
@@ -63,15 +64,15 @@ struct UsageView: View {
 
     private var chart: some View {
         VStack(alignment: .leading, spacing: 8) {
-            SectionLabel(text: "Günlük token")
+            SectionLabel(text: L(.dailyTokens))
             if model.dailyUsage.isEmpty {
-                Text("Henüz token kaydı yok. Ajanlar bir oturumda sayaç yazdığında burada görünür.")
+                Text(L(.noTokenData))
                     .font(Tokens.Typography.text(11))
                     .foregroundStyle(Tokens.Palette.secondary)
             } else {
                 Chart(model.dailyUsage) { day in
                     BarMark(
-                        x: .value("Gün", day.day, unit: .day),
+                        x: .value(L(.axisDay), day.day, unit: .day),
                         y: .value("Token", day.tokens)
                     )
                     .foregroundStyle(Tokens.Palette.accent.opacity(0.85))
@@ -102,7 +103,7 @@ struct UsageView: View {
 
     private var agents: some View {
         VStack(alignment: .leading, spacing: 9) {
-            SectionLabel(text: "Ajana göre", trailing: "işlenen token")
+            SectionLabel(text: L(.byAgent), trailing: L(.processedTokens))
             ForEach(Agent.allCases, id: \.self) { agent in
                 let totals = model.usage[agent]
                 if let totals, totals.processed > 0 || totals.peakContext > 0 {
@@ -122,7 +123,7 @@ struct UsageView: View {
                         Text(Self.tokens(totals.processed))
                             .font(Tokens.Typography.mono(10))
                             .frame(width: 96, alignment: .trailing)
-                        Text("\(totals.events) sayaç")
+                        Text(Lf(.counterCount, [totals.events]))
                             .font(Tokens.Typography.text(9.5))
                             .foregroundStyle(Tokens.Palette.secondary)
                             .frame(width: 72, alignment: .trailing)
@@ -130,7 +131,7 @@ struct UsageView: View {
                 }
             }
             if model.usage.values.allSatisfy({ $0.processed == 0 && $0.peakContext == 0 }) {
-                Text("Bu aralıkta token sayacı yazan oturum yok. Ajanlar sayaç yazdıkça burada birikir.")
+                Text(L(.noCounterData))
                     .font(Tokens.Typography.text(10.5))
                     .foregroundStyle(Tokens.Palette.secondary)
             }
@@ -140,7 +141,7 @@ struct UsageView: View {
     private var footnote: some View {
         VStack(alignment: .leading, spacing: 4) {
             SectionLabel(text: "Not")
-            Text("Sayılar ajanların kendi transkriptlerine yazdığı sayaçlardan toplanır. Fiyat gösterilmez: aynı token, plana ve modele göre farklı para eder.")
+            Text(L(.usageNote))
                 .font(Tokens.Typography.text(10))
                 .foregroundStyle(Tokens.Palette.secondary)
                 .fixedSize(horizontal: false, vertical: true)

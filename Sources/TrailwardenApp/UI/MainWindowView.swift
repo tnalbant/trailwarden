@@ -6,6 +6,7 @@ import TrailwardenCore
 
 /// The window the menu bar opens: sidebar plus the timeline.
 struct MainWindowView: View {
+    @AppStorage(LocalizationStore.defaultsKey) private var language = AppLanguage.system.rawValue
     @ObservedObject var model: AppModel
     @StateObject private var timeline: TimelineModel
 
@@ -32,7 +33,7 @@ struct MainWindowView: View {
                         }
                     } label: {
                         Label(
-                            model.isScanning ? "Taranıyor…" : "Yeniden tara",
+                            model.isScanning ? L(.scanning) : L(.rescan),
                             systemImage: "arrow.clockwise"
                         )
                     }
