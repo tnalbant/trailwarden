@@ -12,6 +12,12 @@ extension UITranslations {
         .allSessions: "Tüm oturumlar",
         .labelSession: "Oturum",
         .searchPlaceholder: "Ara",
+        .checkUpdates: "Güncellemeyi denetle",
+        .checkingUpdates: "Denetleniyor…",
+        .upToDate: "Güncelsiniz",
+        .updateAvailable: "%@ çıktı",
+        .updateCheckFailed: "Güncelleme denetlenemedi",
+        .releaseNotes: "Sürüm notları",
         .scope: "Kapsam",
         .projects: "Projeler",
 

@@ -12,6 +12,12 @@ extension UITranslations {
         .allSessions: "Toutes les sessions",
         .labelSession: "Session",
         .searchPlaceholder: "Rechercher",
+        .checkUpdates: "Rechercher des mises à jour",
+        .checkingUpdates: "Vérification…",
+        .upToDate: "Vous êtes à jour",
+        .updateAvailable: "%@ est disponible",
+        .updateCheckFailed: "Vérification impossible",
+        .releaseNotes: "Notes de version",
         .scope: "Périmètre",
         .projects: "Projets",
 

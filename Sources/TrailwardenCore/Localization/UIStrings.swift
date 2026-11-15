@@ -15,6 +15,8 @@ public enum UIString: String, CaseIterable, Sendable {
     case labelSession
     /// Placeholder in the search field (was hardcoded Turkish)
     case searchPlaceholder
+    /// The one network call, made only when the reader asks for it
+    case checkUpdates, checkingUpdates, upToDate, updateAvailable, updateCheckFailed, releaseNotes
     /// Windows and panels
     case windowRules, windowUsage, windowSettings, openDashboard, recentSessions
     /// Activity feed — what the agent did, not how many rows the database holds
@@ -69,6 +71,12 @@ public enum UITranslations {
         .allSessions: "All sessions",
         .labelSession: "Session",
         .searchPlaceholder: "Search",
+        .checkUpdates: "Check for updates",
+        .checkingUpdates: "Checking…",
+        .upToDate: "You are up to date",
+        .updateAvailable: "%@ is available",
+        .updateCheckFailed: "Could not check for updates",
+        .releaseNotes: "Release notes",
         .scope: "Scope",
         .projects: "Projects",
 

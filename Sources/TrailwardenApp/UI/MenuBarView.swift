@@ -14,6 +14,7 @@ import TrailwardenCore
 struct MenuBarView: View {
     @AppStorage(LocalizationStore.defaultsKey) private var language = AppLanguage.system.rawValue
     @ObservedObject var model: AppModel
+    @ObservedObject var updates: UpdateChecker
     @Environment(\.openWindow) private var openWindow
 
     var body: some View {
@@ -28,6 +29,29 @@ struct MenuBarView: View {
                 OnboardingView(model: model)
             }
             Hairline()
+            if let line = updateLine {
+                HStack(spacing: 6) {
+                    Image(systemName: line.icon)
+                        .font(.system(size: 10))
+                        .foregroundStyle(line.tint)
+                    Text(line.text)
+                        .font(Tokens.Typography.text(10.5, weight: line.weight))
+                        .foregroundStyle(line.tint)
+                        .lineLimit(2)
+                    Spacer(minLength: 0)
+                    if let link = line.link {
+                        Button(L(.releaseNotes)) {
+                            NSWorkspace.shared.open(link)
+                        }
+                        .buttonStyle(.plain)
+                        .font(Tokens.Typography.text(10.5, weight: .medium))
+                        .foregroundStyle(Tokens.Palette.accent)
+                    }
+                }
+                .padding(.horizontal, Tokens.Metrics.gutter)
+                .padding(.vertical, 7)
+                Hairline()
+            }
             footer
         }
         .frame(width: Tokens.Metrics.panelWidth)
@@ -169,6 +193,42 @@ struct MenuBarView: View {
         .help(item.ruleMessage ?? item.detail)
     }
 
+    // MARK: - Updates
+
+    /// The result of the one network call the reader can start. It lives in the
+    /// panel rather than in a modal: a version number does not deserve an alert.
+    private struct UpdateLine {
+        let icon: String
+        let text: String
+        let tint: Color
+        let weight: Font.Weight
+        let link: URL?
+    }
+
+    private var updateLine: UpdateLine? {
+        switch updates.state {
+        case .idle:
+            return nil
+        case .checking:
+            return UpdateLine(
+                icon: "arrow.triangle.2.circlepath", text: L(.checkingUpdates),
+                tint: Tokens.Palette.secondary, weight: .regular, link: nil)
+        case .upToDate:
+            return UpdateLine(
+                icon: "checkmark.seal", text: L(.upToDate),
+                tint: Tokens.Palette.secondary, weight: .regular, link: nil)
+        case let .available(feed):
+            let text = Lf(.updateAvailable, [feed.version])
+            return UpdateLine(
+                icon: "arrow.down.circle", text: feed.notes.map { "\(text) — \($0)" } ?? text,
+                tint: Tokens.Palette.accent, weight: .medium, link: feed.url)
+        case .failed:
+            return UpdateLine(
+                icon: "exclamationmark.triangle", text: L(.updateCheckFailed),
+                tint: Tokens.Palette.secondary, weight: .regular, link: nil)
+        }
+    }
+
     // MARK: - Footer
 
     private var footer: some View {
@@ -185,6 +245,17 @@ struct MenuBarView: View {
             footerButton(L(.windowRules), weight: .medium) {
                 openWindow(id: "rules")
             }
+
+            Button {
+                Task { await updates.check() }
+            } label: {
+                Image(systemName: "arrow.triangle.2.circlepath")
+                    .font(.system(size: 10, weight: .medium))
+                    .foregroundStyle(Tokens.Palette.secondary)
+            }
+            .buttonStyle(.plain)
+            .disabled(updates.state == .checking)
+            .help(L(.checkUpdates))
 
             Spacer(minLength: 4)
 

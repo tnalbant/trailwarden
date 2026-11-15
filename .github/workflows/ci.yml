@@ -43,15 +43,24 @@ jobs:
           brew install swiftlint
           swiftlint lint --quiet --strict
 
-      # Trailwarden must never talk to the network. See THREATMODEL.md.
-      - name: No network APIs in Sources
+      # Trailwarden goes online only when the reader asks for an update check.
+      # See THREATMODEL.md: one file may name a network API, and only that one.
+      - name: No network APIs outside the update check
         run: |
           set -euo pipefail
-          if grep -RInE 'URLSession|NSURLConnection|URLRequest|CFNetwork|import Network' Sources/; then
-            echo "::error::Network API reference found in Sources/ — Trailwarden stays offline."
+          allowed='Sources/TrailwardenApp/Update/UpdateChecker.swift'
+          strays=$(grep -RInE 'URLSession|NSURLConnection|URLRequest|CFNetwork|import Network' Sources/ \
+            | grep -v "^$allowed:" || true)
+          if [ -n "$strays" ]; then
+            echo "::error::Network API outside $allowed — Trailwarden stays offline."
+            echo "$strays"
             exit 1
           fi
-          echo "OK: no network API references."
+          if ! grep -q 'URLSession' "$allowed"; then
+            echo "::error::$allowed no longer contains the update check; update this rule and THREATMODEL.md."
+            exit 1
+          fi
+          echo "OK: network APIs confined to the update check."
 
       # Real agent transcripts must never be committed; only synthetic fixtures.
       - name: No .jsonl outside fixtures

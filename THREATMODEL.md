@@ -16,7 +16,12 @@ lets you export a redacted record.
 
 ## What it protects against
 
-- **Leaving the machine.** No network code at all; a CI grep enforces it.
+- **Leaving the machine.** The app never goes online on its own. There is exactly
+  one network call in the codebase, `Sources/TrailwardenApp/Update/UpdateChecker.swift`,
+  and it runs only when the reader clicks "Check for updates": a GET for one small
+  JSON document (`version`, `notes`, `url`), no cookies, no identifiers, no query
+  string, no timer, nothing at launch. Everything else stays local, and CI fails the
+  build if a network API appears in any other file under `Sources/`.
 - **Secrets in exports.** Known token shapes are masked before storage and
   again on export; the raw line is masked too. A test asserts every documented
   pattern is caught, and an export test asserts a token never reaches the file.
