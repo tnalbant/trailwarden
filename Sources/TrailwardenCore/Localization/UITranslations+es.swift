@@ -24,6 +24,10 @@ extension UITranslations {
         .timelineTab: "Cronología",
         .messagesToday: "%d mensajes",
         .clearFilters: "Quitar filtros",
+        .rangeDay: "Día",
+        .rangeWeek: "Semana",
+        .rangeMonth: "Mes",
+        .rangeAll: "Todo",
 
         .events: "eventos",
         .event: "evento",

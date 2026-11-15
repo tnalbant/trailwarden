@@ -166,11 +166,10 @@ struct TimelineView: View {
         HStack(spacing: 10) {
             Picker("", selection: $model.window) {
                 ForEach(TimelineWindow.allCases) { window in
-                    Text(window.rawValue).tag(window)
+                    Text(window.shortLabel).tag(window)
                 }
             }
             .labelsHidden()
-            .frame(width: 96)
             .fixedSize()
 
             Picker("", selection: $model.agentFilter) {
@@ -180,7 +179,6 @@ struct TimelineView: View {
                 }
             }
             .labelsHidden()
-            .frame(width: 118)
             .fixedSize()
 
             FilterChip(title: L(.onlyFindings), isOn: $model.findingsOnly)
