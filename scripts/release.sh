@@ -26,6 +26,10 @@ if [[ -z "${DEVELOPER_ID:-}" ]]; then
   DEVELOPER_ID="$(security find-identity -v -p codesigning 2>/dev/null \
     | sed -n 's/.*"\(Developer ID Application: [^"]*\)"/\1/p' | head -1)"
 fi
+# Team id lives in the identity string: "Developer ID Application: Name (TEAMID)"
+if [[ -z "${TEAM_ID:-}" && -n "$DEVELOPER_ID" ]]; then
+  TEAM_ID="$(sed -n 's/.*(\([A-Z0-9]*\))$/\1/p' <<< "$DEVELOPER_ID")"
+fi
 
 echo "== release $VERSION =="
 echo "   output: $OUT"
@@ -41,13 +45,14 @@ echo "== generating project =="
 xcodegen generate > /dev/null
 
 echo "== building app (Release) =="
-if [[ -n "$DEVELOPER_ID" ]]; then
-  xcodebuild -project Trailwarden.xcodeproj -scheme Trailwarden -configuration Release \
-    -derivedDataPath "$OUT" CODE_SIGNING_ALLOWED=YES \
-    CODE_SIGN_IDENTITY="$DEVELOPER_ID" DEVELOPMENT_TEAM="${TEAM_ID:-}" build > /dev/null
-else
-  xcodebuild -project Trailwarden.xcodeproj -scheme Trailwarden -configuration Release \
-    -derivedDataPath "$OUT" CODE_SIGNING_ALLOWED=NO build > /dev/null
+# Always build unsigned, then sign the bundle ourselves. Xcode's signing step
+# wants a provisioning profile even for Developer ID, which a non-sandboxed app
+# does not have; codesign gives the same result with fewer moving parts.
+if ! xcodebuild -project Trailwarden.xcodeproj -scheme Trailwarden -configuration Release \
+  -derivedDataPath "$OUT" CODE_SIGNING_ALLOWED=NO build > "$OUT/build.log" 2>&1; then
+  echo "HATA: derleme başarısız — ayrıntı: $OUT/build.log" >&2
+  grep -E "error:" "$OUT/build.log" | head -10 >&2
+  exit 1
 fi
 
 if [[ -n "$DEVELOPER_ID" ]]; then
@@ -73,6 +78,15 @@ rm -f "$DMG"
 hdiutil create -volname "Trailwarden $VERSION" -srcfolder "$APP" -ov -format UDZO "$DMG" > /dev/null
 if [[ -n "$DEVELOPER_ID" ]]; then
   codesign --force --timestamp --sign "$DEVELOPER_ID" "$DMG"
+  # The app inside is notarized, but the disk image that carries it is a separate
+  # object: without its own ticket macOS reports "Unnotarized Developer ID" when
+  # the download is opened from Safari or a browser-managed quarantine.
+  if [[ -n "${NOTARY_PROFILE:-}" ]]; then
+    echo "== notarizing the DMG =="
+    xcrun notarytool submit "$DMG" --keychain-profile "$NOTARY_PROFILE" --wait
+    xcrun stapler staple "$DMG"
+    spctl -a -t open --context context:primary-signature -vv "$DMG"
+  fi
 fi
 
 echo "== building CLI + MCP =="

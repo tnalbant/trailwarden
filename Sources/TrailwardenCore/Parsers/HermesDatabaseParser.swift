@@ -70,7 +70,6 @@ public struct HermesDatabaseParser: DatabaseAgentParser {
 
         var sessions: [String: (cwd: String?, started: Date)] = [:]
         var events: [Event] = []
-        var skipped = 0
 
         let cutoff = since ?? .distantPast
         var tokenEvents: [Event] = []
@@ -167,7 +166,7 @@ public struct HermesDatabaseParser: DatabaseAgentParser {
             return event.withCwd(cwd)
         }
 
-        return ParseResult(events: resolved, skippedLines: skipped)
+        return ParseResult(events: resolved, skippedLines: 0)
     }
 
     // MARK: - Helpers
