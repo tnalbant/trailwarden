@@ -13,6 +13,8 @@ public enum UIString: String, CaseIterable, Sendable {
     case today, last7Days, last30Days, allTime, allSessions, scope, projects
     /// The noun that turns a bare id in the window row into a readable selection
     case labelSession
+    /// Placeholder in the search field (was hardcoded Turkish)
+    case searchPlaceholder
     /// Windows and panels
     case windowRules, windowUsage, windowSettings, openDashboard, recentSessions
     /// Activity feed — what the agent did, not how many rows the database holds
@@ -66,6 +68,7 @@ public enum UITranslations {
         .allTime: "All time",
         .allSessions: "All sessions",
         .labelSession: "Session",
+        .searchPlaceholder: "Search",
         .scope: "Scope",
         .projects: "Projects",
 
