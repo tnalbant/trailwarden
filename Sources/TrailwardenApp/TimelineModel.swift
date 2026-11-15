@@ -32,6 +32,17 @@ enum TimelineWindow: String, CaseIterable, Identifiable {
         }
     }
 
+    /// A popup button label that fits beside four other controls.
+    var shortLabel: String {
+        let localizer = LocalizationStore.current
+        switch self {
+        case .day: return localizer.text(.rangeDay)
+        case .week: return localizer.text(.rangeWeek)
+        case .month: return localizer.text(.rangeMonth)
+        case .everything: return localizer.text(.rangeAll)
+        }
+    }
+
     var since: Date? {
         switch self {
         case .day: Calendar.current.startOfDay(for: Date())
@@ -187,6 +198,15 @@ final class TimelineModel: ObservableObject {
 
     private func scheduleSearch() {
         searchTask?.cancel()
+        // Searching is a question about everything, but the field sits next to a
+        // project or session someone picked earlier. Left alone, the query runs
+        // inside that selection and answers "nothing found" — which reads as a
+        // broken search rather than a narrow filter.
+        if !search.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            if case .all = selection {} else {
+                selection = .all
+            }
+        }
         searchTask = Task { [weak self] in
             try? await Task.sleep(for: .milliseconds(250))
             guard !Task.isCancelled else { return }

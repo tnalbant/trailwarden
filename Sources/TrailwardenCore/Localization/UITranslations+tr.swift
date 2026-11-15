@@ -24,6 +24,10 @@ extension UITranslations {
         .timelineTab: "Zaman çizelgesi",
         .messagesToday: "%d mesaj",
         .clearFilters: "Filtreleri temizle",
+        .rangeDay: "Gün",
+        .rangeWeek: "Hafta",
+        .rangeMonth: "Ay",
+        .rangeAll: "Tümü",
 
         .events: "olay",
         .event: "olay",

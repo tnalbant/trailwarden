@@ -17,6 +17,9 @@ public enum UIString: String, CaseIterable, Sendable {
     case whatHappened, nothingRiskyToday, todayFeed, timelineTab, messagesToday
     /// Recovery from a filter combination that matches nothing
     case clearFilters
+    /// Short range labels: a popup button cannot hold "Last 30 days" next to four
+    /// other filters and a search field.
+    case rangeDay, rangeWeek, rangeMonth, rangeAll
     // Counts
     case events, event, findings, sessions, eventCount, sessionMeta, sessionCritical
     case projectMeta, liveCount, liveTooltip, zeroEvents, eventsRatio
@@ -74,6 +77,10 @@ public enum UITranslations {
         .timelineTab: "Timeline",
         .messagesToday: "%d messages",
         .clearFilters: "Clear filters",
+        .rangeDay: "Day",
+        .rangeWeek: "Week",
+        .rangeMonth: "Month",
+        .rangeAll: "All",
 
         .events: "events",
         .event: "event",

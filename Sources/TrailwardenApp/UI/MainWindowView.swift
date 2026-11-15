@@ -56,6 +56,10 @@ struct MainWindowView: View {
         .task {
             #if DEBUG
                 let environment = ProcessInfo.processInfo.environment
+                if let term = environment["TRAILWARDEN_SEARCH"], !term.isEmpty {
+                    try? await Task.sleep(for: .seconds(1))
+                    timeline.search = term
+                }
                 if environment["TRAILWARDEN_SHOW_FINDINGS"] == "1" {
                     try? await Task.sleep(for: .seconds(1))
                     showFindings()

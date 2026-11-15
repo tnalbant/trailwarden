@@ -24,6 +24,10 @@ extension UITranslations {
         .timelineTab: "Zeitleiste",
         .messagesToday: "%d Nachrichten",
         .clearFilters: "Filter zurücksetzen",
+        .rangeDay: "Tag",
+        .rangeWeek: "Woche",
+        .rangeMonth: "Monat",
+        .rangeAll: "Alle",
 
         .events: "Ereignisse",
         .event: "Ereignis",
