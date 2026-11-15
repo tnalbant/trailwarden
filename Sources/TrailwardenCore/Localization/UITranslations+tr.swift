@@ -18,6 +18,11 @@ extension UITranslations {
         .windowSettings: "Ayarlar",
         .openDashboard: "Panoyu aç",
         .recentSessions: "Son oturumlar",
+        .whatHappened: "Ne oldu",
+        .nothingRiskyToday: "Bugün riskli bir şey yok",
+        .todayFeed: "Bugün",
+        .timelineTab: "Zaman çizelgesi",
+        .messagesToday: "%d mesaj",
 
         .events: "olay",
         .event: "olay",

@@ -13,6 +13,8 @@ public enum UIString: String, CaseIterable, Sendable {
     case today, last7Days, last30Days, allTime, allSessions, scope, projects
     /// Windows and panels
     case windowRules, windowUsage, windowSettings, openDashboard, recentSessions
+    /// Activity feed — what the agent did, not how many rows the database holds
+    case whatHappened, nothingRiskyToday, todayFeed, timelineTab, messagesToday
     // Counts
     case events, event, findings, sessions, eventCount, sessionMeta, sessionCritical
     case projectMeta, liveCount, liveTooltip, zeroEvents, eventsRatio
@@ -62,8 +64,13 @@ public enum UITranslations {
         .windowRules: "Rules",
         .windowUsage: "Usage",
         .windowSettings: "Settings",
-        .openDashboard: "Open dashboard",
+        .openDashboard: "Dashboard",
         .recentSessions: "Recent sessions",
+        .whatHappened: "What happened",
+        .nothingRiskyToday: "Nothing risky today",
+        .todayFeed: "Today",
+        .timelineTab: "Timeline",
+        .messagesToday: "%d messages",
 
         .events: "events",
         .event: "event",

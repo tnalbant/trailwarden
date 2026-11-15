@@ -18,6 +18,11 @@ extension UITranslations {
         .windowSettings: "Impostazioni",
         .openDashboard: "Apri il pannello",
         .recentSessions: "Sessioni recenti",
+        .whatHappened: "Cosa è successo",
+        .nothingRiskyToday: "Oggi niente di rischioso",
+        .todayFeed: "Oggi",
+        .timelineTab: "Cronologia",
+        .messagesToday: "%d messaggi",
 
         .events: "eventi",
         .event: "evento",
