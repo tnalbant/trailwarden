@@ -97,6 +97,19 @@ public enum ActivityDigest {
         return String(flattened.prefix(detailLimit)) + "…"
     }
 
+    /// "21:00" for today, "15 Nov 21:00" for any other day. A timeline that spans
+    /// months otherwise shows a column of times with no way to order them.
+    public static func stamp(_ date: Date, now: Date = Date(), locale: Locale = .current) -> String {
+        let formatter = DateFormatter()
+        formatter.locale = locale
+        if Calendar.current.isDate(date, inSameDayAs: now) {
+            formatter.dateFormat = "HH:mm"
+        } else {
+            formatter.setLocalizedDateFormatFromTemplate("dMMMHHmm")
+        }
+        return formatter.string(from: date)
+    }
+
     /// The folder name a person would recognise, or nil when the agent recorded
     /// nothing (a chat-only session).
     public static func project(from cwd: String?) -> String? {

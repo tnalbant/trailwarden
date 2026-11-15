@@ -218,8 +218,6 @@ struct MenuBarView: View {
     }
 
     private func time(_ date: Date) -> String {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "HH:mm"
-        return formatter.string(from: date)
+        EventFormatting.stamp(date)
     }
 }

@@ -40,10 +40,10 @@ struct EventRowView: View {
                 .frame(width: 2.5)
 
             HStack(alignment: .top, spacing: 9) {
-                Text(EventFormatting.time(event.ts))
+                Text(EventFormatting.stamp(event.ts))
                     .font(Tokens.Typography.mono(9.5))
                     .foregroundStyle(Tokens.Palette.secondary)
-                    .frame(width: 56, alignment: .leading)
+                    .frame(width: 86, alignment: .leading)
 
                 Text(EventFormatting.agentLabel(event.agent))
                     .font(Tokens.Typography.mono(8.5))

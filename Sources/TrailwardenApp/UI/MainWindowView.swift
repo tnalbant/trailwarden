@@ -32,16 +32,8 @@ struct MainWindowView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            Picker("", selection: $mode) {
-                Text(L(.todayFeed)).tag(Mode.feed)
-                Text(L(.timelineTab)).tag(Mode.timeline)
-            }
-            .pickerStyle(.segmented)
-            .labelsHidden()
-            .frame(width: 260)
-            .padding(.top, 8)
-            .padding(.bottom, 6)
-
+            chrome
+            Hairline()
             switch mode {
             case .feed:
                 FeedView(model: feed) { sessionID in
@@ -52,6 +44,8 @@ struct MainWindowView: View {
             }
         }
         .frame(minWidth: 780, minHeight: 480)
+        .background(Tokens.Palette.paper)
+        .foregroundStyle(Tokens.Palette.ink)
         .onChange(of: model.sessionToOpen) { _, sessionID in
             guard let sessionID else { return }
             open(sessionID)
@@ -73,6 +67,33 @@ struct MainWindowView: View {
                 .disabled(model.isScanning)
             }
         }
+    }
+
+    /// One header for both modes, so the feed and the timeline read as the same
+    /// application rather than two screens that happen to share a window.
+    private var chrome: some View {
+        HStack(alignment: .firstTextBaseline, spacing: 12) {
+            Picker("", selection: $mode) {
+                Text(L(.todayFeed)).tag(Mode.feed)
+                Text(L(.timelineTab)).tag(Mode.timeline)
+            }
+            .pickerStyle(.segmented)
+            .labelsHidden()
+            .frame(width: 220)
+
+            Spacer()
+
+            if model.snapshot.criticalToday > 0 {
+                Text(Lf(.sessionCritical, [model.snapshot.criticalToday]))
+                    .font(Tokens.Typography.text(10, weight: .medium))
+                    .foregroundStyle(Tokens.Palette.accent)
+            }
+            Text(Lf(.eventCount, [model.snapshot.totalEvents]))
+                .font(Tokens.Typography.mono(10))
+                .foregroundStyle(Tokens.Palette.secondary)
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 10)
     }
 
     private var timelineView: some View {
