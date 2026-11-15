@@ -72,13 +72,27 @@ public struct EventQuery: Sendable {
         self.includeRawJSON = includeRawJSON
     }
 
-    /// The search text as an FTS5 phrase, so user input can never inject FTS
-    /// syntax (a bare `rm -rf` would otherwise be parsed as a column filter).
+    /// The search text as FTS5 tokens, each one a prefix, so user input can never
+    /// inject FTS syntax (a bare `rm -rf` would otherwise be parsed as a column
+    /// filter).
+    ///
+    /// Every word has to appear, in any order, and a word matches from its start:
+    /// typing \`work_game\` finds `work_games`, and `notes release` finds the same
+    /// rows as `release notes`. A plain phrase would demand the whole run of words
+    /// as one token sequence and the exact ending of the last one, which is not how
+    /// people search a list.
     var ftsPhrase: String? {
         guard let search else { return nil }
-        let trimmed = search.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return nil }
-        return "\"\(trimmed.replacingOccurrences(of: "\"", with: "\"\""))\""
+        let words = search
+            .split(whereSeparator: \.isWhitespace)
+            .map(String.init)
+            // Punctuation alone carries no tokens, and an empty quoted phrase is an
+            // FTS syntax error rather than an empty result.
+            .filter { $0.contains { $0.isLetter || $0.isNumber } }
+        guard !words.isEmpty else { return nil }
+        return words
+            .map { "\"\($0.replacingOccurrences(of: "\"", with: "\"\""))\"*" }
+            .joined(separator: " ")
     }
 }
 
