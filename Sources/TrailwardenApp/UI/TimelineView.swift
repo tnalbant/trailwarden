@@ -33,6 +33,7 @@ private struct FilterChip: View {
 struct TimelineView: View {
     @ObservedObject var model: TimelineModel
     var onMute: ((RiskHit, Event) -> Void)?
+    var liveSessionIDs: Set<String> = []
     @FocusState private var searchFocused: Bool
 
     private var selectionBinding: Binding<TimelineSelection?> {
@@ -124,6 +125,12 @@ struct TimelineView: View {
                 .font(Tokens.Typography.mono(9))
                 .lineLimit(1)
             Spacer(minLength: 2)
+            if liveSessionIDs.contains(session.id) {
+                Circle()
+                    .fill(Tokens.Palette.accent)
+                    .frame(width: 5, height: 5)
+                    .help("Bu oturum son 2 dakikada yazdı — ajan hâlâ çalışıyor olabilir")
+            }
             if session.criticalCount > 0 {
                 Text("\(session.criticalCount)")
                     .font(Tokens.Typography.text(9, weight: .medium))
@@ -146,6 +153,7 @@ struct TimelineView: View {
         }
         .background(Tokens.Palette.paper)
         .foregroundStyle(Tokens.Palette.ink)
+        .tint(Tokens.Palette.accent)
     }
 
     private var header: some View {

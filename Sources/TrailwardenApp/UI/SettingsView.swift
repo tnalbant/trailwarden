@@ -38,6 +38,7 @@ struct SettingsView: View {
         }
         .background(Tokens.Palette.paper)
         .foregroundStyle(Tokens.Palette.ink)
+        .tint(Tokens.Palette.accent)
     }
 
     private var header: some View {
