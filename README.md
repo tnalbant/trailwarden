@@ -11,8 +11,9 @@ someone else.
 Nothing leaves the machine: no account, no server, no telemetry, no network code
 at all (CI fails if `URLSession` or friends ever show up in `Sources/`).
 
-> Status: **v0.1.0** — works end to end, Turkish UI. The plan and the daily progress log live in
-> the private project workspace; this repository is the product itself.
+> Status: **v0.1.0** — works end to end. Interface in English (US), Turkish, German,
+> Spanish, Italian and French. The plan and the daily progress log live in the
+> private project workspace; this repository is the product itself.
 
 ## Screenshots
 
@@ -55,10 +56,21 @@ them, and does not modify their files. It reads `~/.claude`, `~/.codex` and `~/.
 same way you would, and keeps its own SQLite index under
 `~/Library/Application Support/Trailwarden/`.
 
+## Install
+
+```bash
+brew install --cask tnalbant/trailwarden/trailwarden   # menu bar app
+brew install tnalbant/trailwarden/trailwarden-cli      # CLI + MCP server
+```
+
+Also available as a DMG from Releases, as `npm install -g trailwarden-mcp`, and
+from source (`make install`). See [docs/INSTALL.md](docs/INSTALL.md) for each
+method, including how to wire the MCP server into a client.
+
 ## Requirements
 
 - macOS 14 (Sonoma) or later
-- Swift 6 toolchain (Xcode 16+)
+- Swift 6 toolchain (Xcode 16+) when building from source
 
 ## Try it without your own data
 

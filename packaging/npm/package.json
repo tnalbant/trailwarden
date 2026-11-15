@@ -1,0 +1,42 @@
+{
+  "name": "trailwarden-mcp",
+  "version": "0.1.0",
+  "description": "Offline audit trail for coding agents (Claude Code, Codex, Gemini CLI, Hermes) exposed over MCP. No network code.",
+  "license": "Apache-2.0",
+  "author": "Turgay Nalbant",
+  "homepage": "https://github.com/tnalbant/trailwarden",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tnalbant/trailwarden.git"
+  },
+  "bin": {
+    "trailwarden-mcp": "bin/trailwarden-mcp.js"
+  },
+  "files": [
+    "bin/",
+    "vendor/",
+    "README.md"
+  ],
+  "scripts": {
+    "prepack": "node scripts/prepack.js"
+  },
+  "os": [
+    "darwin"
+  ],
+  "cpu": [
+    "arm64",
+    "x64"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "audit",
+    "claude-code",
+    "codex",
+    "offline",
+    "macos"
+  ]
+}
