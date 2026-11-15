@@ -18,7 +18,7 @@ final class RuleRefreshTests: XCTestCase {
             agent: .claudeCode,
             sessionId: "s1",
             kind: .toolCall,
-            cwd: "/Users/underline/dev/demo",
+            cwd: "/Users/demo/dev/demo",
             tool: "Bash",
             command: command,
             paths: [],

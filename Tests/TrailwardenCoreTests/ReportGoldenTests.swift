@@ -12,7 +12,7 @@ final class ReportGoldenTests: XCTestCase {
         SessionSummary(
             id: "sess-0001",
             agent: .claudeCode,
-            cwd: "/Users/underline/dev/demo",
+            cwd: "/Users/demo/dev/demo",
             gitBranch: "main",
             startedAt: start,
             endedAt: start.addingTimeInterval(5),
@@ -25,19 +25,19 @@ final class ReportGoldenTests: XCTestCase {
         [
             Event(
                 id: "e1", ts: start.addingTimeInterval(1), agent: .claudeCode, sessionId: "sess-0001",
-                kind: .toolCall, cwd: "/Users/underline/dev/demo", gitBranch: "main", tool: "Bash",
+                kind: .toolCall, cwd: "/Users/demo/dev/demo", gitBranch: "main", tool: "Bash",
                 command: "rm -rf ~", paths: [], preview: "rm -rf ~",
                 risk: [RiskHit(ruleId: "R1", severity: .critical, message: "destructive")],
                 rawJSON: "{}"
             ),
             Event(
                 id: "e2", ts: start.addingTimeInterval(2), agent: .claudeCode, sessionId: "sess-0001",
-                kind: .message, cwd: "/Users/underline/dev/demo", gitBranch: "main", tool: nil,
+                kind: .message, cwd: "/Users/demo/dev/demo", gitBranch: "main", tool: nil,
                 command: nil, paths: [], preview: "hello", risk: [], rawJSON: "{}"
             ),
             Event(
                 id: "e3", ts: start.addingTimeInterval(3), agent: .claudeCode, sessionId: "sess-0001",
-                kind: .toolCall, cwd: "/Users/underline/dev/demo", gitBranch: "main", tool: "Bash",
+                kind: .toolCall, cwd: "/Users/demo/dev/demo", gitBranch: "main", tool: "Bash",
                 command: "sudo ls", paths: [], preview: "sudo ls",
                 risk: [RiskHit(ruleId: "R3", severity: .warn, message: "elevated")],
                 rawJSON: "{}"

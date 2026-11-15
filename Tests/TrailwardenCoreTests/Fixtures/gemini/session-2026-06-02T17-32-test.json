@@ -34,7 +34,7 @@
         {
           "id": "read_file_1",
           "name": "read_file",
-          "args": {"absolute_path": "/Users/underline/demo/README.md"}
+          "args": {"absolute_path": "/Users/demo/demo/README.md"}
         }
       ]
     },

@@ -53,8 +53,10 @@ public struct HermesDatabaseParser: DatabaseAgentParser {
         }
 
         var handle: OpaquePointer?
-        // Read-only and immutable: Hermes owns this file, we only look at it.
-        let uri = "file:\(url.path)?immutable=1"
+        // Read-only, but not `immutable=1`: Hermes writes to this database while
+        // it runs (WAL), and immutable tells SQLite to ignore the WAL and every
+        // lock. `mode=ro` reads a consistent snapshot instead.
+        let uri = "file:\(url.path)?mode=ro"
         guard sqlite3_open_v2(uri, &handle, SQLITE_OPEN_READONLY | SQLITE_OPEN_URI, nil) == SQLITE_OK,
               let handle else {
             throw TranscriptError.unreadable(url.lastPathComponent)

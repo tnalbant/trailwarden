@@ -26,8 +26,8 @@ final class ResumeCommandTests: XCTestCase {
 
     func testDirectoryIsQuoted() {
         XCTAssertEqual(
-            ResumeCommand.command(agent: .codex, sessionId: "abc", cwd: "/Users/underline/my project"),
-            "cd '/Users/underline/my project' && codex resume abc"
+            ResumeCommand.command(agent: .codex, sessionId: "abc", cwd: "/Users/demo/my project"),
+            "cd '/Users/demo/my project' && codex resume abc"
         )
         XCTAssertEqual(ResumeCommand.quoted("/tmp/it's here"), #"'/tmp/it'\''s here'"#)
     }

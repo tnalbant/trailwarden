@@ -14,7 +14,7 @@ final class TimelineQueryTests: XCTestCase {
     private func event(
         id: String,
         seconds: TimeInterval,
-        cwd: String = "/Users/underline/dev/alpha",
+        cwd: String = "/Users/demo/dev/alpha",
         session: String = "s-alpha",
         agent: Agent = .claudeCode,
         preview: String = "hello",
@@ -40,10 +40,10 @@ final class TimelineQueryTests: XCTestCase {
         try store.insert(events: [
             event(id: "e1", seconds: 1_000, preview: "alpha release notes", severity: .critical),
             event(id: "e2", seconds: 2_000, preview: "beta release notes"),
-            event(id: "e3", seconds: 3_000, cwd: "/Users/underline/dev/beta", session: "s-beta",
+            event(id: "e3", seconds: 3_000, cwd: "/Users/demo/dev/beta", session: "s-beta",
                   agent: .codex, preview: "gamma deployment"),
             event(id: "e4", seconds: 4_000, preview: "delta release", severity: .warn),
-            event(id: "e5", seconds: 5_000, cwd: "/Users/underline/dev/beta", session: "s-beta",
+            event(id: "e5", seconds: 5_000, cwd: "/Users/demo/dev/beta", session: "s-beta",
                   agent: .codex, preview: "epsilon notes"),
         ])
     }
@@ -72,7 +72,7 @@ final class TimelineQueryTests: XCTestCase {
 
     func testProjectFilter() throws {
         try seed()
-        let events = try store.events(matching: EventQuery(projects: ["/Users/underline/dev/beta"]))
+        let events = try store.events(matching: EventQuery(projects: ["/Users/demo/dev/beta"]))
         XCTAssertEqual(events.map(\.id), ["e5", "e3"])
     }
 
@@ -152,7 +152,7 @@ final class TimelineQueryTests: XCTestCase {
         try seed()
         let projects = try store.projects()
 
-        XCTAssertEqual(projects.map(\.cwd), ["/Users/underline/dev/beta", "/Users/underline/dev/alpha"])
+        XCTAssertEqual(projects.map(\.cwd), ["/Users/demo/dev/beta", "/Users/demo/dev/alpha"])
         let beta = try XCTUnwrap(projects.first)
         XCTAssertEqual(beta.sessionCount, 1)
         XCTAssertEqual(beta.eventCount, 2)

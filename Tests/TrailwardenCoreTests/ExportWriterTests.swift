@@ -20,12 +20,12 @@ final class ExportWriterTests: XCTestCase {
 
     private func fixture() -> (sessions: [SessionSummary], events: [Event], selection: AuditSelection) {
         let session = SessionSummary(
-            id: "sess-0001", agent: .claudeCode, cwd: "/Users/underline/dev/demo", gitBranch: "main",
+            id: "sess-0001", agent: .claudeCode, cwd: "/Users/demo/dev/demo", gitBranch: "main",
             startedAt: start, endedAt: start.addingTimeInterval(5), eventCount: 1, criticalCount: 1
         )
         let event = Event(
             id: "e1", ts: start, agent: .claudeCode, sessionId: "sess-0001", kind: .toolCall,
-            cwd: "/Users/underline/dev/demo", tool: "Bash", command: "rm -rf /", paths: [],
+            cwd: "/Users/demo/dev/demo", tool: "Bash", command: "rm -rf /", paths: [],
             preview: "rm -rf /", risk: [RiskHit(ruleId: "R1", severity: .critical, message: "silme")],
             rawJSON: nil
         )
@@ -102,13 +102,14 @@ final class ExportWriterTests: XCTestCase {
 
     func testDefaultPatternsCoverTheDocumentedSecrets() {
         let redactor = Redactor()
+        // Built here, character runs only: pattern-shaped, obviously not real.
         let cases = [
-            "sk-abcdefghijklmnop1234",
-            "ghp_abcdefghijklmnopqrstuvwx1234",
-            "github_pat_abcdefghijklmnopqrstuvwxyz",
-            "AKIAABCDEFGHIJKLMNOP",
-            "xoxb-1234567890-abcdef",
-            "-----BEGIN RSA PRIVATE KEY-----\nMIIE\n-----END RSA PRIVATE KEY-----",
+            "sk-" + String(repeating: "a", count: 32),
+            "ghp_" + String(repeating: "b", count: 36),
+            "github_pat_" + String(repeating: "c", count: 30),
+            "AKIA" + String(repeating: "D", count: 16),
+            "xoxb-" + String(repeating: "1", count: 16),
+            "-----BEGIN RSA " + "PRIVATE KEY-----\nMIIE\n-----END RSA " + "PRIVATE KEY-----",
             String(repeating: "A", count: 80),
         ]
 

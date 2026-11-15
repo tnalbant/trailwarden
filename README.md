@@ -11,7 +11,7 @@ someone else.
 Nothing leaves the machine: no account, no server, no telemetry, no network code
 at all (CI fails if `URLSession` or friends ever show up in `Sources/`).
 
-> Status: **pre-alpha (v0.1.0-dev)**. The plan and the daily progress log live in
+> Status: **v0.1.0** — works end to end, Turkish UI. The plan and the daily progress log live in
 > the private project workspace; this repository is the product itself.
 
 ## Screenshots
@@ -64,9 +64,14 @@ same way you would, and keeps its own SQLite index under
 
 ```bash
 python3 scripts/seed-demo.py /tmp/trailwarden-demo.sqlite
+
+# after `xcodegen generate` + an xcodebuild, point the app at the demo index:
 TRAILWARDEN_DB=/tmp/trailwarden-demo.sqlite \
-  ~/dev/.trailwarden-derived/Build/Products/Debug/Trailwarden.app/Contents/MacOS/Trailwarden
+  "$(xcodebuild -project Trailwarden.xcodeproj -scheme Trailwarden -configuration Debug \
+      -showBuildSettings 2>/dev/null | awk -F' = ' '/ BUILT_PRODUCTS_DIR/ {print $2; exit}')/Trailwarden.app/Contents/MacOS/Trailwarden"
 ```
+
+The CLI can read the same file: `trailwarden scan --db /tmp/trailwarden-demo.sqlite`.
 
 `TRAILWARDEN_DB` points the app at another index — the demo, or a copy taken
 for a bug report.
@@ -102,8 +107,9 @@ anywhere. Two rules follow from that and are enforced in CI:
 2. No real `.jsonl` transcript in the repository; tests use hand-written
    synthetic fixtures only.
 
-The index database is created with mode `0600`. See `docs/` for the threat model
-once v0.1.0 lands.
+The index database and every export are written with mode `0600`. The threat
+model and the reporting process live in [THREATMODEL.md](THREATMODEL.md) and
+[SECURITY.md](SECURITY.md).
 
 ## License
 

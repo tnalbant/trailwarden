@@ -24,8 +24,8 @@ final class GeminiCLIParserTests: XCTestCase {
         XCTAssertEqual(shell.sessionId, "bec37c68-test-session")
 
         let read = try XCTUnwrap(result.events.first { $0.tool == "Read" })
-        XCTAssertEqual(read.paths, ["/Users/underline/demo/README.md"])
-        XCTAssertEqual(read.preview, "/Users/underline/demo/README.md")
+        XCTAssertEqual(read.paths, ["/Users/demo/demo/README.md"])
+        XCTAssertEqual(read.preview, "/Users/demo/demo/README.md")
 
         let user = try XCTUnwrap(result.events.first { $0.kind == .message && $0.preview == "brew upgrade gemini-cli" })
         XCTAssertNotNil(user.ts.timeIntervalSince1970 > 0)
