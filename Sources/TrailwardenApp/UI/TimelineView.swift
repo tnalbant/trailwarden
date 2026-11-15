@@ -48,24 +48,26 @@ struct TimelineView: View {
     }
 
     var body: some View {
-        NavigationSplitView {
+        // NavigationSplitView brought its own toolbar and safe-area handling, and
+        // inside this window it kept drawing over the top of the content: first the
+        // selection header, then — once the header moved out — the filter row.
+        // HSplitView lays the three columns out and nothing else, so the window's
+        // own row keeps the space it reserves.
+        HSplitView {
             sidebar
-                .navigationSplitViewColumnWidth(min: 200, ideal: 240, max: 320)
-        } content: {
+                .frame(minWidth: 200, idealWidth: 240, maxWidth: 320)
             stream
-                .navigationSplitViewColumnWidth(min: 380, ideal: 620, max: 1100)
-        } detail: {
-            if let event = model.selectedEvent {
-                EventDetailView(event: event, onMute: onMute)
-                    .navigationSplitViewColumnWidth(min: 340, ideal: 460, max: 720)
-            } else {
-                detailPlaceholder
-                    .navigationSplitViewColumnWidth(min: 340, ideal: 460, max: 720)
+                .frame(minWidth: 380, idealWidth: 620)
+            Group {
+                if let event = model.selectedEvent {
+                    EventDetailView(event: event, onMute: onMute)
+                } else {
+                    detailPlaceholder
+                }
             }
+            .frame(minWidth: 340, idealWidth: 460, maxWidth: 720)
         }
-        // The paper palette is light-only, so pin the appearance: a dark system
-        // theme otherwise paints the title bar dark and the selected sidebar row
-        // white-on-white.
+        .background(Tokens.Palette.paper)
     }
 
     // MARK: - Sidebar
