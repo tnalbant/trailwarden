@@ -1,0 +1,266 @@
+// SPDX-License-Identifier: Apache-2.0
+// Copyright (c) 2026 Turgay Nalbant
+
+import Foundation
+
+/// A small Model Context Protocol server over stdio, so another agent can ask
+/// Trailwarden "what happened here" instead of reading raw transcripts.
+///
+/// The router is pure — text in, text out — which is what makes it testable
+/// without spawning a process. `main.swift` only moves bytes.
+public struct MCPRouter: @unchecked Sendable {
+    public static let protocolVersion = "2025-06-18"
+    private let store: EventStore
+
+    public init(store: EventStore) {
+        self.store = store
+    }
+
+    /// Returns `nil` for notifications, which take no response.
+    public func handle(_ line: String) -> String? {
+        guard let data = line.data(using: .utf8),
+              let request = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+            return Self.error(id: nil, code: -32700, message: "parse error")
+        }
+
+        let id = request["id"]
+        let method = request["method"] as? String ?? ""
+        let params = request["params"] as? [String: Any] ?? [:]
+
+        if id == nil, method.hasPrefix("notifications/") { return nil }
+
+        switch method {
+        case "initialize":
+            return Self.result(id, [
+                "protocolVersion": Self.protocolVersion,
+                "capabilities": ["tools": [:]],
+                "serverInfo": ["name": "trailwarden", "version": TrailwardenVersion.current],
+            ])
+        case "ping":
+            return Self.result(id, [:])
+        case "tools/list":
+            return Self.result(id, ["tools": Self.tools])
+        case "tools/call":
+            return call(
+                name: params["name"] as? String ?? "",
+                arguments: params["arguments"] as? [String: Any] ?? [:],
+                id: id
+            )
+        default:
+            return Self.error(id: id, code: -32601, message: "unknown method \(method)")
+        }
+    }
+
+    // MARK: - Tools
+
+    /// Static because the list never changes; `nonisolated(unsafe)` because the
+    /// dictionaries are written once at startup and only read afterwards.
+    nonisolated(unsafe) static let tools: [[String: Any]] = [
+        [
+            "name": "search_events",
+            "description": "Search what the agents did: commands, files and rule hits in a time window.",
+            "inputSchema": [
+                "type": "object",
+                "properties": [
+                    "query": ["type": "string", "description": "full-text search over command, preview and tool"],
+                    "agent": ["type": "string", "description": "claude-code, codex, gemini or hermes"],
+                    "since_days": ["type": "integer", "description": "how far back to look, default 7"],
+                    "only_findings": ["type": "boolean", "description": "only events with a rule hit"],
+                    "limit": ["type": "integer", "description": "max events, default 50"],
+                ],
+            ],
+        ],
+        [
+            "name": "list_sessions",
+            "description": "Recent sessions with their project, agent, event count and critical count.",
+            "inputSchema": [
+                "type": "object",
+                "properties": [
+                    "limit": ["type": "integer", "description": "default 20"],
+                    "agent": ["type": "string"],
+                ],
+            ],
+        ],
+        [
+            "name": "get_event",
+            "description": "One event by id, including the rule hits that flagged it.",
+            "inputSchema": [
+                "type": "object",
+                "properties": ["id": ["type": "string"]],
+                "required": ["id"],
+            ],
+        ],
+        [
+            "name": "audit_summary",
+            "description": "How many events, findings and critical hits in a window, broken down by agent and rule.",
+            "inputSchema": [
+                "type": "object",
+                "properties": ["since_days": ["type": "integer", "description": "default 30"]],
+            ],
+        ],
+    ]
+
+    private func call(name: String, arguments: [String: Any], id: Any?) -> String? {
+        switch name {
+        case "search_events": return searchEvents(arguments, id: id)
+        case "list_sessions": return listSessions(arguments, id: id)
+        case "get_event": return getEvent(arguments, id: id)
+        case "audit_summary": return auditSummary(arguments, id: id)
+        default:
+            return Self.error(id: id, code: -32602, message: "unknown tool \(name)")
+        }
+    }
+
+    private func searchEvents(_ arguments: [String: Any], id: Any?) -> String {
+        do {
+            let days = arguments["since_days"] as? Int ?? 7
+            var query = EventQuery(
+                since: Date().addingTimeInterval(-Double(days) * 86_400),
+                agents: (arguments["agent"] as? String).flatMap(Agent.init(rawValue:)).map { [$0] },
+                onlyFindings: arguments["only_findings"] as? Bool ?? false,
+                search: arguments["query"] as? String,
+                limit: min(arguments["limit"] as? Int ?? 50, 200)
+            )
+            query.includeRawJSON = false
+            query.excludedKinds = [.tokenUsage, .sessionStart]
+
+            let events = try store.events(matching: query)
+            let rows = events.map { event -> [String: Any] in
+                var row: [String: Any] = [
+                    "id": event.id,
+                    "ts": ISO8601DateFormatter().string(from: event.ts),
+                    "agent": event.agent.rawValue,
+                    "session": event.sessionId,
+                    "kind": event.kind.rawValue,
+                ]
+                if let tool = event.tool { row["tool"] = tool }
+                if let command = event.command { row["command"] = command }
+                if let preview = event.preview { row["preview"] = preview }
+                if let cwd = event.cwd { row["cwd"] = cwd }
+                if !event.paths.isEmpty { row["paths"] = event.paths }
+                if !event.risk.isEmpty {
+                    row["findings"] = event.risk.map {
+                        ["rule": $0.ruleId, "severity": $0.severity.rawValue, "message": $0.message]
+                    }
+                }
+                return row
+            }
+            return Self.text(id, ["count": rows.count, "events": rows])
+        } catch {
+            return Self.error(id: id, code: -32603, message: "search failed: \(error)")
+        }
+    }
+
+    private func listSessions(_ arguments: [String: Any], id: Any?) -> String {
+        do {
+            let agent = (arguments["agent"] as? String).flatMap(Agent.init(rawValue:))
+            let limit = min(arguments["limit"] as? Int ?? 20, 200)
+            let sessions = try store.sessions(agents: agent.map { [$0] })
+                .sorted { $0.startedAt > $1.startedAt }
+                .prefix(limit)
+            let rows = sessions.map { session -> [String: Any] in
+                var row: [String: Any] = [
+                    "id": session.id,
+                    "agent": session.agent.rawValue,
+                    "events": session.eventCount,
+                    "critical": session.criticalCount,
+                    "started_at": ISO8601DateFormatter().string(from: session.startedAt),
+                ]
+                if let cwd = session.cwd { row["cwd"] = cwd }
+                return row
+            }
+            return Self.text(id, ["count": rows.count, "sessions": rows])
+        } catch {
+            return Self.error(id: id, code: -32603, message: "sessions failed: \(error)")
+        }
+    }
+
+    private func getEvent(_ arguments: [String: Any], id: Any?) -> String {
+        guard let eventID = arguments["id"] as? String else {
+            return Self.error(id: id, code: -32602, message: "id is required")
+        }
+        do {
+            guard let event = try store.event(id: eventID) else {
+                return Self.error(id: id, code: -32602, message: "no event \(eventID)")
+            }
+            var row: [String: Any] = [
+                "id": event.id,
+                "ts": ISO8601DateFormatter().string(from: event.ts),
+                "agent": event.agent.rawValue,
+                "session": event.sessionId,
+                "kind": event.kind.rawValue,
+            ]
+            if let command = event.command { row["command"] = command }
+            if let preview = event.preview { row["preview"] = preview }
+            if let cwd = event.cwd { row["cwd"] = cwd }
+            if !event.paths.isEmpty { row["paths"] = event.paths }
+            row["findings"] = event.risk.map {
+                ["rule": $0.ruleId, "severity": $0.severity.rawValue, "message": $0.message]
+            }
+            return Self.text(id, row)
+        } catch {
+            return Self.error(id: id, code: -32603, message: "lookup failed: \(error)")
+        }
+    }
+
+    private func auditSummary(_ arguments: [String: Any], id: Any?) -> String {
+        do {
+            let days = arguments["since_days"] as? Int ?? 30
+            let since = Date().addingTimeInterval(-Double(days) * 86_400)
+            var agents: [String: Int] = [:]
+            for agent in Agent.allCases {
+                let count = try store.eventCount(matching: EventQuery(since: since, agents: [agent]))
+                if count > 0 { agents[agent.rawValue] = count }
+            }
+            let findings = try store.events(matching: EventQuery(since: since, onlyFindings: true))
+            var byRule: [String: Int] = [:]
+            for event in findings {
+                for hit in event.risk { byRule[hit.ruleId, default: 0] += 1 }
+            }
+            let critical = findings.filter { $0.risk.contains { $0.severity == .critical } }.count
+            return Self.text(id, [
+                "window_days": days,
+                "events": try store.eventCount(matching: EventQuery(since: since)),
+                "events_by_agent": agents,
+                "findings": findings.count,
+                "critical_events": critical,
+                "findings_by_rule": byRule,
+            ])
+        } catch {
+            return Self.error(id: id, code: -32603, message: "summary failed: \(error)")
+        }
+    }
+
+    // MARK: - Encoding
+
+    private static func text(_ id: Any?, _ payload: [String: Any]) -> String {
+        let body = (try? JSONSerialization.data(
+            withJSONObject: payload,
+            options: [.sortedKeys, .withoutEscapingSlashes]
+        ))
+            .flatMap { String(data: $0, encoding: .utf8) } ?? "{}"
+        return result(id, ["content": [["type": "text", "text": body]]])
+    }
+
+    static func result(_ id: Any?, _ result: [String: Any]) -> String {
+        let response: [String: Any] = ["jsonrpc": "2.0", "id": id ?? NSNull(), "result": result]
+        return encode(response)
+    }
+
+    static func error(id: Any?, code: Int, message: String) -> String {
+        let response: [String: Any] = [
+            "jsonrpc": "2.0",
+            "id": id ?? NSNull(),
+            "error": ["code": code, "message": message],
+        ]
+        return encode(response)
+    }
+
+    private static func encode(_ object: [String: Any]) -> String {
+        (try? JSONSerialization.data(
+            withJSONObject: object,
+            options: [.sortedKeys, .withoutEscapingSlashes]
+        ))
+            .flatMap { String(data: $0, encoding: .utf8) } ?? "{}"
+    }
+}

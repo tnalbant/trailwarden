@@ -295,6 +295,19 @@ public final class EventStore {
         try upsert.step()
     }
 
+    /// One event by id, for the MCP `get_event` tool.
+    public func event(id: String) throws -> Event? {
+        let statement = try prepareRowStatement("""
+        SELECT events.id, events.ts, events.agent, events.session_id, events.kind, events.cwd,
+               events.git_branch, events.tool, events.command, events.paths, events.preview,
+               events.risk, events.raw_json
+        FROM events WHERE events.id = ? LIMIT 1
+        """)
+        try statement.bind([.text(id)])
+        guard try statement.step() else { return nil }
+        return Self.event(from: statement)
+    }
+
     /// The newest event stored for an agent — the watermark for a database source.
     public func latestTimestamp(agent: Agent) throws -> Date? {
         let statement = try prepareRowStatement(

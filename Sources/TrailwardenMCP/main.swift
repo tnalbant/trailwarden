@@ -4,10 +4,35 @@
 import Foundation
 import TrailwardenCore
 
-// The stdio MCP server (four tools: sessions, events, audit, rules) is built on
-// top of TrailwardenCore. Until it exists, refuse loudly instead of pretending to
-// speak JSON-RPC.
-FileHandle.standardError.write(
-    Data("trailwarden-mcp \(TrailwardenVersion.current): MCP server not implemented yet.\n".utf8)
-)
-exit(1)
+// A line-delimited JSON-RPC server on stdio — the Model Context Protocol shape,
+// with four tools. Everything it answers comes from the local index, and there is
+// no network code in this binary either.
+
+var databasePath = try? EventStore.defaultURL().path
+let arguments = CommandLine.arguments
+if let index = arguments.firstIndex(of: "--db"), index + 1 < arguments.count {
+    databasePath = arguments[index + 1]
+}
+
+guard let databasePath else {
+    FileHandle.standardError.write(Data("trailwarden-mcp: no database path\n".utf8))
+    exit(2)
+}
+
+let store: EventStore
+do {
+    store = try EventStore(url: URL(fileURLWithPath: databasePath))
+} catch {
+    FileHandle.standardError.write(Data("trailwarden-mcp: cannot open \(databasePath): \(error)\n".utf8))
+    exit(2)
+}
+
+let router = MCPRouter(store: store)
+FileHandle.standardError.write(Data("trailwarden-mcp \(TrailwardenVersion.current) ready\n".utf8))
+
+while let line = readLine(strippingNewline: true) {
+    guard !line.trimmingCharacters(in: .whitespaces).isEmpty else { continue }
+    if let response = router.handle(line) {
+        FileHandle.standardOutput.write(Data((response + "\n").utf8))
+    }
+}
