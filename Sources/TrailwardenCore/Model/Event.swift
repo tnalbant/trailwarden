@@ -125,6 +125,26 @@ public struct Event: Codable, Identifiable, Sendable, Hashable {
         )
     }
 
+    /// A copy that knows which folder it happened in, when the agent did not
+    /// record one itself.
+    public func withCwd(_ cwd: String) -> Event {
+        Event(
+            id: id,
+            ts: ts,
+            agent: agent,
+            sessionId: sessionId,
+            kind: kind,
+            cwd: cwd,
+            gitBranch: gitBranch,
+            tool: tool,
+            command: command,
+            paths: paths,
+            preview: preview,
+            risk: risk,
+            rawJSON: rawJSON
+        )
+    }
+
     /// Stable identity for an event: the same transcript parsed twice yields
     /// the same ids, and two events on the same line still differ (`index`).
     static func makeID(

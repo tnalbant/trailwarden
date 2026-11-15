@@ -148,7 +148,21 @@ public struct HermesDatabaseParser: DatabaseAgentParser {
             }
         }
 
-        return ParseResult(events: events + tokenEvents, skippedLines: skipped)
+        // Many Hermes sessions record no cwd. Fall back to the folder of the
+        // first file the session touched, so those sessions still group under a
+        // project instead of a bare "~".
+        var projectBySession: [String: String] = [:]
+        for event in events {
+            guard projectBySession[event.sessionId] == nil, event.cwd == nil,
+                  let path = event.paths.first, path.hasPrefix("/") else { continue }
+            projectBySession[event.sessionId] = URL(fileURLWithPath: path).deletingLastPathComponent().path
+        }
+        let resolved = (events + tokenEvents).map { event -> Event in
+            guard event.cwd == nil, let cwd = projectBySession[event.sessionId] else { return event }
+            return event.withCwd(cwd)
+        }
+
+        return ParseResult(events: resolved, skippedLines: skipped)
     }
 
     // MARK: - Helpers
