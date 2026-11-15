@@ -23,32 +23,46 @@ struct EventDetailView: View {
         DiffExtractor.diff(in: event.command ?? event.preview ?? "")
     }
 
+    private var resumeCommand: String? {
+        ResumeCommand.command(agent: event.agent, sessionId: event.sessionId, cwd: event.cwd)
+    }
+
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
-                header
-                if !event.risk.isEmpty {
-                    riskSection
+        VStack(spacing: 0) {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 16) {
+                    header
+                    if !event.risk.isEmpty {
+                        riskSection
+                    }
+                    if let command = event.command {
+                        textSection(L(.labelCommand), command, field: "command")
+                    }
+                    if let preview = event.preview, event.command == nil {
+                        textSection(L(.labelText), preview, field: "preview")
+                    }
+                    if let diff {
+                        diffSection(diff)
+                    }
+                    if !event.paths.isEmpty {
+                        pathsSection
+                    }
+                    if let raw = event.rawJSON {
+                        rawSection(raw)
+                    }
                 }
-                if let command = event.command {
-                    textSection(L(.labelCommand), command, field: "command")
-                }
-                if let preview = event.preview, event.command == nil {
-                    textSection(L(.labelText), preview, field: "preview")
-                }
-                if let diff {
-                    diffSection(diff)
-                }
-                if !event.paths.isEmpty {
-                    pathsSection
-                }
-                if let raw = event.rawJSON {
-                    rawSection(raw)
-                }
-                resumeSection
+                .padding(18)
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
-            .padding(18)
-            .frame(maxWidth: .infinity, alignment: .leading)
+            // Pinned: the one action this pane offers should not sit wherever the
+            // text happens to end, leaving the rest of the column empty below it.
+            if let resumeCommand {
+                Hairline()
+                resumeSection(resumeCommand)
+                    .padding(.horizontal, 18)
+                    .padding(.vertical, 12)
+                    .background(Tokens.Palette.paper)
+            }
         }
         .background(Tokens.Palette.paper)
         .foregroundStyle(Tokens.Palette.ink)
@@ -95,30 +109,24 @@ struct EventDetailView: View {
     // MARK: - Resume
 
     /// The one action people ask a history browser for: carry on from here.
-    private var resumeSection: some View {
+    private func resumeSection(_ command: String) -> some View {
         VStack(alignment: .leading, spacing: 6) {
-            if let command = ResumeCommand.command(
-                agent: event.agent,
-                sessionId: event.sessionId,
-                cwd: event.cwd)
-            {
-                SectionLabel(text: L(.resumeSession))
-                HStack(alignment: .top, spacing: 8) {
-                    Text(command)
-                        .font(Tokens.Typography.mono(9.5))
-                        .lineLimit(3)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .textSelection(.enabled)
-                    Spacer(minLength: 6)
-                    Button(copiedResume ? L(.copied) : L(.copy)) {
-                        NSPasteboard.general.clearContents()
-                        NSPasteboard.general.setString(command, forType: .string)
-                        copiedResume = true
-                    }
-                    .buttonStyle(.plain)
-                    .font(Tokens.Typography.text(10, weight: .medium))
-                    .foregroundStyle(Tokens.Palette.accent)
+            SectionLabel(text: L(.resumeSession))
+            HStack(alignment: .top, spacing: 8) {
+                Text(command)
+                    .font(Tokens.Typography.mono(9.5))
+                    .lineLimit(3)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .textSelection(.enabled)
+                Spacer(minLength: 6)
+                Button(copiedResume ? L(.copied) : L(.copy)) {
+                    NSPasteboard.general.clearContents()
+                    NSPasteboard.general.setString(command, forType: .string)
+                    copiedResume = true
                 }
+                .buttonStyle(.plain)
+                .font(Tokens.Typography.text(10, weight: .medium))
+                .foregroundStyle(Tokens.Palette.accent)
             }
         }
     }
