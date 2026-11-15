@@ -38,7 +38,9 @@ struct MainWindowView: View {
     }
 
     var body: some View {
-        Group {
+        VStack(spacing: 0) {
+            chrome
+            Hairline()
             switch mode {
             case .feed:
                 FeedView(model: feed) { sessionID in
@@ -47,17 +49,6 @@ struct MainWindowView: View {
             case .timeline:
                 timelineView
             }
-        }
-        // A plain VStack put the mode switch above a NavigationSplitView that
-        // draws its own toolbar, and the toolbar then painted over the top of the
-        // content: the switch was half cut and the stream header disappeared.
-        // As a safe-area inset the row reserves its own space instead.
-        .safeAreaInset(edge: .top, spacing: 0) {
-            VStack(spacing: 0) {
-                chrome
-                Hairline()
-            }
-            .background(Tokens.Palette.paper)
         }
         .frame(minWidth: 780, minHeight: 480)
         .background(Tokens.Palette.paper)
@@ -92,22 +83,6 @@ struct MainWindowView: View {
             guard let sessionID else { return }
             open(sessionID)
             model.sessionToOpen = nil
-        }
-        .toolbar {
-            ToolbarItem(placement: .primaryAction) {
-                Button {
-                    Task {
-                        await model.scan()
-                        timeline.reload()
-                        feed.reload()
-                    }
-                } label: {
-                    Label(
-                        model.isScanning ? L(.scanning) : L(.rescan),
-                        systemImage: "arrow.clockwise")
-                }
-                .disabled(model.isScanning)
-            }
         }
     }
 
@@ -151,6 +126,21 @@ struct MainWindowView: View {
             Text(Lf(.eventCount, [model.snapshot.totalEvents]))
                 .font(Tokens.Typography.mono(10))
                 .foregroundStyle(Tokens.Palette.secondary)
+
+            Button {
+                Task {
+                    await model.scan()
+                    timeline.reload()
+                    feed.reload()
+                }
+            } label: {
+                Image(systemName: "arrow.clockwise")
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundStyle(Tokens.Palette.secondary)
+            }
+            .buttonStyle(.plain)
+            .disabled(model.isScanning)
+            .help(model.isScanning ? L(.scanning) : L(.rescan))
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 10)
