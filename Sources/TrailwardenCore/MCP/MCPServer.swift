@@ -19,7 +19,8 @@ public struct MCPRouter: @unchecked Sendable {
     /// Returns `nil` for notifications, which take no response.
     public func handle(_ line: String) -> String? {
         guard let data = line.data(using: .utf8),
-              let request = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+              let request = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
+        else {
             return Self.error(id: nil, code: -32700, message: "parse error")
         }
 
@@ -27,14 +28,16 @@ public struct MCPRouter: @unchecked Sendable {
         let method = request["method"] as? String ?? ""
         let params = request["params"] as? [String: Any] ?? [:]
 
-        if id == nil, method.hasPrefix("notifications/") { return nil }
+        if id == nil, method.hasPrefix("notifications/") {
+            return nil
+        }
 
         switch method {
         case "initialize":
             return Self.result(id, [
                 "protocolVersion": Self.protocolVersion,
                 "capabilities": ["tools": [:]],
-                "serverInfo": ["name": "trailwarden", "version": TrailwardenVersion.current],
+                "serverInfo": ["name": "trailwarden", "version": TrailwardenVersion.current]
             ])
         case "ping":
             return Self.result(id, [:])
@@ -44,8 +47,7 @@ public struct MCPRouter: @unchecked Sendable {
             return call(
                 name: params["name"] as? String ?? "",
                 arguments: params["arguments"] as? [String: Any] ?? [:],
-                id: id
-            )
+                id: id)
         default:
             return Self.error(id: id, code: -32601, message: "unknown method \(method)")
         }
@@ -62,13 +64,16 @@ public struct MCPRouter: @unchecked Sendable {
             "inputSchema": [
                 "type": "object",
                 "properties": [
-                    "query": ["type": "string", "description": "full-text search over command, preview and tool"],
+                    "query": [
+                        "type": "string",
+                        "description": "full-text search over command, preview and tool"
+                    ],
                     "agent": ["type": "string", "description": "claude-code, codex, gemini or hermes"],
                     "since_days": ["type": "integer", "description": "how far back to look, default 7"],
                     "only_findings": ["type": "boolean", "description": "only events with a rule hit"],
-                    "limit": ["type": "integer", "description": "max events, default 50"],
-                ],
-            ],
+                    "limit": ["type": "integer", "description": "max events, default 50"]
+                ]
+            ]
         ],
         [
             "name": "list_sessions",
@@ -77,9 +82,9 @@ public struct MCPRouter: @unchecked Sendable {
                 "type": "object",
                 "properties": [
                     "limit": ["type": "integer", "description": "default 20"],
-                    "agent": ["type": "string"],
-                ],
-            ],
+                    "agent": ["type": "string"]
+                ]
+            ]
         ],
         [
             "name": "get_event",
@@ -87,27 +92,27 @@ public struct MCPRouter: @unchecked Sendable {
             "inputSchema": [
                 "type": "object",
                 "properties": ["id": ["type": "string"]],
-                "required": ["id"],
-            ],
+                "required": ["id"]
+            ]
         ],
         [
             "name": "audit_summary",
             "description": "How many events, findings and critical hits in a window, broken down by agent and rule.",
             "inputSchema": [
                 "type": "object",
-                "properties": ["since_days": ["type": "integer", "description": "default 30"]],
-            ],
-        ],
+                "properties": ["since_days": ["type": "integer", "description": "default 30"]]
+            ]
+        ]
     ]
 
     private func call(name: String, arguments: [String: Any], id: Any?) -> String? {
         switch name {
-        case "search_events": return searchEvents(arguments, id: id)
-        case "list_sessions": return listSessions(arguments, id: id)
-        case "get_event": return getEvent(arguments, id: id)
-        case "audit_summary": return auditSummary(arguments, id: id)
+        case "search_events": searchEvents(arguments, id: id)
+        case "list_sessions": listSessions(arguments, id: id)
+        case "get_event": getEvent(arguments, id: id)
+        case "audit_summary": auditSummary(arguments, id: id)
         default:
-            return Self.error(id: id, code: -32602, message: "unknown tool \(name)")
+            Self.error(id: id, code: -32602, message: "unknown tool \(name)")
         }
     }
 
@@ -115,12 +120,11 @@ public struct MCPRouter: @unchecked Sendable {
         do {
             let days = arguments["since_days"] as? Int ?? 7
             var query = EventQuery(
-                since: Date().addingTimeInterval(-Double(days) * 86_400),
+                since: Date().addingTimeInterval(-Double(days) * 86400),
                 agents: (arguments["agent"] as? String).flatMap(Agent.init(rawValue:)).map { [$0] },
                 onlyFindings: arguments["only_findings"] as? Bool ?? false,
                 search: arguments["query"] as? String,
-                limit: min(arguments["limit"] as? Int ?? 50, 200)
-            )
+                limit: min(arguments["limit"] as? Int ?? 50, 200))
             query.includeRawJSON = false
             query.excludedKinds = [.tokenUsage, .sessionStart]
 
@@ -131,13 +135,23 @@ public struct MCPRouter: @unchecked Sendable {
                     "ts": ISO8601DateFormatter().string(from: event.ts),
                     "agent": event.agent.rawValue,
                     "session": event.sessionId,
-                    "kind": event.kind.rawValue,
+                    "kind": event.kind.rawValue
                 ]
-                if let tool = event.tool { row["tool"] = tool }
-                if let command = event.command { row["command"] = command }
-                if let preview = event.preview { row["preview"] = preview }
-                if let cwd = event.cwd { row["cwd"] = cwd }
-                if !event.paths.isEmpty { row["paths"] = event.paths }
+                if let tool = event.tool {
+                    row["tool"] = tool
+                }
+                if let command = event.command {
+                    row["command"] = command
+                }
+                if let preview = event.preview {
+                    row["preview"] = preview
+                }
+                if let cwd = event.cwd {
+                    row["cwd"] = cwd
+                }
+                if !event.paths.isEmpty {
+                    row["paths"] = event.paths
+                }
                 if !event.risk.isEmpty {
                     row["findings"] = event.risk.map {
                         ["rule": $0.ruleId, "severity": $0.severity.rawValue, "message": $0.message]
@@ -164,9 +178,11 @@ public struct MCPRouter: @unchecked Sendable {
                     "agent": session.agent.rawValue,
                     "events": session.eventCount,
                     "critical": session.criticalCount,
-                    "started_at": ISO8601DateFormatter().string(from: session.startedAt),
+                    "started_at": ISO8601DateFormatter().string(from: session.startedAt)
                 ]
-                if let cwd = session.cwd { row["cwd"] = cwd }
+                if let cwd = session.cwd {
+                    row["cwd"] = cwd
+                }
                 return row
             }
             return Self.text(id, ["count": rows.count, "sessions": rows])
@@ -188,12 +204,20 @@ public struct MCPRouter: @unchecked Sendable {
                 "ts": ISO8601DateFormatter().string(from: event.ts),
                 "agent": event.agent.rawValue,
                 "session": event.sessionId,
-                "kind": event.kind.rawValue,
+                "kind": event.kind.rawValue
             ]
-            if let command = event.command { row["command"] = command }
-            if let preview = event.preview { row["preview"] = preview }
-            if let cwd = event.cwd { row["cwd"] = cwd }
-            if !event.paths.isEmpty { row["paths"] = event.paths }
+            if let command = event.command {
+                row["command"] = command
+            }
+            if let preview = event.preview {
+                row["preview"] = preview
+            }
+            if let cwd = event.cwd {
+                row["cwd"] = cwd
+            }
+            if !event.paths.isEmpty {
+                row["paths"] = event.paths
+            }
             row["findings"] = event.risk.map {
                 ["rule": $0.ruleId, "severity": $0.severity.rawValue, "message": $0.message]
             }
@@ -206,25 +230,29 @@ public struct MCPRouter: @unchecked Sendable {
     private func auditSummary(_ arguments: [String: Any], id: Any?) -> String {
         do {
             let days = arguments["since_days"] as? Int ?? 30
-            let since = Date().addingTimeInterval(-Double(days) * 86_400)
+            let since = Date().addingTimeInterval(-Double(days) * 86400)
             var agents: [String: Int] = [:]
             for agent in Agent.allCases {
                 let count = try store.eventCount(matching: EventQuery(since: since, agents: [agent]))
-                if count > 0 { agents[agent.rawValue] = count }
+                if count > 0 {
+                    agents[agent.rawValue] = count
+                }
             }
             let findings = try store.events(matching: EventQuery(since: since, onlyFindings: true))
             var byRule: [String: Int] = [:]
             for event in findings {
-                for hit in event.risk { byRule[hit.ruleId, default: 0] += 1 }
+                for hit in event.risk {
+                    byRule[hit.ruleId, default: 0] += 1
+                }
             }
             let critical = findings.filter { $0.risk.contains { $0.severity == .critical } }.count
-            return Self.text(id, [
+            return try Self.text(id, [
                 "window_days": days,
-                "events": try store.eventCount(matching: EventQuery(since: since)),
+                "events": store.eventCount(matching: EventQuery(since: since)),
                 "events_by_agent": agents,
                 "findings": findings.count,
                 "critical_events": critical,
-                "findings_by_rule": byRule,
+                "findings_by_rule": byRule
             ])
         } catch {
             return Self.error(id: id, code: -32603, message: "summary failed: \(error)")
@@ -236,8 +264,7 @@ public struct MCPRouter: @unchecked Sendable {
     private static func text(_ id: Any?, _ payload: [String: Any]) -> String {
         let body = (try? JSONSerialization.data(
             withJSONObject: payload,
-            options: [.sortedKeys, .withoutEscapingSlashes]
-        ))
+            options: [.sortedKeys, .withoutEscapingSlashes]))
             .flatMap { String(data: $0, encoding: .utf8) } ?? "{}"
         return result(id, ["content": [["type": "text", "text": body]]])
     }
@@ -251,7 +278,7 @@ public struct MCPRouter: @unchecked Sendable {
         let response: [String: Any] = [
             "jsonrpc": "2.0",
             "id": id ?? NSNull(),
-            "error": ["code": code, "message": message],
+            "error": ["code": code, "message": message]
         ]
         return encode(response)
     }
@@ -259,8 +286,7 @@ public struct MCPRouter: @unchecked Sendable {
     private static func encode(_ object: [String: Any]) -> String {
         (try? JSONSerialization.data(
             withJSONObject: object,
-            options: [.sortedKeys, .withoutEscapingSlashes]
-        ))
+            options: [.sortedKeys, .withoutEscapingSlashes]))
             .flatMap { String(data: $0, encoding: .utf8) } ?? "{}"
     }
 }

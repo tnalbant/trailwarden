@@ -15,6 +15,9 @@ public struct ClaudeCodeParser: AgentParser {
 
     public init() {}
 
+    // A switch over the transcript's event types: every case is one shape the
+    // agent writes, and counting them as branches says nothing useful.
+    // swiftlint:disable:next cyclomatic_complexity
     public func parse(file: URL) throws -> ParseResult {
         var events: [Event] = []
         var skippedLines = 0
@@ -50,8 +53,12 @@ public struct ClaudeCodeParser: AgentParser {
             if let timestamp = Self.date(from: object["timestamp"], formatter: formatter) {
                 lastTimestamp = timestamp
             }
-            if let value = object["cwd"] as? String { cwd = value }
-            if let value = object["gitBranch"] as? String { gitBranch = value }
+            if let value = object["cwd"] as? String {
+                cwd = value
+            }
+            if let value = object["gitBranch"] as? String {
+                gitBranch = value
+            }
 
             guard Self.knownTypes.contains(type) else {
                 skippedLines += 1
@@ -65,8 +72,8 @@ public struct ClaudeCodeParser: AgentParser {
                 tool: String? = nil,
                 command: String? = nil,
                 paths: [String] = [],
-                preview: String? = nil
-            ) {
+                preview: String? = nil)
+            {
                 indexInLine += 1
                 events.append(
                     Event(
@@ -75,8 +82,7 @@ public struct ClaudeCodeParser: AgentParser {
                             sessionId: sessionId,
                             source: source,
                             line: lineNumber,
-                            index: indexInLine
-                        ),
+                            index: indexInLine),
                         ts: timestamp,
                         agent: agent,
                         sessionId: sessionId,
@@ -88,9 +94,7 @@ public struct ClaudeCodeParser: AgentParser {
                         paths: paths,
                         preview: preview.map(Self.cap),
                         risk: [],
-                        rawJSON: line
-                    )
-                )
+                        rawJSON: line))
             }
 
             switch type {
@@ -116,8 +120,7 @@ public struct ClaudeCodeParser: AgentParser {
                                 tool: name,
                                 command: input["command"] as? String,
                                 paths: Self.paths(in: input),
-                                preview: Self.toolCallPreview(input)
-                            )
+                                preview: Self.toolCallPreview(input))
                         case "tool_result":
                             let useId = block["tool_use_id"] as? String
                             let result = object["toolUseResult"] as? [String: Any] ?? [:]
@@ -126,8 +129,7 @@ public struct ClaudeCodeParser: AgentParser {
                                 .toolResult,
                                 tool: useId.flatMap { toolNamesByUseId[$0] },
                                 paths: paths,
-                                preview: Self.toolResultPreview(block: block, result: result)
-                            )
+                                preview: Self.toolResultPreview(block: block, result: result))
                         default:
                             break
                         }
@@ -159,7 +161,7 @@ public struct ClaudeCodeParser: AgentParser {
     static let knownTypes: Set<String> = [
         "user", "assistant", "system", "attachment",
         "file-history-snapshot", "mode", "permission-mode",
-        "last-prompt", "ai-title",
+        "last-prompt", "ai-title"
     ]
 
     static let previewLimit = 500
@@ -180,19 +182,29 @@ public struct ClaudeCodeParser: AgentParser {
             return command
         }
         for key in input.keys.sorted() {
-            if let value = input[key] as? String, !value.isEmpty { return value }
+            if let value = input[key] as? String, !value.isEmpty {
+                return value
+            }
         }
         return nil
     }
 
     static func toolResultPreview(block: [String: Any], result: [String: Any]) -> String? {
-        if let text = block["content"] as? String, !text.isEmpty { return text }
+        if let text = block["content"] as? String, !text.isEmpty {
+            return text
+        }
         if let items = block["content"] as? [[String: Any]] {
             let joined = items.compactMap { $0["text"] as? String }.joined(separator: "\n")
-            if !joined.isEmpty { return joined }
+            if !joined.isEmpty {
+                return joined
+            }
         }
-        if let stdout = result["stdout"] as? String, !stdout.isEmpty { return stdout }
-        if let stderr = result["stderr"] as? String, !stderr.isEmpty { return stderr }
+        if let stdout = result["stdout"] as? String, !stdout.isEmpty {
+            return stdout
+        }
+        if let stderr = result["stderr"] as? String, !stderr.isEmpty {
+            return stderr
+        }
         return nil
     }
 
@@ -206,7 +218,9 @@ public struct ClaudeCodeParser: AgentParser {
 
     static func date(from value: Any?, formatter: ISO8601DateFormatter) -> Date? {
         guard let text = value as? String else { return nil }
-        if let date = formatter.date(from: text) { return date }
+        if let date = formatter.date(from: text) {
+            return date
+        }
         // Some entries drop the fractional seconds.
         return ISO8601DateFormatter().date(from: text)
     }

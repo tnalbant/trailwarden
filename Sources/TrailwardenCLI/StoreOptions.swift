@@ -16,13 +16,15 @@ struct StoreOptions: ParsableArguments {
 
     var url: URL {
         get throws {
-            if let db { return URL(fileURLWithPath: db) }
+            if let db {
+                return URL(fileURLWithPath: db)
+            }
             return try EventStore.defaultURL()
         }
     }
 
     func open() throws -> EventStore {
-        try EventStore(url: try url)
+        try EventStore(url: url)
     }
 }
 
@@ -48,7 +50,9 @@ enum AgentOption: String, ExpressibleByArgument, CaseIterable {
 enum Output {
     static func write(_ text: String) {
         FileHandle.standardOutput.write(Data(text.utf8))
-        if !text.hasSuffix("\n") { FileHandle.standardOutput.write(Data("\n".utf8)) }
+        if !text.hasSuffix("\n") {
+            FileHandle.standardOutput.write(Data("\n".utf8))
+        }
     }
 
     static func error(_ text: String) {

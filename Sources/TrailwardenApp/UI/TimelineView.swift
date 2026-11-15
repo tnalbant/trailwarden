@@ -40,8 +40,11 @@ struct TimelineView: View {
     private var selectionBinding: Binding<TimelineSelection?> {
         Binding(
             get: { model.selection },
-            set: { if let value = $0 { model.selection = value } }
-        )
+            set: {
+                if let value = $0 {
+                    model.selection = value
+                }
+            })
     }
 
     var body: some View {
@@ -233,7 +236,9 @@ struct TimelineView: View {
                     EventRowView(event: event, selected: model.selectedEventID == event.id)
                         .onTapGesture { model.selectedEventID = event.id }
                         .onAppear {
-                            if event.id == model.events.last?.id { model.loadMore() }
+                            if event.id == model.events.last?.id {
+                                model.loadMore()
+                            }
                         }
                     Hairline()
                 }
@@ -278,8 +283,8 @@ struct TimelineView: View {
                     .lineLimit(1)
             } else {
                 Text(model.events.isEmpty
-                     ? "0 olay"
-                     : Lf(.eventsRatio, [model.events.count, model.total]))
+                    ? "0 olay"
+                    : Lf(.eventsRatio, [model.events.count, model.total]))
                     .font(Tokens.Typography.mono(9.5))
                     .foregroundStyle(Tokens.Palette.secondary)
             }

@@ -4,9 +4,9 @@
 
 import PackageDescription
 
-// Dependency policy: exactly one third-party package (Apple's argument parser).
-// Everything else (JSONL parsing, rules, SQLite/FTS5, MCP) is written in-tree on
-// top of system frameworks, so the audit trail stays inspectable and offline.
+/// Dependency policy: exactly one third-party package (Apple's argument parser).
+/// Everything else (JSONL parsing, rules, SQLite/FTS5, MCP) is written in-tree on
+/// top of system frameworks, so the audit trail stays inspectable and offline.
 let package = Package(
     name: "Trailwarden",
     platforms: [
@@ -15,7 +15,7 @@ let package = Package(
     products: [
         .library(name: "TrailwardenCore", targets: ["TrailwardenCore"]),
         .executable(name: "trailwarden", targets: ["TrailwardenCLI"]),
-        .executable(name: "trailwarden-mcp", targets: ["TrailwardenMCP"]),
+        .executable(name: "trailwarden-mcp", targets: ["TrailwardenMCP"])
     ],
     dependencies: [
         .package(url: "https://github.com/apple/swift-argument-parser", from: "1.8.0")
@@ -23,24 +23,19 @@ let package = Package(
     targets: [
         .target(
             name: "TrailwardenCore",
-            resources: [.process("Resources")]
-        ),
+            resources: [.process("Resources")]),
         .executableTarget(
             name: "TrailwardenCLI",
             dependencies: [
                 "TrailwardenCore",
-                .product(name: "ArgumentParser", package: "swift-argument-parser"),
-            ]
-        ),
+                .product(name: "ArgumentParser", package: "swift-argument-parser")
+            ]),
         .executableTarget(
             name: "TrailwardenMCP",
-            dependencies: ["TrailwardenCore"]
-        ),
+            dependencies: ["TrailwardenCore"]),
         .testTarget(
             name: "TrailwardenCoreTests",
             dependencies: ["TrailwardenCore"],
             // Fixtures are read from disk via #filePath, not bundled as resources.
-            exclude: ["Fixtures"]
-        ),
-    ]
-)
+            exclude: ["Fixtures"])
+    ])

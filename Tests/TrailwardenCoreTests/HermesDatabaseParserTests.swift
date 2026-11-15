@@ -2,8 +2,8 @@
 // Copyright (c) 2026 Turgay Nalbant
 
 import SQLite3
-import XCTest
 @testable import TrailwardenCore
+import XCTest
 
 /// Hermes keeps its history in SQLite, so the test builds a database with the
 /// same shape and checks the mapping end to end.
@@ -102,7 +102,6 @@ final class HermesDatabaseParserTests: XCTestCase {
         XCTAssertEqual(try store.eventCount(matching: EventQuery(agents: [.hermes])), 4)
         XCTAssertEqual(
             try store.events(matching: EventQuery(agents: [.hermes])).map(\.id).count,
-            Set(try store.events(matching: EventQuery(agents: [.hermes])).map(\.id)).count
-        )
+            try Set(store.events(matching: EventQuery(agents: [.hermes])).map(\.id)).count)
     }
 }

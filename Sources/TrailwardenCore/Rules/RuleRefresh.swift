@@ -36,8 +36,7 @@ public extension RuleEngine {
         return RuleRefreshReport(
             events: events.count,
             changed: changed.count,
-            duration: Date().timeIntervalSince(started)
-        )
+            duration: Date().timeIntervalSince(started))
     }
 
     /// Order-insensitive comparison of two hit lists.

@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright (c) 2026 Turgay Nalbant
 
-import XCTest
 @testable import TrailwardenCore
+import XCTest
 
 final class CodexParserTests: XCTestCase {
     private let parser = CodexParser()
@@ -25,7 +25,7 @@ final class CodexParserTests: XCTestCase {
             .message, .reasoning,
             .toolCall, .toolResult,
             .toolCall, .toolResult,
-            .tokenUsage, .tokenUsage,
+            .tokenUsage, .tokenUsage
         ])
     }
 

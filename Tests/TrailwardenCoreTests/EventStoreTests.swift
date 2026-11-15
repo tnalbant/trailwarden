@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright (c) 2026 Turgay Nalbant
 
-import XCTest
 @testable import TrailwardenCore
+import XCTest
 
 final class EventStoreTests: XCTestCase {
     private var temporaryDirectory: URL!
@@ -23,8 +23,8 @@ final class EventStoreTests: XCTestCase {
         kind: EventKind = .toolCall,
         ts: TimeInterval = 1_700_000_000,
         command: String = "ls -la",
-        severity: Severity? = nil
-    ) -> Event {
+        severity: Severity? = nil) -> Event
+    {
         let risk = severity.map { [RiskHit(ruleId: "R1", severity: $0, message: "test")] } ?? []
         return Event(
             id: id,
@@ -39,15 +39,14 @@ final class EventStoreTests: XCTestCase {
             paths: ["/tmp/demo/a.txt"],
             preview: command,
             risk: risk,
-            rawJSON: "{}"
-        )
+            rawJSON: "{}")
     }
 
     func testInsertAndCount() throws {
         let store = try EventStore(inMemory: true)
         try store.insert(events: [
             makeEvent(id: "a"),
-            makeEvent(id: "b", kind: .message),
+            makeEvent(id: "b", kind: .message)
         ])
 
         XCTAssertEqual(try store.eventCount(), 2)
@@ -71,7 +70,7 @@ final class EventStoreTests: XCTestCase {
         try store.insert(events: [
             makeEvent(id: "a", ts: 1_700_000_000),
             makeEvent(id: "b", ts: 1_700_000_500, severity: .critical),
-            makeEvent(id: "c", ts: 1_700_000_200, severity: .warn),
+            makeEvent(id: "c", ts: 1_700_000_200, severity: .warn)
         ])
 
         let session = try XCTUnwrap(try store.sessions().first)
@@ -89,7 +88,7 @@ final class EventStoreTests: XCTestCase {
         let store = try EventStore(inMemory: true)
         try store.insert(events: [
             makeEvent(id: "a", command: "rm -rf ~/.ssh"),
-            makeEvent(id: "b", command: "swift test"),
+            makeEvent(id: "b", command: "swift test")
         ])
 
         let hits = try store.search("id_rsa")
@@ -121,15 +120,14 @@ final class EventStoreTests: XCTestCase {
 
     func testRawJSONIsCappedInTheStore() throws {
         let store = try EventStore(inMemory: true)
-        let long = String(repeating: "x", count: 5_000)
+        let long = String(repeating: "x", count: 5000)
         let event = Event(
             id: "a",
             ts: Date(timeIntervalSince1970: 1_700_000_000),
             agent: .claudeCode,
             sessionId: "session-1",
             kind: .message,
-            rawJSON: long
-        )
+            rawJSON: long)
         try store.insert(events: [event])
 
         let loaded = try XCTUnwrap(try store.events(ids: ["a"]).first)
@@ -168,8 +166,7 @@ final class EventStoreTests: XCTestCase {
             mtime: 1_700_000_000,
             sessionId: "session-9",
             events: 5,
-            skipped: 1
-        )
+            skipped: 1)
 
         let signature = try XCTUnwrap(try store.fileSignature(path: "/tmp/a.jsonl"))
         XCTAssertEqual(signature.size, 120)

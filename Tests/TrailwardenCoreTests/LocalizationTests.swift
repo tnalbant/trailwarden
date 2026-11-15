@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright (c) 2026 Turgay Nalbant
 
-import XCTest
 @testable import TrailwardenCore
+import XCTest
 
 /// The translation tables are data, and data goes missing quietly: a key added
 /// to English and forgotten in four other languages shows as an English sentence
@@ -16,8 +16,7 @@ final class LocalizationTests: XCTestCase {
             let missing = UIString.allCases.filter { table[$0] == nil }
             XCTAssertTrue(
                 missing.isEmpty,
-                "\(language.rawValue) misses \(missing.map(\.rawValue))"
-            )
+                "\(language.rawValue) misses \(missing.map(\.rawValue))")
         }
     }
 
@@ -28,8 +27,7 @@ final class LocalizationTests: XCTestCase {
                 let value = try? XCTUnwrap(table[key])
                 XCTAssertFalse(
                     (value ?? "").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
-                    "\(language.rawValue)/\(key.rawValue) is blank"
-                )
+                    "\(language.rawValue)/\(key.rawValue) is blank")
             }
         }
     }
@@ -44,8 +42,7 @@ final class LocalizationTests: XCTestCase {
                 let translated = Self.specifiers(in: table[key] ?? "")
                 XCTAssertEqual(
                     reference, translated,
-                    "\(language.rawValue)/\(key.rawValue) has \(translated) instead of \(reference)"
-                )
+                    "\(language.rawValue)/\(key.rawValue) has \(translated) instead of \(reference)")
             }
         }
     }
@@ -60,8 +57,7 @@ final class LocalizationTests: XCTestCase {
                 let value = table[key] ?? ""
                 XCTAssertNil(
                     value.rangeOfCharacter(from: turkishOnly),
-                    "\(language.rawValue)/\(key.rawValue) still carries Turkish letters: \(value)"
-                )
+                    "\(language.rawValue)/\(key.rawValue) still carries Turkish letters: \(value)")
             }
         }
     }
@@ -87,10 +83,10 @@ final class LocalizationTests: XCTestCase {
     func testRuleTextDiffersBetweenLanguages() {
         // A title copied across languages without translating it is the failure
         // mode this catches: German must not be identical to English for all rules.
-        let english = (1...10).compactMap {
+        let english = (1 ... 10).compactMap {
             RuleLocalization.text(forRule: "R\($0)", language: .english)?.title
         }
-        let german = (1...10).compactMap {
+        let german = (1 ... 10).compactMap {
             RuleLocalization.text(forRule: "R\($0)", language: .german)?.title
         }
         XCTAssertEqual(english.count, 10)
@@ -110,8 +106,7 @@ final class LocalizationTests: XCTestCase {
         for rule in rules {
             XCTAssertNotNil(
                 RuleLocalization.text(forRule: rule.id, language: .german),
-                "\(rule.id) is in rules.json but has no German text"
-            )
+                "\(rule.id) is in rules.json but has no German text")
         }
     }
 
@@ -131,8 +126,11 @@ final class LocalizationTests: XCTestCase {
         let store = LocalizationStore.defaultsKey
         let previous = UserDefaults.standard.string(forKey: store)
         defer {
-            if let previous { UserDefaults.standard.set(previous, forKey: store) }
-            else { UserDefaults.standard.removeObject(forKey: store) }
+            if let previous {
+                UserDefaults.standard.set(previous, forKey: store)
+            } else {
+                UserDefaults.standard.removeObject(forKey: store)
+            }
         }
 
         LocalizationStore.chosen = .french
@@ -163,8 +161,12 @@ final class LocalizationTests: XCTestCase {
                 continue
             }
             var cursor = index + 1
-            while cursor < chars.count, "0123456789.-".contains(chars[cursor]) { cursor += 1 }
-            if cursor < chars.count { found.append("%" + String(chars[cursor])) }
+            while cursor < chars.count, "0123456789.-".contains(chars[cursor]) {
+                cursor += 1
+            }
+            if cursor < chars.count {
+                found.append("%" + String(chars[cursor]))
+            }
             index = cursor + 1
         }
         return found

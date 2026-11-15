@@ -41,14 +41,12 @@ public final class EventStore {
             for: .applicationSupportDirectory,
             in: .userDomainMask,
             appropriateFor: nil,
-            create: true
-        )
+            create: true)
         let directory = support.appendingPathComponent("Trailwarden", isDirectory: true)
         try FileManager.default.createDirectory(
             at: directory,
             withIntermediateDirectories: true,
-            attributes: [.posixPermissions: 0o700]
-        )
+            attributes: [.posixPermissions: 0o700])
         return directory.appendingPathComponent("trailwarden.sqlite")
     }
 
@@ -60,8 +58,7 @@ public final class EventStore {
         try FileManager.default.createDirectory(
             at: url.deletingLastPathComponent(),
             withIntermediateDirectories: true,
-            attributes: [.posixPermissions: 0o700]
-        )
+            attributes: [.posixPermissions: 0o700])
         let database = try SQLiteDatabase(path: url.path)
         try self.init(database: database)
         try FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: url.path)
@@ -183,7 +180,9 @@ public final class EventStore {
     private func columnExists(_ column: String, in table: String) throws -> Bool {
         let statement = try database.prepare("PRAGMA table_info(\(table))")
         while try statement.step() {
-            if statement.text(1) == column { return true }
+            if statement.text(1) == column {
+                return true
+            }
         }
         return false
     }
@@ -221,8 +220,8 @@ public final class EventStore {
         try database.transaction {
             let insert = try database.prepare(Self.insertEventSQL)
             for event in events {
-                let paths = String(decoding: try encoder.encode(event.paths), as: UTF8.self)
-                let risk = String(decoding: try encoder.encode(event.risk), as: UTF8.self)
+                let paths = try String(decoding: encoder.encode(event.paths), as: UTF8.self)
+                let risk = try String(decoding: encoder.encode(event.risk), as: UTF8.self)
                 let severity = event.risk.map(\.severity).max()
                 let values: [SQLValue] = [
                     .text(event.id),
@@ -239,7 +238,7 @@ public final class EventStore {
                     .text(risk),
                     severity.map { SQLValue.text($0.rawValue) } ?? .null,
                     severity.map { SQLValue.int($0.rank) } ?? .null,
-                    Self.cappedRawJSON(event.rawJSON).map { SQLValue.text($0) } ?? .null,
+                    Self.cappedRawJSON(event.rawJSON).map { SQLValue.text($0) } ?? .null
                 ]
                 try insert.bind(values)
                 // The FTS index is maintained by the events_ai / events_au
@@ -263,8 +262,8 @@ public final class EventStore {
         FROM events WHERE session_id = ?
         """)
         try select.bind([.text(sessionID)])
-        guard try select.step() else { return }
-        guard let agentRaw = select.text(0), let agent = Agent(rawValue: agentRaw) else { return }
+        guard try select.step(), let agentRaw = select.text(0),
+              let agent = Agent(rawValue: agentRaw) else { return }
         let started = select.double(3) ?? 0
         let ended = select.double(4) ?? started
         let count = select.int(5) ?? 0
@@ -290,7 +289,7 @@ public final class EventStore {
             .double(started),
             .double(ended),
             .int(count),
-            .int(critical),
+            .int(critical)
         ])
         try upsert.step()
     }
@@ -311,8 +310,7 @@ public final class EventStore {
     /// The newest event stored for an agent — the watermark for a database source.
     public func latestTimestamp(agent: Agent) throws -> Date? {
         let statement = try prepareRowStatement(
-            "SELECT MAX(ts) FROM events WHERE agent = ?"
-        )
+            "SELECT MAX(ts) FROM events WHERE agent = ?")
         try statement.bind([.text(agent.rawValue)])
         guard try statement.step(), let value = statement.double(0) else { return nil }
         return Date(timeIntervalSince1970: value)
@@ -332,8 +330,8 @@ public final class EventStore {
         mtime: Double,
         sessionId: String?,
         events: Int,
-        skipped: Int
-    ) throws {
+        skipped: Int) throws
+    {
         let statement = try database.prepare("""
         INSERT OR REPLACE INTO scanned_files
             (path, agent, size, mtime, session_id, events, skipped, scanned_at)
@@ -347,14 +345,16 @@ public final class EventStore {
             sessionId.map { SQLValue.text($0) } ?? .null,
             .int(events),
             .int(skipped),
-            .double(Date().timeIntervalSince1970),
+            .double(Date().timeIntervalSince1970)
         ])
         try statement.step()
     }
 
     // MARK: - Diagnostics
 
-    public func schemaVersion() throws -> Int { try userVersion() }
+    public func schemaVersion() throws -> Int {
+        try userVersion()
+    }
 
     public func integrityCheck() throws -> String {
         let statement = try database.prepare("PRAGMA integrity_check")
@@ -372,7 +372,7 @@ public final class EventStore {
         try statement.bind([
             .text(mute.ruleId),
             .text(mute.target),
-            .double(mute.until.timeIntervalSince1970),
+            .double(mute.until.timeIntervalSince1970)
         ])
         try statement.step()
     }
@@ -393,9 +393,7 @@ public final class EventStore {
                 Mute(
                     ruleId: ruleId,
                     target: target,
-                    until: Date(timeIntervalSince1970: statement.double(2) ?? 0)
-                )
-            )
+                    until: Date(timeIntervalSince1970: statement.double(2) ?? 0)))
         }
         return result
     }
@@ -409,26 +407,26 @@ public final class EventStore {
         let ids = Array(hitsByEventID.keys)
 
         let lookup = try prepareRowStatement(
-            "SELECT session_id FROM events WHERE id IN (\(ids.map { _ in "?" }.joined(separator: ",")))"
-        )
+            "SELECT session_id FROM events WHERE id IN (\(ids.map { _ in "?" }.joined(separator: ",")))")
         try lookup.bind(ids.map { SQLValue.text($0) })
         var sessions: Set<String> = []
         while try lookup.step() {
-            if let session = lookup.text(0) { sessions.insert(session) }
+            if let session = lookup.text(0) {
+                sessions.insert(session)
+            }
         }
 
         try database.transaction {
             let update = try database.prepare(
-                "UPDATE events SET risk = ?, severity = ?, severity_rank = ? WHERE id = ?"
-            )
+                "UPDATE events SET risk = ?, severity = ?, severity_rank = ? WHERE id = ?")
             for (id, hits) in hitsByEventID {
-                let risk = String(decoding: try encoder.encode(hits), as: UTF8.self)
+                let risk = try String(decoding: encoder.encode(hits), as: UTF8.self)
                 let worst = hits.map(\.severity).max()
                 try update.bind([
                     .text(risk),
                     worst.map { SQLValue.text($0.rawValue) } ?? .null,
                     worst.map { SQLValue.int($0.rank) } ?? .null,
-                    .text(id),
+                    .text(id)
                 ])
                 try update.step()
             }
@@ -480,9 +478,7 @@ public final class EventStore {
                     startedAt: Date(timeIntervalSince1970: statement.double(4) ?? 0),
                     endedAt: Date(timeIntervalSince1970: statement.double(5) ?? 0),
                     eventCount: statement.int(6) ?? 0,
-                    criticalCount: statement.int(7) ?? 0
-                )
-            )
+                    criticalCount: statement.int(7) ?? 0))
         }
         return result
     }
@@ -501,8 +497,7 @@ public final class EventStore {
             sessionId: statement.text(3),
             events: statement.int(4) ?? 0,
             skipped: statement.int(5) ?? 0,
-            scannedAt: Date(timeIntervalSince1970: statement.double(6) ?? 0)
-        )
+            scannedAt: Date(timeIntervalSince1970: statement.double(6) ?? 0))
     }
 
     /// Full-text search over preview, command and tool name. The query is wrapped
@@ -522,7 +517,9 @@ public final class EventStore {
         try statement.bind([.text(phrase), .int(limit)])
         var ids: [String] = []
         while try statement.step() {
-            if let id = statement.text(0) { ids.append(id) }
+            if let id = statement.text(0) {
+                ids.append(id)
+            }
         }
         return try events(ids: ids)
     }
@@ -538,7 +535,9 @@ public final class EventStore {
         for id in ids {
             try statement.bind([.text(id)])
             guard try statement.step() else { continue }
-            if let event = Self.event(from: statement) { result.append(event) }
+            if let event = Self.event(from: statement) {
+                result.append(event)
+            }
         }
         return result.sorted { $0.ts > $1.ts }
     }
@@ -572,7 +571,6 @@ public final class EventStore {
             paths: paths,
             preview: statement.text(10),
             risk: risk,
-            rawJSON: statement.text(12)
-        )
+            rawJSON: statement.text(12))
     }
 }

@@ -1,0 +1,8 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright (c) 2026 Turgay Nalbant
+
+# The translation tables are data: one sentence per key, in six languages. Wrapping
+# a German sentence to satisfy a line limit makes it harder to read and harder to
+# diff, so the length rule stays off here and on everywhere else.
+disabled_rules:
+  - line_length

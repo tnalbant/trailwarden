@@ -14,19 +14,21 @@ public enum AppLanguage: String, CaseIterable, Sendable, Identifiable {
     case italian = "it"
     case french = "fr"
 
-    public var id: String { rawValue }
+    public var id: String {
+        rawValue
+    }
 
     /// The name of the language in that language — the only string in this file
     /// that is deliberately not translated.
     public var endonym: String {
         switch self {
-        case .system: return ""
-        case .english: return "English (US)"
-        case .turkish: return "Türkçe"
-        case .german: return "Deutsch"
-        case .spanish: return "Español"
-        case .italian: return "Italiano"
-        case .french: return "Français"
+        case .system: ""
+        case .english: "English (US)"
+        case .turkish: "Türkçe"
+        case .german: "Deutsch"
+        case .spanish: "Español"
+        case .italian: "Italiano"
+        case .french: "Français"
         }
     }
 
@@ -45,9 +47,13 @@ public enum AppLanguage: String, CaseIterable, Sendable, Identifiable {
     /// The concrete language to render: the user's choice, or the first preferred
     /// system language we ship, or English.
     public static func resolve(_ chosen: AppLanguage, preferred: [String]) -> AppLanguage {
-        if chosen != .system { return chosen }
+        if chosen != .system {
+            return chosen
+        }
         for identifier in preferred {
-            if let match = matching(identifier) { return match }
+            if let match = matching(identifier) {
+                return match
+            }
         }
         return .english
     }

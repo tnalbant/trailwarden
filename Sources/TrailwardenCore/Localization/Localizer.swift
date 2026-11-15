@@ -20,7 +20,9 @@ public struct Localizer: Sendable {
     }
 
     /// The locale to format dates and numbers with.
-    public var locale: Locale { Locale(identifier: language.rawValue) }
+    public var locale: Locale {
+        Locale(identifier: language.rawValue)
+    }
 
     public func text(_ key: UIString) -> String {
         Self.table(for: language)[key] ?? UITranslations.english[key] ?? key.rawValue
@@ -39,12 +41,12 @@ public struct Localizer: Sendable {
 
     static func table(for language: AppLanguage) -> [UIString: String] {
         switch language {
-        case .system, .english: return UITranslations.english
-        case .turkish: return UITranslations.turkish
-        case .german: return UITranslations.german
-        case .spanish: return UITranslations.spanish
-        case .italian: return UITranslations.italian
-        case .french: return UITranslations.french
+        case .system, .english: UITranslations.english
+        case .turkish: UITranslations.turkish
+        case .german: UITranslations.german
+        case .spanish: UITranslations.spanish
+        case .italian: UITranslations.italian
+        case .french: UITranslations.french
         }
     }
 }
@@ -52,9 +54,9 @@ public struct Localizer: Sendable {
 public extension Severity {
     var uiKey: UIString {
         switch self {
-        case .critical: return .severityCritical
-        case .warn: return .severityWarning
-        case .info: return .severityInfo
+        case .critical: .severityCritical
+        case .warn: .severityWarning
+        case .info: .severityInfo
         }
     }
 }

@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright (c) 2026 Turgay Nalbant
 
-import XCTest
 @testable import TrailwardenCore
+import XCTest
 
 final class PruneTests: XCTestCase {
     private var store: EventStore!
@@ -15,7 +15,7 @@ final class PruneTests: XCTestCase {
     private func event(id: String, daysAgo: Double, session: String, preview: String) -> Event {
         Event(
             id: id,
-            ts: now.addingTimeInterval(-daysAgo * 86_400),
+            ts: now.addingTimeInterval(-daysAgo * 86400),
             agent: .claudeCode,
             sessionId: session,
             kind: .toolCall,
@@ -24,15 +24,14 @@ final class PruneTests: XCTestCase {
             paths: [],
             preview: preview,
             risk: [],
-            rawJSON: nil
-        )
+            rawJSON: nil)
     }
 
     func testPrunesOnlyTheOldEvents() throws {
         try store.insert(events: [
             event(id: "old1", daysAgo: 120, session: "cold", preview: "ancient secret"),
             event(id: "old2", daysAgo: 100, session: "cold", preview: "older still"),
-            event(id: "new1", daysAgo: 10, session: "warm", preview: "recent work"),
+            event(id: "new1", daysAgo: 10, session: "warm", preview: "recent work")
         ])
 
         let report = try store.prune(eventsOlderThanDays: 90, now: now)
@@ -44,7 +43,11 @@ final class PruneTests: XCTestCase {
     }
 
     func testPrunedTextLeavesTheSearchIndex() throws {
-        try store.insert(events: [event(id: "old1", daysAgo: 200, session: "cold", preview: "ancient secret")])
+        try store.insert(events: [event(
+            id: "old1",
+            daysAgo: 200,
+            session: "cold",
+            preview: "ancient secret")])
         XCTAssertEqual(try store.events(matching: EventQuery(search: "ancient")).count, 1)
 
         try store.prune(eventsOlderThanDays: 90, now: now)
@@ -56,7 +59,7 @@ final class PruneTests: XCTestCase {
         try store.insert(events: [
             event(id: "old1", daysAgo: 120, session: "cold", preview: "a"),
             event(id: "new1", daysAgo: 1, session: "warm", preview: "b"),
-            event(id: "new2", daysAgo: 2, session: "warm", preview: "c"),
+            event(id: "new2", daysAgo: 2, session: "warm", preview: "c")
         ])
 
         try store.prune(eventsOlderThanDays: 30, now: now)

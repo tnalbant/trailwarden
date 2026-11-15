@@ -17,6 +17,9 @@ public struct CodexParser: AgentParser {
 
     public init() {}
 
+    // A switch over the transcript's event types: every case is one shape the
+    // agent writes, and counting them as branches says nothing useful.
+    // swiftlint:disable:next cyclomatic_complexity
     public func parse(file: URL) throws -> ParseResult {
         var events: [Event] = []
         var skippedLines = 0
@@ -57,8 +60,12 @@ public struct CodexParser: AgentParser {
 
             let payload = object["payload"] as? [String: Any] ?? [:]
             let payloadType = payload["type"] as? String
-            if let value = payload["cwd"] as? String { cwd = value }
-            if let branch = Self.gitBranch(from: payload["git"]) { gitBranch = branch }
+            if let value = payload["cwd"] as? String {
+                cwd = value
+            }
+            if let branch = Self.gitBranch(from: payload["git"]) {
+                gitBranch = branch
+            }
 
             let timestamp = lastTimestamp ?? fallbackTimestamp
 
@@ -67,8 +74,8 @@ public struct CodexParser: AgentParser {
                 tool: String? = nil,
                 command: String? = nil,
                 paths: [String] = [],
-                preview: String? = nil
-            ) {
+                preview: String? = nil)
+            {
                 indexInLine += 1
                 events.append(
                     Event(
@@ -77,8 +84,7 @@ public struct CodexParser: AgentParser {
                             sessionId: sessionId,
                             source: source,
                             line: lineNumber,
-                            index: indexInLine
-                        ),
+                            index: indexInLine),
                         ts: timestamp,
                         agent: agent,
                         sessionId: sessionId,
@@ -90,15 +96,14 @@ public struct CodexParser: AgentParser {
                         paths: paths,
                         preview: preview.map(Self.cap),
                         risk: [],
-                        rawJSON: line
-                    )
-                )
+                        rawJSON: line))
             }
 
             switch type {
             case "session_meta":
                 if sessionId.isEmpty,
-                   let id = payload["id"] as? String ?? payload["session_id"] as? String {
+                   let id = payload["id"] as? String ?? payload["session_id"] as? String
+                {
                     sessionId = id
                 }
                 add(.sessionStart, preview: "session start")
@@ -129,16 +134,14 @@ public struct CodexParser: AgentParser {
                         tool: name,
                         command: input.command,
                         paths: input.paths,
-                        preview: input.preview
-                    )
+                        preview: input.preview)
 
                 case "custom_tool_call_output", "function_call_output":
                     let callId = payload["call_id"] as? String
                     add(
                         .toolResult,
                         tool: callId.flatMap { toolNamesByCallId[$0] },
-                        preview: Self.text(from: payload["output"])
-                    )
+                        preview: Self.text(from: payload["output"]))
 
                 case "function_call":
                     let name = payload["name"] as? String
@@ -151,8 +154,7 @@ public struct CodexParser: AgentParser {
                         tool: name,
                         command: input.command,
                         paths: input.paths,
-                        preview: input.preview
-                    )
+                        preview: input.preview)
 
                 default:
                     break
@@ -180,7 +182,7 @@ public struct CodexParser: AgentParser {
 
     static let knownTypes: Set<String> = [
         "session_meta", "response_item", "event_msg",
-        "token_usage_record", "turn_context", "world_state", "compacted",
+        "token_usage_record", "turn_context", "world_state", "compacted"
     ]
 
     static let previewLimit = 500
@@ -192,7 +194,9 @@ public struct CodexParser: AgentParser {
     /// Text of a content/summary field: either a plain string or a list of
     /// blocks that each carry `text` (image blocks carry `image_url` instead).
     static func text(from value: Any?) -> String? {
-        if let string = value as? String, !string.isEmpty { return string }
+        if let string = value as? String, !string.isEmpty {
+            return string
+        }
         if let blocks = value as? [[String: Any]] {
             let joined = blocks
                 .compactMap { $0["text"] as? String }
@@ -223,9 +227,13 @@ public struct CodexParser: AgentParser {
 
         var paths: [String] = []
         for key in ["file_path", "path"] {
-            if let path = dict[key] as? String { paths.append(path) }
+            if let path = dict[key] as? String {
+                paths.append(path)
+            }
         }
-        if let files = dict["files"] as? [String] { paths.append(contentsOf: files) }
+        if let files = dict["files"] as? [String] {
+            paths.append(contentsOf: files)
+        }
 
         let preview = (dict["description"] as? String)
             ?? (dict["title"] as? String)
@@ -248,7 +256,8 @@ public struct CodexParser: AgentParser {
     static func tokenUsagePreview(_ payload: [String: Any]) -> String? {
         if let info = payload["info"] as? [String: Any] {
             if let total = info["total_token_usage"] as? [String: Any],
-               let tokens = total["total_tokens"] as? Int {
+               let tokens = total["total_tokens"] as? Int
+            {
                 return "total tokens: \(tokens)"
             }
             return "token usage"
@@ -285,7 +294,8 @@ public struct CodexParser: AgentParser {
         let parts = candidate.split(separator: "-", omittingEmptySubsequences: false)
         guard parts.count == 5, parts.map(\.count) == [8, 4, 4, 4, 12] else { return nil }
         let hexDigits = CharacterSet(charactersIn: "0123456789abcdefABCDEF")
-        guard candidate.replacingOccurrences(of: "-", with: "").unicodeScalars.allSatisfy(hexDigits.contains) else {
+        guard candidate.replacingOccurrences(of: "-", with: "").unicodeScalars.allSatisfy(hexDigits.contains)
+        else {
             return nil
         }
         return candidate.lowercased()
@@ -301,7 +311,9 @@ public struct CodexParser: AgentParser {
 
     static func date(from value: Any?, formatter: ISO8601DateFormatter) -> Date? {
         guard let text = value as? String else { return nil }
-        if let date = formatter.date(from: text) { return date }
+        if let date = formatter.date(from: text) {
+            return date
+        }
         return ISO8601DateFormatter().date(from: text)
     }
 
@@ -310,10 +322,14 @@ public struct CodexParser: AgentParser {
     }
 
     static func gitBranch(from value: Any?) -> String? {
-        if let branch = value as? String, !branch.isEmpty { return branch }
+        if let branch = value as? String, !branch.isEmpty {
+            return branch
+        }
         if let dict = value as? [String: Any] {
             for key in ["branch", "current_branch", "name"] {
-                if let branch = dict[key] as? String, !branch.isEmpty { return branch }
+                if let branch = dict[key] as? String, !branch.isEmpty {
+                    return branch
+                }
             }
         }
         return nil

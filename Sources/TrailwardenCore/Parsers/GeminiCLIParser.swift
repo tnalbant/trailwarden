@@ -19,8 +19,13 @@ import Foundation
 public struct GeminiCLIParser: AgentParser {
     public init() {}
 
-    public var agent: Agent { .gemini }
-    public var fileExtension: String { "json" }
+    public var agent: Agent {
+        .gemini
+    }
+
+    public var fileExtension: String {
+        "json"
+    }
 
     /// Canonical tool names, so a rule written for `Bash` also covers Gemini.
     private static let toolAliases: [String: String] = [
@@ -35,7 +40,7 @@ public struct GeminiCLIParser: AgentParser {
         "glob": "Bash",
         "grep_search": "Bash",
         "web_fetch": "WebFetch",
-        "google_web_search": "WebSearch",
+        "google_web_search": "WebSearch"
     ]
 
     private static let pathKeys = ["absolute_path", "file_path", "path", "target_file", "directory_path"]
@@ -59,7 +64,8 @@ public struct GeminiCLIParser: AgentParser {
 
         let sessionId = root["sessionId"] as? String
             ?? file.deletingPathExtension().lastPathComponent
-        let fallbackDate = (root["startTime"] as? String).flatMap { formatter.date(from: $0) ?? plainFormatter.date(from: $0) }
+        let fallbackDate = (root["startTime"] as? String)
+            .flatMap { formatter.date(from: $0) ?? plainFormatter.date(from: $0) }
             ?? (try? file.resourceValues(forKeys: [.contentModificationDateKey]).contentModificationDate)
             ?? Date(timeIntervalSince1970: 0)
 
@@ -87,8 +93,7 @@ public struct GeminiCLIParser: AgentParser {
                         kind: .message,
                         preview: text,
                         risk: [],
-                        rawJSON: nil
-                    ))
+                        rawJSON: nil))
                 }
                 for (callIndex, call) in (message["toolCalls"] as? [[String: Any]] ?? []).enumerated() {
                     guard let event = Self.event(
@@ -96,8 +101,8 @@ public struct GeminiCLIParser: AgentParser {
                         index: callIndex,
                         sessionId: sessionId,
                         messageId: messageId,
-                        date: date
-                    ) else {
+                        date: date)
+                    else {
                         skipped += 1
                         continue
                     }
@@ -107,7 +112,8 @@ public struct GeminiCLIParser: AgentParser {
                 // carries no tool call, otherwise the timeline doubles up.
                 if type == "gemini",
                    text != nil,
-                   (message["toolCalls"] as? [[String: Any]] ?? []).isEmpty {
+                   (message["toolCalls"] as? [[String: Any]] ?? []).isEmpty
+                {
                     events.append(Event(
                         id: "gemini:\(sessionId):\(messageId):a",
                         ts: date,
@@ -116,8 +122,7 @@ public struct GeminiCLIParser: AgentParser {
                         kind: .message,
                         preview: text,
                         risk: [],
-                        rawJSON: nil
-                    ))
+                        rawJSON: nil))
                 }
             default:
                 skipped += 1
@@ -138,8 +143,8 @@ public struct GeminiCLIParser: AgentParser {
         index: Int,
         sessionId: String,
         messageId: String,
-        date: Date
-    ) -> Event? {
+        date: Date) -> Event?
+    {
         guard let name = call["name"] as? String else { return nil }
         let args = call["args"] as? [String: Any] ?? [:]
         let paths = pathKeys.compactMap { args[$0] as? String }
@@ -160,12 +165,13 @@ public struct GeminiCLIParser: AgentParser {
             paths: paths,
             preview: command ?? paths.first,
             risk: [],
-            rawJSON: nil
-        )
+            rawJSON: nil)
     }
 
     static func text(from content: Any?) -> String? {
-        if let text = content as? String { return text }
+        if let text = content as? String {
+            return text
+        }
         guard let blocks = content as? [[String: Any]] else { return nil }
         let parts = blocks.compactMap { $0["text"] as? String }
         return parts.isEmpty ? nil : parts.joined(separator: "\n")
@@ -177,7 +183,7 @@ public enum TranscriptError: Error, CustomStringConvertible, Sendable {
 
     public var description: String {
         switch self {
-        case .unreadable(let name): return "\(name) is not a readable transcript"
+        case let .unreadable(name): "\(name) is not a readable transcript"
         }
     }
 }

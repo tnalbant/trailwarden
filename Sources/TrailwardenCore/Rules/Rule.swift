@@ -36,8 +36,8 @@ public struct Rule: Codable, Sendable, Identifiable, Equatable {
         severity: Severity,
         match: RuleMatch,
         message: String,
-        enabled: Bool? = nil
-    ) {
+        enabled: Bool? = nil)
+    {
         self.id = id
         self.title = title
         self.severity = severity
@@ -46,7 +46,9 @@ public struct Rule: Codable, Sendable, Identifiable, Equatable {
         self.enabled = enabled
     }
 
-    public var isEnabled: Bool { enabled ?? true }
+    public var isEnabled: Bool {
+        enabled ?? true
+    }
 }
 
 /// A silenced `(rule, target)` pair. `target` is the normalized command (or the
@@ -57,7 +59,9 @@ public struct Mute: Codable, Sendable, Hashable, Identifiable {
     /// The mute stops applying after this moment.
     public let until: Date
 
-    public var id: String { "\(ruleId)|\(target)" }
+    public var id: String {
+        "\(ruleId)|\(target)"
+    }
 
     public init(ruleId: String, target: String, until: Date) {
         self.ruleId = ruleId
@@ -65,7 +69,9 @@ public struct Mute: Codable, Sendable, Hashable, Identifiable {
         self.until = until
     }
 
-    public func isActive(at date: Date) -> Bool { until > date }
+    public func isActive(at date: Date) -> Bool {
+        until > date
+    }
 }
 
 public enum RuleError: Error, CustomStringConvertible, Sendable {
@@ -76,8 +82,8 @@ public enum RuleError: Error, CustomStringConvertible, Sendable {
     public var description: String {
         switch self {
         case .missingCatalog: "rules.json is missing from the resource bundle"
-        case .invalidPattern(let ruleId): "rule \(ruleId) has an invalid command pattern"
-        case .invalidGlob(let ruleId, let pattern): "rule \(ruleId) has an invalid path glob: \(pattern)"
+        case let .invalidPattern(ruleId): "rule \(ruleId) has an invalid command pattern"
+        case let .invalidGlob(ruleId, pattern): "rule \(ruleId) has an invalid path glob: \(pattern)"
         }
     }
 }

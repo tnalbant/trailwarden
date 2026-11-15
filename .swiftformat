@@ -1,0 +1,13 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright (c) 2026 Turgay Nalbant
+
+--swiftversion 6.0
+--indent 4
+--maxwidth 110
+--wraparguments before-first
+--wrapparameters before-first
+--closingparen same-line
+--stripunusedargs closure-only
+--commas inline
+--self remove
+--exclude .build,Trailwarden.xcodeproj,docs

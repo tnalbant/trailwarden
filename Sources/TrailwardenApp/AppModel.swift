@@ -23,7 +23,9 @@ struct TranscriptRoot: Identifiable, Sendable {
     let files: Int
     let exists: Bool
 
-    var id: String { path }
+    var id: String {
+        path
+    }
 }
 
 /// The app's single state holder. The store and the scanner are not `Sendable`,
@@ -59,7 +61,7 @@ final class AppModel: ObservableObject {
             ?? override
             ?? (try? EventStore.defaultURL())
             ?? URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("trailwarden.sqlite")
-        self.onboardingDone = UserDefaults.standard.bool(forKey: Self.onboardingKey)
+        onboardingDone = UserDefaults.standard.bool(forKey: Self.onboardingKey)
         loadRules()
         refresh()
     }
@@ -150,8 +152,7 @@ final class AppModel: ObservableObject {
         let current = rules[index]
         rules[index] = current.with(
             enabled: enabled ?? current.isEnabled,
-            severity: severity ?? current.severity
-        )
+            severity: severity ?? current.severity)
         await saveAndReapply()
     }
 
@@ -161,8 +162,7 @@ final class AppModel: ObservableObject {
         let mute = Mute(
             ruleId: ruleId,
             target: target,
-            until: Date().addingTimeInterval(Double(days) * 86_400)
-        )
+            until: Date().addingTimeInterval(Double(days) * 86400))
         do {
             let store = try EventStore(url: databaseURL)
             try store.addMute(mute)
@@ -215,8 +215,7 @@ final class AppModel: ObservableObject {
                 let report = try engine.reapply(to: store)
                 let counts = try store.ruleHitCounts(matching: EventQuery(onlyFindings: true))
                 let text = LocalizationStore.current.format(
-                    .statusScan, report.events, report.changed, report.duration
-                )
+                    .statusScan, report.events, report.changed, report.duration)
                 return (text, counts)
             } catch {
                 return (LocalizationStore.current.format(.statusError, "\(error)"), [:])
@@ -237,14 +236,13 @@ final class AppModel: ObservableObject {
     /// Tokens come from the transcript; a price would not, so none is printed.
     func loadUsage(days: Int = 30) async {
         let database = databaseURL
-        let since = Date().addingTimeInterval(-Double(days) * 86_400)
+        let since = Date().addingTimeInterval(-Double(days) * 86400)
         let loaded = await Task.detached(priority: .utility) { () -> ([Agent: TokenTotals], [DailyTokens]) in
             do {
                 let store = try EventStore(url: database)
-                return (
-                    try store.tokenTotalsByAgent(since: since),
-                    try store.dailyTokens(since: since)
-                )
+                return try (
+                    store.tokenTotalsByAgent(since: since),
+                    store.dailyTokens(since: since))
             } catch {
                 NSLog("loadUsage failed: %@", String(describing: error))
                 return ([:], [])
@@ -264,8 +262,7 @@ final class AppModel: ObservableObject {
                 let store = try EventStore(url: url)
                 let report = try store.prune(eventsOlderThanDays: retentionDays)
                 return LocalizationStore.current.format(
-                    .statusPrune, report.removedEvents, report.removedSessions
-                )
+                    .statusPrune, report.removedEvents, report.removedSessions)
             } catch {
                 return LocalizationStore.current.format(.statusPruneFailed, "\(error)")
             }
@@ -280,7 +277,7 @@ final class AppModel: ObservableObject {
         let message = await Task.detached(priority: .userInitiated) { () -> String in
             do {
                 let store = try EventStore(url: database)
-                var query = EventQuery(since: Date().addingTimeInterval(-Double(days) * 86_400))
+                var query = EventQuery(since: Date().addingTimeInterval(-Double(days) * 86400))
                 query.includeRawJSON = false
                 let events = try store.events(matching: query)
                 let sessions = try store.sessions(agents: nil)
@@ -289,19 +286,16 @@ final class AppModel: ObservableObject {
                     until: Date(),
                     agents: [],
                     minimumSeverity: nil,
-                    generatedAt: Date()
-                )
+                    generatedAt: Date())
                 let outcome = try ExportWriter.write(
                     format: format,
                     sessions: sessions,
                     events: events,
                     selection: selection,
-                    to: url
-                )
+                    to: url)
                 return LocalizationStore.current.format(
                     .statusExport,
-                    url.lastPathComponent, outcome.events, outcome.findings, outcome.duration
-                )
+                    url.lastPathComponent, outcome.events, outcome.findings, outcome.duration)
             } catch {
                 return LocalizationStore.current.format(.statusExportFailed, "\(error)")
             }
@@ -324,13 +318,13 @@ final class AppModel: ObservableObject {
                 agent: root.agent,
                 path: root.directory.path,
                 files: exists ? countTranscripts(in: root.directory) : 0,
-                exists: exists
-            )
+                exists: exists)
         }
     }
 
     private static func countTranscripts(in directory: URL) -> Int {
-        guard let enumerator = FileManager.default.enumerator(at: directory, includingPropertiesForKeys: nil) else {
+        guard let enumerator = FileManager.default.enumerator(at: directory, includingPropertiesForKeys: nil)
+        else {
             return 0
         }
         var count = 0

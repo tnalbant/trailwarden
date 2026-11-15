@@ -3,7 +3,6 @@
 
 import Foundation
 
-// swiftlint:disable:next type_body_length
 extension UITranslations {
     static let turkish: [UIString: String] = [
         .today: "Bugün",
@@ -128,6 +127,6 @@ extension UITranslations {
 
         .axisDay: "Gün",
         .quit: "Çık",
-        .missingFolder: "yok",
+        .missingFolder: "yok"
     ]
 }

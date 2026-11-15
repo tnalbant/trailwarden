@@ -6,7 +6,7 @@ import Foundation
 /// One line of a diff, classified for the coloured view.
 public struct DiffLine: Sendable, Equatable {
     public enum Kind: Sendable, Equatable {
-        case header   // @@ hunk marker, *** Update File
+        case header // @@ hunk marker, *** Update File
         case addition
         case removal
         case context
@@ -42,7 +42,8 @@ public enum DiffExtractor {
         return lines.map { line in
             if line.hasPrefix("@@") || line.hasPrefix("*** ")
                 || line.hasPrefix("+++") || line.hasPrefix("---")
-                || line.hasPrefix("diff ") || line.hasPrefix("index ") {
+                || line.hasPrefix("diff ") || line.hasPrefix("index ")
+            {
                 return DiffLine(kind: .header, text: line)
             }
             if line.hasPrefix("+") {
@@ -62,11 +63,10 @@ public enum DiffExtractor {
     private static func patchPayload(in text: String) -> String? {
         guard let start = text.range(of: "*** Begin Patch") else { return nil }
         let tail = text[start.lowerBound...]
-        let body: Substring
-        if let end = tail.range(of: "*** End Patch") {
-            body = tail[tail.startIndex..<end.upperBound]
+        let body: Substring = if let end = tail.range(of: "*** End Patch") {
+            tail[tail.startIndex ..< end.upperBound]
         } else {
-            body = tail
+            tail
         }
         return String(body)
             .replacingOccurrences(of: "\\n", with: "\n")

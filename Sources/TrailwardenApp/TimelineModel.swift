@@ -18,7 +18,9 @@ enum TimelineWindow: String, CaseIterable, Identifiable {
     case month
     case everything
 
-    var id: String { rawValue }
+    var id: String {
+        rawValue
+    }
 
     var label: String {
         let localizer = LocalizationStore.current
@@ -33,8 +35,8 @@ enum TimelineWindow: String, CaseIterable, Identifiable {
     var since: Date? {
         switch self {
         case .day: Calendar.current.startOfDay(for: Date())
-        case .week: Date().addingTimeInterval(-7 * 86_400)
-        case .month: Date().addingTimeInterval(-30 * 86_400)
+        case .week: Date().addingTimeInterval(-7 * 86400)
+        case .month: Date().addingTimeInterval(-30 * 86400)
         case .everything: nil
         }
     }
@@ -47,13 +49,30 @@ enum TimelineWindow: String, CaseIterable, Identifiable {
 final class TimelineModel: ObservableObject {
     static let pageSize = 200
 
-    @Published var selection: TimelineSelection = .all { didSet { reload() } }
-    @Published var window: TimelineWindow = .month { didSet { reload() } }
-    @Published var agentFilter: Agent? { didSet { reload() } }
-    @Published var findingsOnly = false { didSet { reload() } }
+    @Published var selection: TimelineSelection = .all {
+        didSet { reload() }
+    }
+
+    @Published var window: TimelineWindow = .month {
+        didSet { reload() }
+    }
+
+    @Published var agentFilter: Agent? {
+        didSet { reload() }
+    }
+
+    @Published var findingsOnly = false {
+        didSet { reload() }
+    }
+
     /// Token counters and session markers are hidden unless asked for.
-    @Published var showRawEvents = false { didSet { reload() } }
-    @Published var search = "" { didSet { scheduleSearch() } }
+    @Published var showRawEvents = false {
+        didSet { reload() }
+    }
+
+    @Published var search = "" {
+        didSet { scheduleSearch() }
+    }
 
     @Published var selectedEventID: String?
     @Published private(set) var events: [Event] = []
@@ -122,17 +141,17 @@ final class TimelineModel: ObservableObject {
 
     var filteredSessions: [SessionSummary] {
         switch selection {
-        case .session(let id): return sessions.filter { $0.id == id }
-        case .project(let cwd): return sessions(inProject: cwd)
-        case .all: return []
+        case let .session(id): sessions.filter { $0.id == id }
+        case let .project(cwd): sessions(inProject: cwd)
+        case .all: []
         }
     }
 
     var selectionTitle: String {
         switch selection {
-        case .all: return LocalizationStore.current.text(.allSessions)
-        case .project(let cwd): return ProjectName.short(cwd)
-        case .session(let id): return Sessions.shortID(id)
+        case .all: LocalizationStore.current.text(.allSessions)
+        case let .project(cwd): ProjectName.short(cwd)
+        case let .session(id): Sessions.shortID(id)
         }
     }
 
@@ -141,15 +160,23 @@ final class TimelineModel: ObservableObject {
     private func makeQuery(offset: Int, paged: Bool = true) -> EventQuery {
         var query = EventQuery()
         query.since = window.since
-        if let agentFilter { query.agents = [agentFilter] }
-        if findingsOnly { query.onlyFindings = true }
-        if !showRawEvents { query.excludedKinds = [.tokenUsage, .sessionStart] }
+        if let agentFilter {
+            query.agents = [agentFilter]
+        }
+        if findingsOnly {
+            query.onlyFindings = true
+        }
+        if !showRawEvents {
+            query.excludedKinds = [.tokenUsage, .sessionStart]
+        }
         let trimmed = search.trimmingCharacters(in: .whitespacesAndNewlines)
-        if !trimmed.isEmpty { query.search = trimmed }
+        if !trimmed.isEmpty {
+            query.search = trimmed
+        }
         switch selection {
         case .all: break
-        case .project(let cwd): query.projects = [cwd]
-        case .session(let id): query.sessionIDs = [id]
+        case let .project(cwd): query.projects = [cwd]
+        case let .session(id): query.sessionIDs = [id]
         }
         if paged {
             query.limit = Self.pageSize

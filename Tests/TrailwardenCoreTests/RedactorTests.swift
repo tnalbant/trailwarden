@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright (c) 2026 Turgay Nalbant
 
-import XCTest
 @testable import TrailwardenCore
+import XCTest
 
 /// Every fixture here is deliberately synthetic: long runs of one character that
 /// match the pattern but could never be somebody's real credential. The home
@@ -28,23 +28,20 @@ final class RedactorTests: XCTestCase {
     func testOpenAIKey() {
         XCTAssertEqual(
             normal.redact("export OPENAI_API_KEY=\(openAIKey)"),
-            "export OPENAI_API_KEY=[redacted:openai-key]"
-        )
+            "export OPENAI_API_KEY=[redacted:openai-key]")
     }
 
     func testGitHubTokens() {
         XCTAssertEqual(
             normal.redact("token \(gitHubKey) done"),
-            "token [redacted:github-token] done"
-        )
+            "token [redacted:github-token] done")
         XCTAssertEqual(normal.redact(gitHubPat), "[redacted:github-token]")
     }
 
     func testAWSKey() {
         XCTAssertEqual(
             normal.redact("aws_access_key_id = \(awsKey)"),
-            "aws_access_key_id = [redacted:aws-key]"
-        )
+            "aws_access_key_id = [redacted:aws-key]")
     }
 
     func testSlackToken() {
@@ -66,12 +63,10 @@ final class RedactorTests: XCTestCase {
         let token = String(repeating: "e", count: 40)
         XCTAssertEqual(
             normal.redact("Authorization: Bearer \(token)"),
-            "Authorization: Bearer [redacted:bearer]"
-        )
+            "Authorization: Bearer [redacted:bearer]")
         XCTAssertEqual(
             strict.redact("authorization: bearer \(token)"),
-            "authorization: bearer [redacted:bearer]"
-        )
+            "authorization: bearer [redacted:bearer]")
     }
 
     func testLongBlob() {
@@ -82,12 +77,10 @@ final class RedactorTests: XCTestCase {
     func testEmailOnlyMaskedAtStrictLevel() {
         XCTAssertEqual(
             normal.redact("mail dev@example.com now"),
-            "mail dev@example.com now"
-        )
+            "mail dev@example.com now")
         XCTAssertEqual(
             strict.redact("mail dev@example.com now"),
-            "mail [redacted:email] now"
-        )
+            "mail [redacted:email] now")
     }
 
     func testHomePathIsShortened() {
@@ -104,8 +97,7 @@ final class RedactorTests: XCTestCase {
     func testSeveralSecretsInOneLine() {
         XCTAssertEqual(
             normal.redact("\(awsKey) and \(gitHubKey)"),
-            "[redacted:aws-key] and [redacted:github-token]"
-        )
+            "[redacted:aws-key] and [redacted:github-token]")
     }
 
     func testEventRedactionKeepsIdentityAndAbsolutePathsInStore() {
@@ -113,8 +105,7 @@ final class RedactorTests: XCTestCase {
         let event = makeEvent(
             command: "curl -H 'Authorization: Bearer \(token)' https://x.test",
             paths: ["/Users/demo/.ssh/id_rsa"],
-            preview: "key \(openAIKey)"
-        )
+            preview: "key \(openAIKey)")
         let stored = normal.redact(event)
 
         XCTAssertEqual(stored.id, event.id)
@@ -136,8 +127,8 @@ final class RedactorTests: XCTestCase {
     private func makeEvent(
         command: String? = "ls",
         paths: [String] = [],
-        preview: String? = "hello"
-    ) -> Event {
+        preview: String? = "hello") -> Event
+    {
         Event(
             id: "event-1",
             ts: Date(timeIntervalSince1970: 1_700_000_000),
@@ -151,7 +142,6 @@ final class RedactorTests: XCTestCase {
             paths: paths,
             preview: preview,
             risk: [],
-            rawJSON: "{\"note\":\"\(openAIKey)\"}"
-        )
+            rawJSON: "{\"note\":\"\(openAIKey)\"}")
     }
 }

@@ -10,7 +10,9 @@ public struct ProjectSummary: Sendable, Identifiable, Equatable {
     public let eventCount: Int
     public let lastActivity: Date
 
-    public var id: String { cwd }
+    public var id: String {
+        cwd
+    }
 
     public init(cwd: String, sessionCount: Int, eventCount: Int, lastActivity: Date) {
         self.cwd = cwd
@@ -54,8 +56,8 @@ public struct EventQuery: Sendable {
         excludedKinds: Set<EventKind>? = nil,
         limit: Int? = nil,
         offset: Int? = nil,
-        includeRawJSON: Bool = true
-    ) {
+        includeRawJSON: Bool = true)
+    {
         self.since = since
         self.until = until
         self.agents = agents
@@ -99,7 +101,9 @@ public extension EventStore {
         try statement.bind(values)
         var result: [Event] = []
         while try statement.step() {
-            if let event = Self.event(from: statement) { result.append(event) }
+            if let event = Self.event(from: statement) {
+                result.append(event)
+            }
         }
         return result
     }
@@ -136,9 +140,7 @@ public extension EventStore {
                     cwd: cwd,
                     sessionCount: statement.int(1) ?? 0,
                     eventCount: statement.int(2) ?? 0,
-                    lastActivity: Date(timeIntervalSince1970: statement.double(3) ?? 0)
-                )
-            )
+                    lastActivity: Date(timeIntervalSince1970: statement.double(3) ?? 0)))
         }
         return result
     }

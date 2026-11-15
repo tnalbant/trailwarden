@@ -16,7 +16,9 @@ public extension EventStore {
         """)
         var result: [Event] = []
         while try statement.step() {
-            if let event = Self.event(from: statement) { result.append(event) }
+            if let event = Self.event(from: statement) {
+                result.append(event)
+            }
         }
         return result
     }

@@ -11,8 +11,8 @@ public enum StoreError: Error, CustomStringConvertible, Sendable {
 
     public var description: String {
         switch self {
-        case .open(let message): "sqlite open failed: \(message)"
-        case .sql(let message): "sqlite error: \(message)"
+        case let .open(message): "sqlite open failed: \(message)"
+        case let .sql(message): "sqlite error: \(message)"
         }
     }
 }
@@ -35,7 +35,9 @@ final class SQLiteDatabase {
         let flags = SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE | SQLITE_OPEN_FULLMUTEX
         guard sqlite3_open_v2(path, &pointer, flags, nil) == SQLITE_OK, let pointer else {
             let message = pointer.map { String(cString: sqlite3_errmsg($0)) } ?? "unknown"
-            if let pointer { sqlite3_close_v2(pointer) }
+            if let pointer {
+                sqlite3_close_v2(pointer)
+            }
             throw StoreError.open(message)
         }
         handle = pointer
@@ -62,7 +64,8 @@ final class SQLiteDatabase {
     func prepare(_ sql: String) throws -> SQLiteStatement {
         var statement: OpaquePointer?
         guard sqlite3_prepare_v2(handle, sql, -1, &statement, nil) == SQLITE_OK,
-              let statement else {
+              let statement
+        else {
             throw StoreError.sql("\(lastErrorMessage) [\(sql.prefix(80))]")
         }
         return SQLiteStatement(statement: statement, database: handle)
@@ -102,16 +105,15 @@ final class SQLiteStatement {
         sqlite3_clear_bindings(statement)
         for (offset, value) in values.enumerated() {
             let index = Int32(offset + 1)
-            let status: Int32
-            switch value {
-            case .text(let text):
-                status = sqlite3_bind_text(statement, index, text, -1, Self.transient)
-            case .int(let number):
-                status = sqlite3_bind_int64(statement, index, Int64(number))
-            case .double(let number):
-                status = sqlite3_bind_double(statement, index, number)
+            let status: Int32 = switch value {
+            case let .text(text):
+                sqlite3_bind_text(statement, index, text, -1, Self.transient)
+            case let .int(number):
+                sqlite3_bind_int64(statement, index, Int64(number))
+            case let .double(number):
+                sqlite3_bind_double(statement, index, number)
             case .null:
-                status = sqlite3_bind_null(statement, index)
+                sqlite3_bind_null(statement, index)
             }
             guard status == SQLITE_OK else {
                 throw StoreError.sql(String(cString: sqlite3_errmsg(database)))
@@ -136,7 +138,9 @@ final class SQLiteStatement {
     }
 
     func int(_ index: Int32) -> Int? {
-        sqlite3_column_type(statement, index) == SQLITE_NULL ? nil : Int(sqlite3_column_int64(statement, index))
+        sqlite3_column_type(statement, index) == SQLITE_NULL ? nil : Int(sqlite3_column_int64(
+            statement,
+            index))
     }
 
     func double(_ index: Int32) -> Double? {

@@ -119,15 +119,20 @@ struct RulesView: View {
             get: { rule.severity },
             set: { severity in
                 Task { await model.updateRule(rule.id, severity: severity) }
-            }
-        )
+            })
     }
 
     private func ruleMatchSummary(_ rule: Rule) -> String {
         var parts: [String] = []
-        if let tool = rule.match.tool { parts.append(Lf(.ruleTool, [tool])) }
-        if let regex = rule.match.commandRegex { parts.append("/\(regex)/") }
-        if let globs = rule.match.pathGlobs { parts.append(globs.joined(separator: " ")) }
+        if let tool = rule.match.tool {
+            parts.append(Lf(.ruleTool, [tool]))
+        }
+        if let regex = rule.match.commandRegex {
+            parts.append("/\(regex)/")
+        }
+        if let globs = rule.match.pathGlobs {
+            parts.append(globs.joined(separator: " "))
+        }
         return parts.isEmpty ? L(.ruleMatchesAll) : parts.joined(separator: " · ")
     }
 
@@ -176,7 +181,7 @@ struct RulesView: View {
     }
 
     private func remainingDays(_ mute: Mute) -> String {
-        let days = Int(ceil(mute.until.timeIntervalSinceNow / 86_400))
+        let days = Int(ceil(mute.until.timeIntervalSinceNow / 86400))
         return days > 0 ? Lf(.daysLeft, [days]) : L(.muteExpired)
     }
 

@@ -46,11 +46,11 @@ enum EventFormatting {
 
     static func agentLabel(_ agent: Agent) -> String {
         switch agent {
-        case .claudeCode: return "claude"
-        case .codex: return "codex"
-        case .opencode: return "opencode"
-        case .gemini: return "gemini"
-        case .hermes: return "hermes"
+        case .claudeCode: "claude"
+        case .codex: "codex"
+        case .opencode: "opencode"
+        case .gemini: "gemini"
+        case .hermes: "hermes"
         }
     }
 }

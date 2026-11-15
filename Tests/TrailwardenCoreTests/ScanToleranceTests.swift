@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright (c) 2026 Turgay Nalbant
 
-import XCTest
 @testable import TrailwardenCore
+import XCTest
 
 /// A corrupt transcript must never abort a scan or lose the good files next to it.
 final class ScanToleranceTests: XCTestCase {
@@ -46,8 +46,7 @@ final class ScanToleranceTests: XCTestCase {
 
         let missing = ScanRoot(
             directory: root.appendingPathComponent("nope", isDirectory: true),
-            parser: ClaudeCodeParser()
-        )
+            parser: ClaudeCodeParser())
         let report = try scanner.scan(roots: [missing])
         XCTAssertEqual(report.filesSeen, 0)
         XCTAssertTrue(report.failures.isEmpty)

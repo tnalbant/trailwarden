@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright (c) 2026 Turgay Nalbant
 
-import XCTest
 @testable import TrailwardenCore
+import XCTest
 
 final class DiffExtractorTests: XCTestCase {
     func testUnifiedDiffIsParsed() throws {
@@ -51,7 +51,9 @@ final class DiffExtractorTests: XCTestCase {
         XCTAssertEqual(lines.first?.text, "*** Begin Patch")
         XCTAssertEqual(lines.filter { $0.kind == .addition }.map(\.text), [#"print("hi")"#])
         XCTAssertEqual(lines.filter { $0.kind == .removal }.map(\.text), ["old line"])
-        XCTAssertFalse(lines.contains { $0.text.contains("apply_patch") }, "the JS wrapper is not part of the diff")
+        XCTAssertFalse(
+            lines.contains { $0.text.contains("apply_patch") },
+            "the JS wrapper is not part of the diff")
         XCTAssertFalse(lines.contains { $0.text.contains("const patch") })
     }
 

@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright (c) 2026 Turgay Nalbant
 
-import XCTest
 @testable import TrailwardenCore
+import XCTest
 
 final class LiveSessionTests: XCTestCase {
     private func event(_ id: String, mine: Int, session: String) -> Event {
@@ -17,8 +17,7 @@ final class LiveSessionTests: XCTestCase {
             paths: [],
             preview: "ls",
             risk: [],
-            rawJSON: nil
-        )
+            rawJSON: nil)
     }
 
     func testOnlyRecentSessionsCount() throws {
@@ -27,11 +26,11 @@ final class LiveSessionTests: XCTestCase {
             event("a", mine: 0, session: "now"),
             event("b", mine: 1, session: "now"),
             event("c", mine: 30, session: "half-hour"),
-            event("d", mine: 300, session: "old"),
+            event("d", mine: 300, session: "old")
         ])
 
         XCTAssertEqual(try store.activeSessionIDs(within: 120), ["now"])
-        XCTAssertEqual(try store.activeSessionIDs(within: 3_600), ["now", "half-hour"])
+        XCTAssertEqual(try store.activeSessionIDs(within: 3600), ["now", "half-hour"])
     }
 
     func testEmptyStoreHasNoLiveSessions() throws {

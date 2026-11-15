@@ -23,16 +23,24 @@ struct EventDetailView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 14) {
                 header
-                if !event.risk.isEmpty { riskSection }
+                if !event.risk.isEmpty {
+                    riskSection
+                }
                 if let command = event.command {
                     textSection(L(.labelCommand), command, field: "command", wraps: false)
                 }
                 if let preview = event.preview, event.command == nil {
                     textSection(L(.labelText), preview, field: "preview", wraps: true)
                 }
-                if let diff { diffSection(diff) }
-                if !event.paths.isEmpty { pathsSection }
-                if let raw = event.rawJSON { rawSection(raw) }
+                if let diff {
+                    diffSection(diff)
+                }
+                if !event.paths.isEmpty {
+                    pathsSection
+                }
+                if let raw = event.rawJSON {
+                    rawSection(raw)
+                }
                 resumeSection
             }
             .padding(16)
@@ -50,8 +58,8 @@ struct EventDetailView: View {
             if let command = ResumeCommand.command(
                 agent: event.agent,
                 sessionId: event.sessionId,
-                cwd: event.cwd
-            ) {
+                cwd: event.cwd)
+            {
                 SectionLabel(text: L(.resumeSession))
                 HStack(spacing: 8) {
                     Text(command)
@@ -218,7 +226,9 @@ struct EventDetailView: View {
             copiedField = field
             Task {
                 try? await Task.sleep(for: .seconds(1.2))
-                if copiedField == field { copiedField = nil }
+                if copiedField == field {
+                    copiedField = nil
+                }
             }
         } label: {
             Text(copiedField == field ? L(.copied) : L(.copy))
@@ -230,19 +240,19 @@ struct EventDetailView: View {
 
     private func prefix(for kind: DiffLine.Kind) -> String {
         switch kind {
-        case .addition: return "+"
-        case .removal: return "-"
-        case .context: return " "
-        case .header: return ""
+        case .addition: "+"
+        case .removal: "-"
+        case .context: " "
+        case .header: ""
         }
     }
 
     private func color(for kind: DiffLine.Kind) -> Color {
         switch kind {
-        case .addition: return Tokens.Palette.diffAddition
-        case .removal: return Tokens.Palette.diffRemoval
-        case .header: return Tokens.Palette.diffHeader
-        case .context: return Tokens.Palette.ink.opacity(0.78)
+        case .addition: Tokens.Palette.diffAddition
+        case .removal: Tokens.Palette.diffRemoval
+        case .header: Tokens.Palette.diffHeader
+        case .context: Tokens.Palette.ink.opacity(0.78)
         }
     }
 }

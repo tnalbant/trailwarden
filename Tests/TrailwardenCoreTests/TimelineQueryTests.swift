@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright (c) 2026 Turgay Nalbant
 
-import XCTest
 @testable import TrailwardenCore
+import XCTest
 
 final class TimelineQueryTests: XCTestCase {
     private var store: EventStore!
@@ -18,8 +18,8 @@ final class TimelineQueryTests: XCTestCase {
         session: String = "s-alpha",
         agent: Agent = .claudeCode,
         preview: String = "hello",
-        severity: Severity? = nil
-    ) -> Event {
+        severity: Severity? = nil) -> Event
+    {
         Event(
             id: id,
             ts: Date(timeIntervalSince1970: seconds),
@@ -32,25 +32,34 @@ final class TimelineQueryTests: XCTestCase {
             paths: [],
             preview: preview,
             risk: severity.map { [RiskHit(ruleId: "R1", severity: $0, message: "m")] } ?? [],
-            rawJSON: nil
-        )
+            rawJSON: nil)
     }
 
     private func seed() throws {
         try store.insert(events: [
-            event(id: "e1", seconds: 1_000, preview: "alpha release notes", severity: .critical),
-            event(id: "e2", seconds: 2_000, preview: "beta release notes"),
-            event(id: "e3", seconds: 3_000, cwd: "/Users/demo/dev/beta", session: "s-beta",
-                  agent: .codex, preview: "gamma deployment"),
-            event(id: "e4", seconds: 4_000, preview: "delta release", severity: .warn),
-            event(id: "e5", seconds: 5_000, cwd: "/Users/demo/dev/beta", session: "s-beta",
-                  agent: .codex, preview: "epsilon notes"),
+            event(id: "e1", seconds: 1000, preview: "alpha release notes", severity: .critical),
+            event(id: "e2", seconds: 2000, preview: "beta release notes"),
+            event(
+                id: "e3",
+                seconds: 3000,
+                cwd: "/Users/demo/dev/beta",
+                session: "s-beta",
+                agent: .codex,
+                preview: "gamma deployment"),
+            event(id: "e4", seconds: 4000, preview: "delta release", severity: .warn),
+            event(
+                id: "e5",
+                seconds: 5000,
+                cwd: "/Users/demo/dev/beta",
+                session: "s-beta",
+                agent: .codex,
+                preview: "epsilon notes")
         ])
     }
 
     func testUntilFilter() throws {
         try seed()
-        let events = try store.events(matching: EventQuery(until: Date(timeIntervalSince1970: 2_500)))
+        let events = try store.events(matching: EventQuery(until: Date(timeIntervalSince1970: 2500)))
         XCTAssertEqual(events.map(\.id), ["e2", "e1"])
     }
 
@@ -114,7 +123,7 @@ final class TimelineQueryTests: XCTestCase {
             EventQuery(minimumSeverity: .warn),
             EventQuery(search: "release"),
             EventQuery(agents: [.codex], search: "notes"),
-            EventQuery(since: Date(timeIntervalSince1970: 2_500), limit: 1),
+            EventQuery(since: Date(timeIntervalSince1970: 2500), limit: 1)
         ]
 
         for query in queries {
@@ -125,19 +134,32 @@ final class TimelineQueryTests: XCTestCase {
             XCTAssertEqual(
                 try store.eventCount(matching: query),
                 try store.events(matching: unlimited).count,
-                "count and list disagree for \(query)"
-            )
+                "count and list disagree for \(query)")
         }
         XCTAssertEqual(try store.eventCount(matching: EventQuery()), 5)
     }
 
     func testExcludedKindsAreLeftOut() throws {
         try store.insert(events: [
-            event(id: "tool", seconds: 1_000, preview: "ran a tool"),
-            Event(id: "tokens", ts: Date(timeIntervalSince1970: 1_001), agent: .codex, sessionId: "s-alpha",
-                  kind: .tokenUsage, preview: "tokens: 66358 in", risk: [], rawJSON: nil),
-            Event(id: "start", ts: Date(timeIntervalSince1970: 1_002), agent: .codex, sessionId: "s-alpha",
-                  kind: .sessionStart, preview: "session started", risk: [], rawJSON: nil),
+            event(id: "tool", seconds: 1000, preview: "ran a tool"),
+            Event(
+                id: "tokens",
+                ts: Date(timeIntervalSince1970: 1001),
+                agent: .codex,
+                sessionId: "s-alpha",
+                kind: .tokenUsage,
+                preview: "tokens: 66358 in",
+                risk: [],
+                rawJSON: nil),
+            Event(
+                id: "start",
+                ts: Date(timeIntervalSince1970: 1002),
+                agent: .codex,
+                sessionId: "s-alpha",
+                kind: .sessionStart,
+                preview: "session started",
+                risk: [],
+                rawJSON: nil)
         ])
 
         let all = try store.events(matching: EventQuery())
@@ -156,6 +178,6 @@ final class TimelineQueryTests: XCTestCase {
         let beta = try XCTUnwrap(projects.first)
         XCTAssertEqual(beta.sessionCount, 1)
         XCTAssertEqual(beta.eventCount, 2)
-        XCTAssertEqual(beta.lastActivity, Date(timeIntervalSince1970: 5_000))
+        XCTAssertEqual(beta.lastActivity, Date(timeIntervalSince1970: 5000))
     }
 }

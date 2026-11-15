@@ -33,8 +33,8 @@ public struct Redactor: Sendable {
     private static func compile(
         _ pattern: String,
         _ template: String,
-        options: NSRegularExpression.Options = []
-    ) -> Rule? {
+        options: NSRegularExpression.Options = []) -> Rule?
+    {
         guard let regex = try? NSRegularExpression(pattern: pattern, options: options) else { return nil }
         return Rule(regex: regex, template: template)
     }
@@ -44,8 +44,7 @@ public struct Redactor: Sendable {
         // PEM key material, header to footer.
         compile(
             "-----BEGIN [A-Z0-9 ]*PRIVATE KEY-----[\\s\\S]*?-----END [A-Z0-9 ]*PRIVATE KEY-----",
-            "[redacted:private-key]"
-        ),
+            "[redacted:private-key]"),
         compile("\\bsk-[A-Za-z0-9_-]{16,}", "[redacted:openai-key]"),
         compile("\\b(?:ghp|gho|ghu|ghs|ghr)_[A-Za-z0-9]{20,}", "[redacted:github-token]"),
         compile("\\bgithub_pat_[A-Za-z0-9_]{20,}", "[redacted:github-token]"),
@@ -53,19 +52,20 @@ public struct Redactor: Sendable {
         compile("\\bxox[baprs]-[A-Za-z0-9-]{10,}", "[redacted:slack-token]"),
         compile(
             "(?i)(authorization:\\s*bearer\\s+)[A-Za-z0-9._~+/=-]+",
-            "$1[redacted:bearer]"
-        ),
+            "$1[redacted:bearer]"),
         // Long base64-ish blobs: certificates, encoded credentials, dumps.
-        compile("\\b[A-Za-z0-9+/]{64,}={0,2}", "[redacted:blob]"),
-    ].compactMap { $0 }
+        compile("\\b[A-Za-z0-9+/]{64,}={0,2}", "[redacted:blob]")
+    ].compactMap(\.self)
 
     /// Only applied at `.strict`.
     static let strictRules: [Rule] = [
         compile("\\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}\\b", "[redacted:email]"),
-        compile("/(?:Users|home)/[^/\\s\"']+", "~"),
-    ].compactMap { $0 }
+        compile("/(?:Users|home)/[^/\\s\"']+", "~")
+    ].compactMap(\.self)
 
-    static var ruleCount: Int { baseRules.count + strictRules.count }
+    static var ruleCount: Int {
+        baseRules.count + strictRules.count
+    }
 
     private var activeRules: [Rule] {
         switch level {
@@ -84,8 +84,7 @@ public struct Redactor: Sendable {
                 in: result,
                 options: [],
                 range: range,
-                withTemplate: rule.template
-            )
+                withTemplate: rule.template)
         }
         return result
     }
@@ -98,8 +97,7 @@ public struct Redactor: Sendable {
             in: path,
             options: [],
             range: range,
-            withTemplate: "~"
-        )
+            withTemplate: "~")
     }
 
     /// Redacts an event without touching identity or classification: the same id,
@@ -119,8 +117,7 @@ public struct Redactor: Sendable {
             paths: event.paths.map(redact),
             preview: event.preview.map(redact),
             risk: event.risk,
-            rawJSON: event.rawJSON.map(redact)
-        )
+            rawJSON: event.rawJSON.map(redact))
     }
 
     /// What leaves the machine: secrets masked *and* the user name in home paths
@@ -140,7 +137,6 @@ public struct Redactor: Sendable {
             paths: base.paths.map(shortenHome),
             preview: base.preview,
             risk: base.risk,
-            rawJSON: base.rawJSON
-        )
+            rawJSON: base.rawJSON)
     }
 }

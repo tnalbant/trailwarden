@@ -1,15 +1,15 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright (c) 2026 Turgay Nalbant
 
-import XCTest
 @testable import TrailwardenCore
+import XCTest
 
 final class TimeWindowTests: XCTestCase {
     private let now = ISO8601DateFormatter().date(from: "2026-11-14T12:00:00Z")!
 
     func testRelativeWindows() throws {
-        XCTAssertEqual(try TimeWindow.parse("7d", now: now), now.addingTimeInterval(-7 * 86_400))
-        XCTAssertEqual(try TimeWindow.parse("12h", now: now), now.addingTimeInterval(-12 * 3_600))
+        XCTAssertEqual(try TimeWindow.parse("7d", now: now), now.addingTimeInterval(-7 * 86400))
+        XCTAssertEqual(try TimeWindow.parse("12h", now: now), now.addingTimeInterval(-12 * 3600))
         XCTAssertEqual(try TimeWindow.parse("90m", now: now), now.addingTimeInterval(-90 * 60))
         XCTAssertEqual(try TimeWindow.parse("2w", now: now), now.addingTimeInterval(-2 * 604_800))
     }
