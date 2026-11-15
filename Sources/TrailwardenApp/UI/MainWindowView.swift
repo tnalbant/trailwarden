@@ -21,7 +21,7 @@ struct MainWindowView: View {
                 await model.mute(ruleId: hit.ruleId, target: target)
                 timeline.reload()
             }
-        })
+        }, liveSessionIDs: model.liveSessions)
             .frame(minWidth: 780, minHeight: 480)
             .toolbar {
                 ToolbarItem(placement: .primaryAction) {

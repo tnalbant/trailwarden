@@ -35,6 +35,8 @@ final class AppModel: ObservableObject {
 
     @Published private(set) var snapshot = Snapshot()
     @Published private(set) var isScanning = false
+    /// Sessions that wrote something in the last two minutes.
+    @Published private(set) var liveSessions: Set<String> = []
     @Published private(set) var lastScanSummary: String?
     @Published var errorMessage: String?
     @Published var onboardingDone: Bool
@@ -62,10 +64,16 @@ final class AppModel: ObservableObject {
     func refresh() {
         do {
             snapshot = try Self.loadSnapshot(at: databaseURL)
+            liveSessions = try Self.loadLiveSessions(at: databaseURL)
             errorMessage = nil
         } catch {
             errorMessage = String(describing: error)
         }
+    }
+
+    private static func loadLiveSessions(at url: URL) throws -> Set<String> {
+        let store = try EventStore(url: url)
+        return try store.activeSessionIDs(within: 120)
     }
 
     private static func loadSnapshot(at url: URL) throws -> Snapshot {

@@ -166,6 +166,12 @@ struct MenuBarView: View {
 
             Spacer()
 
+            if !model.liveSessions.isEmpty {
+                Text("\(model.liveSessions.count) canlı")
+                    .font(Tokens.Typography.mono(9, weight: .medium))
+                    .foregroundStyle(Tokens.Palette.accent)
+            }
+
             if model.isScanning {
                 ProgressView()
                     .controlSize(.small)

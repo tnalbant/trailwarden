@@ -10,6 +10,8 @@ import TrailwardenCore
 /// the model and the day, and a wrong number is worse than none.
 struct UsageView: View {
     @ObservedObject var model: AppModel
+    @State private var days = 30
+    private let ranges = [7, 30, 90]
 
     private var total: Int {
         model.usage.values.reduce(0) { $0 + $1.processed }
@@ -31,16 +33,31 @@ struct UsageView: View {
         .frame(minWidth: 640, minHeight: 520)
         .background(Tokens.Palette.paper)
         .foregroundStyle(Tokens.Palette.ink)
-        .onAppear { Task { await model.loadUsage() } }
+        .tint(Tokens.Palette.accent)
+        .onAppear { Task { await model.loadUsage(days: days) } }
     }
 
     private var header: some View {
         VStack(alignment: .leading, spacing: 3) {
             Text("Kullanım")
                 .font(Tokens.Typography.serif(19, weight: .semibold))
-            Text("Son 30 gün · \(Self.tokens(total)) token · \(model.dailyUsage.count) gün")
+            Text("Son \(days) gün · \(Self.tokens(total)) token · \(model.dailyUsage.count) gün")
                 .font(Tokens.Typography.mono(10))
                 .foregroundStyle(Tokens.Palette.secondary)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .overlay(alignment: .topTrailing) {
+            Picker("", selection: $days) {
+                ForEach(ranges, id: \.self) { value in
+                    Text("\(value) gün").tag(value)
+                }
+            }
+            .pickerStyle(.segmented)
+            .labelsHidden()
+            .frame(width: 200)
+            .onChange(of: days) { _, value in
+                Task { await model.loadUsage(days: value) }
+            }
         }
     }
 
@@ -85,7 +102,7 @@ struct UsageView: View {
 
     private var agents: some View {
         VStack(alignment: .leading, spacing: 9) {
-            SectionLabel(text: "Ajana göre", trailing: "token")
+            SectionLabel(text: "Ajana göre", trailing: "işlenen token")
             ForEach(Agent.allCases, id: \.self) { agent in
                 let totals = model.usage[agent]
                 if let totals, totals.processed > 0 || totals.peakContext > 0 {
@@ -111,6 +128,11 @@ struct UsageView: View {
                             .frame(width: 72, alignment: .trailing)
                     }
                 }
+            }
+            if model.usage.values.allSatisfy({ $0.processed == 0 && $0.peakContext == 0 }) {
+                Text("Bu aralıkta token sayacı yazan oturum yok. Ajanlar sayaç yazdıkça burada birikir.")
+                    .font(Tokens.Typography.text(10.5))
+                    .foregroundStyle(Tokens.Palette.secondary)
             }
         }
     }
