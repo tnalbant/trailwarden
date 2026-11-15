@@ -10,6 +10,7 @@ extension UITranslations {
         .last30Days: "30 gün",
         .allTime: "Tümü",
         .allSessions: "Tüm oturumlar",
+        .labelSession: "Oturum",
         .scope: "Kapsam",
         .projects: "Projeler",
 

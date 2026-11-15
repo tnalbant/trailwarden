@@ -103,10 +103,16 @@ struct MainWindowView: View {
             .frame(width: 220)
 
             if mode == .timeline {
-                Text(timeline.selectionTitle)
-                    .font(Tokens.Typography.text(11, weight: .medium))
-                    .foregroundStyle(Tokens.Palette.secondary)
-                    .lineLimit(1)
+                HStack(spacing: 5) {
+                    Image(systemName: timeline.selectionIcon)
+                        .font(.system(size: 10))
+                        .foregroundStyle(Tokens.Palette.tertiary)
+                    Text(timeline.selectionLabel)
+                        .font(Tokens.Typography.text(11, weight: .medium))
+                        .foregroundStyle(Tokens.Palette.secondary)
+                        .lineLimit(1)
+                }
+                .help(selectionHelp)
             }
 
             Spacer()
@@ -148,6 +154,14 @@ struct MainWindowView: View {
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 10)
+    }
+
+    /// The row shows a shortened id; hovering spells out what it is.
+    private var selectionHelp: String {
+        if case let .session(id) = timeline.selection {
+            return L(.labelSession) + ": " + id
+        }
+        return timeline.selectionLabel
     }
 
     private var timelineView: some View {

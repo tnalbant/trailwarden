@@ -10,6 +10,7 @@ extension UITranslations {
         .last30Days: "30 giorni",
         .allTime: "Tutto",
         .allSessions: "Tutte le sessioni",
+        .labelSession: "Sessione",
         .scope: "Ambito",
         .projects: "Progetti",
 

@@ -158,6 +158,25 @@ final class TimelineModel: ObservableObject {
         }
     }
 
+    /// What the reader is looking at, in words: "All sessions", a folder name, or
+    /// "Session local-ed…8120" — never a bare id floating in the row.
+    var selectionLabel: String {
+        switch selection {
+        case .all: LocalizationStore.current.text(.allSessions)
+        case let .project(cwd): ProjectName.short(cwd)
+        case let .session(id):
+            LocalizationStore.current.text(.labelSession) + " " + Sessions.shortID(id)
+        }
+    }
+
+    var selectionIcon: String {
+        switch selection {
+        case .all: "tray.full"
+        case .project: "folder"
+        case .session: "clock.arrow.circlepath"
+        }
+    }
+
     var selectionTitle: String {
         switch selection {
         case .all: LocalizationStore.current.text(.allSessions)
