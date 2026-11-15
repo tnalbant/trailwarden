@@ -18,8 +18,8 @@ public struct AuditSelection: Sendable {
         until: Date,
         agents: [Agent] = [],
         minimumSeverity: Severity? = nil,
-        generatedAt: Date = Date()
-    ) {
+        generatedAt: Date = Date())
+    {
         self.since = since
         self.until = until
         self.agents = agents.sorted { $0.rawValue < $1.rawValue }
@@ -81,8 +81,8 @@ public enum MarkdownReport {
     public static func render(
         sessions: [SessionSummary],
         events: [Event],
-        selection: AuditSelection
-    ) -> String {
+        selection: AuditSelection) -> String
+    {
         let summary = AuditReport.summarize(sessions: sessions, events: events)
         let orderedSessions = sessions.sorted { ($0.startedAt, $0.id) > ($1.startedAt, $1.id) }
         let orderedEvents = ordered(events: events)
@@ -121,8 +121,8 @@ public enum MarkdownReport {
                 let project = session.cwd.map(shorten) ?? "-"
                 lines.append(
                     "| \(cell(id)) | \(session.agent.rawValue) | \(cell(project)) | "
-                        + "\(timestamp(session.startedAt)) | \(session.eventCount) | \(session.criticalCount) |"
-                )
+                        +
+                        "\(timestamp(session.startedAt)) | \(session.eventCount) | \(session.criticalCount) |")
             }
             lines.append("")
         }
@@ -139,8 +139,7 @@ public enum MarkdownReport {
                     let detail = event.command ?? event.preview ?? hit.message
                     lines.append(
                         "| \(timestamp(event.ts)) | \(event.agent.rawValue) | \(cell(event.tool ?? "-")) | "
-                            + "\(hit.ruleId) | \(hit.severity.rawValue) | \(cell(detail, limit: 80)) |"
-                    )
+                            + "\(hit.ruleId) | \(hit.severity.rawValue) | \(cell(detail, limit: 80)) |")
                 }
             }
         }
@@ -277,8 +276,8 @@ public enum JSONReport {
         sessions: [SessionSummary],
         events: [Event],
         selection: AuditSelection,
-        redactor: Redactor = Redactor(level: .normal)
-    ) -> Document {
+        redactor: Redactor = Redactor(level: .normal)) -> Document
+    {
         let summary = AuditReport.summarize(sessions: sessions, events: events)
         let orderedSessions = sessions.sorted { ($0.startedAt, $0.id) > ($1.startedAt, $1.id) }
         let orderedEvents = events.sorted { lhs, rhs in
@@ -289,7 +288,8 @@ public enum JSONReport {
             schema: TrailwardenVersion.schema,
             generatedAt: selection.generatedAt,
             window: .init(since: selection.since, until: selection.until),
-            agents: selection.agents.isEmpty ? Agent.allCases.map(\.rawValue) : selection.agents.map(\.rawValue),
+            agents: selection.agents.isEmpty ? Agent.allCases.map(\.rawValue) : selection.agents
+                .map(\.rawValue),
             minimumSeverity: selection.minimumSeverity?.rawValue,
             summary: .init(
                 sessions: summary.sessions,
@@ -297,8 +297,7 @@ public enum JSONReport {
                 findings: summary.findings,
                 critical: summary.critical,
                 warn: summary.warn,
-                info: summary.info
-            ),
+                info: summary.info),
             sessions: orderedSessions.map {
                 .init(
                     id: $0.id,
@@ -308,8 +307,7 @@ public enum JSONReport {
                     startedAt: $0.startedAt,
                     endedAt: $0.endedAt,
                     eventCount: $0.eventCount,
-                    criticalCount: $0.criticalCount
-                )
+                    criticalCount: $0.criticalCount)
             },
             events: orderedEvents.map { event in
                 let safe = redactor.redactForExport(event)
@@ -327,24 +325,21 @@ public enum JSONReport {
                     preview: safe.preview,
                     risk: safe.risk.map {
                         .init(ruleId: $0.ruleId, severity: $0.severity.rawValue, message: $0.message)
-                    }
-                )
-            }
-        )
+                    })
+            })
     }
 
     public static func data(
         sessions: [SessionSummary],
         events: [Event],
         selection: AuditSelection,
-        redactor: Redactor = Redactor(level: .normal)
-    ) throws -> Data {
+        redactor: Redactor = Redactor(level: .normal)) throws -> Data
+    {
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes]
         encoder.dateEncodingStrategy = .iso8601
         encoder.keyEncodingStrategy = .convertToSnakeCase
         return try encoder.encode(
-            makeDocument(sessions: sessions, events: events, selection: selection, redactor: redactor)
-        )
+            makeDocument(sessions: sessions, events: events, selection: selection, redactor: redactor))
     }
 }

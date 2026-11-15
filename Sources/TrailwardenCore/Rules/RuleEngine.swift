@@ -39,8 +39,8 @@ public struct RuleEngine: Sendable {
             if let pattern = rule.match.commandRegex {
                 guard let expression = try? NSRegularExpression(
                     pattern: pattern,
-                    options: [.caseInsensitive]
-                ) else {
+                    options: [.caseInsensitive])
+                else {
                     throw RuleError.invalidPattern(rule.id)
                 }
                 regex = expression
@@ -53,7 +53,9 @@ public struct RuleEngine: Sendable {
                 }
                 globs.append(expression)
             }
-            if regex == nil && globs.isEmpty { continue }
+            if regex == nil, globs.isEmpty {
+                continue
+            }
             compiled.append(
                 CompiledRule(
                     id: rule.id,
@@ -61,9 +63,7 @@ public struct RuleEngine: Sendable {
                     message: rule.message,
                     tool: rule.match.tool,
                     commandRegex: regex,
-                    globs: globs
-                )
-            )
+                    globs: globs))
         }
         self.compiled = compiled
     }
@@ -76,13 +76,15 @@ public struct RuleEngine: Sendable {
     // MARK: - Evaluation
 
     public func hits(for event: Event, now: Date = Date()) -> [RiskHit] {
-        let texts = [event.command, event.preview].compactMap { $0 }.filter { !$0.isEmpty }
+        let texts = [event.command, event.preview].compactMap(\.self).filter { !$0.isEmpty }
         let candidates = Self.pathCandidates(for: event)
         let target = Self.target(for: event)
 
         var result: [RiskHit] = []
         for rule in compiled {
-            if let tool = rule.tool, !Self.toolMatches(tool, Self.canonicalTool(event.tool)) { continue }
+            if let tool = rule.tool, !Self.toolMatches(tool, Self.canonicalTool(event.tool)) {
+                continue
+            }
             if let regex = rule.commandRegex {
                 guard texts.contains(where: { Self.matches(regex, $0) }) else { continue }
             }
@@ -92,7 +94,9 @@ public struct RuleEngine: Sendable {
                 }
                 guard matched else { continue }
             }
-            if isMuted(rule.id, target: target, now: now) { continue }
+            if isMuted(rule.id, target: target, now: now) {
+                continue
+            }
             result.append(RiskHit(ruleId: rule.id, severity: rule.severity, message: rule.message))
         }
         return result.sorted { lhs, rhs in
@@ -116,8 +120,8 @@ public struct RuleEngine: Sendable {
     public func evaluateCommand(
         _ command: String,
         tool: String = "Bash",
-        now: Date = Date()
-    ) -> [RiskHit] {
+        now: Date = Date()) -> [RiskHit]
+    {
         let event = Event(
             id: "preview",
             ts: now,
@@ -128,8 +132,7 @@ public struct RuleEngine: Sendable {
             command: command,
             preview: command,
             risk: [],
-            rawJSON: nil
-        )
+            rawJSON: nil)
         return hits(for: event, now: now)
     }
 
@@ -169,7 +172,9 @@ public struct RuleEngine: Sendable {
 
     public static func target(for event: Event) -> String {
         let command = normalizedCommand(event.command ?? "")
-        if !command.isEmpty { return command }
+        if !command.isEmpty {
+            return command
+        }
         return event.paths.first ?? event.kind.rawValue
     }
 
@@ -196,8 +201,12 @@ public struct RuleEngine: Sendable {
 
     static func normalizePathToken(_ raw: String) -> String {
         var token = raw
-        while let first = token.first, first == "\"" || first == "'" { token.removeFirst() }
-        while let last = token.last, last == "\"" || last == "'" { token.removeLast() }
+        while let first = token.first, first == "\"" || first == "'" {
+            token.removeFirst()
+        }
+        while let last = token.last, last == "\"" || last == "'" {
+            token.removeLast()
+        }
         return expandHome(token)
     }
 
@@ -206,8 +215,12 @@ public struct RuleEngine: Sendable {
     }
 
     private static func expandHome(_ value: String) -> String {
-        if value.hasPrefix("${HOME}") { return "~" + value.dropFirst("${HOME}".count) }
-        if value.hasPrefix("$HOME") { return "~" + value.dropFirst("$HOME".count) }
+        if value.hasPrefix("${HOME}") {
+            return "~" + value.dropFirst("${HOME}".count)
+        }
+        if value.hasPrefix("$HOME") {
+            return "~" + value.dropFirst("$HOME".count)
+        }
         return value
     }
 

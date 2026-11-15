@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright (c) 2026 Turgay Nalbant
 
-import XCTest
 @testable import TrailwardenCore
+import XCTest
 
 /// The contract every agent parser has to satisfy, checked once and applied to
 /// both agents. A new adapter joins by adding a case here.
@@ -18,7 +18,7 @@ final class AgentParserCommonTests: XCTestCase {
     private func parsersAndFixtures() -> [(any AgentParser, URL)] {
         [
             (ClaudeCodeParser(), fixture("claude/normal.jsonl")),
-            (CodexParser(), fixture("codex/\(codexRollout)")),
+            (CodexParser(), fixture("codex/\(codexRollout)"))
         ]
     }
 
@@ -33,35 +33,28 @@ final class AgentParserCommonTests: XCTestCase {
             XCTAssertEqual(
                 Set(result.events.map(\.id)).count,
                 result.events.count,
-                label + "duplicate event ids"
-            )
+                label + "duplicate event ids")
             XCTAssertTrue(
                 result.events.allSatisfy { $0.agent == parser.agent },
-                label + "event attributed to another agent"
-            )
+                label + "event attributed to another agent")
             XCTAssertTrue(
                 result.events.allSatisfy { !$0.sessionId.isEmpty },
-                label + "event without a session id"
-            )
+                label + "event without a session id")
             XCTAssertTrue(
                 result.events.allSatisfy { ($0.preview?.count ?? 0) <= 500 },
-                label + "preview above the cap"
-            )
+                label + "preview above the cap")
             XCTAssertTrue(
                 result.events.allSatisfy { $0.rawJSON != nil },
-                label + "event without the source line"
-            )
+                label + "event without the source line")
             XCTAssertTrue(
                 result.events.allSatisfy { $0.ts.timeIntervalSince1970 > 1_577_836_800 },
-                label + "timestamp before 2020 (parse failure)"
-            )
+                label + "timestamp before 2020 (parse failure)")
 
             XCTAssertTrue(result.events.contains { $0.kind == .message }, label + "no message event")
             XCTAssertTrue(result.events.contains { $0.kind == .toolCall }, label + "no tool call event")
             XCTAssertTrue(
                 result.events.contains { $0.kind == .toolResult && $0.tool != nil },
-                label + "tool result without an inherited tool name"
-            )
+                label + "tool result without an inherited tool name")
         }
     }
 

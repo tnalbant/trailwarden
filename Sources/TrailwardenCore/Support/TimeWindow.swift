@@ -10,7 +10,7 @@ public enum TimeWindow {
 
         public var description: String {
             switch self {
-            case .invalid(let text): "invalid time window '\(text)' (use 7d, 12h, 90m or an ISO-8601 date)"
+            case let .invalid(text): "invalid time window '\(text)' (use 7d, 12h, 90m or an ISO-8601 date)"
             }
         }
     }
@@ -18,15 +18,17 @@ public enum TimeWindow {
     /// Returns the lower bound, or `nil` for "everything".
     public static func parse(_ text: String, now: Date = Date()) throws -> Date? {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-        if trimmed == "all" || trimmed.isEmpty { return nil }
+        if trimmed == "all" || trimmed.isEmpty {
+            return nil
+        }
 
         if let unit = trimmed.last, let amount = Int(trimmed.dropLast()), amount >= 0 {
             let seconds: TimeInterval
             switch unit {
             case "s": seconds = 1
             case "m": seconds = 60
-            case "h": seconds = 3_600
-            case "d": seconds = 86_400
+            case "h": seconds = 3600
+            case "d": seconds = 86400
             case "w": seconds = 604_800
             default: throw Failure.invalid(text)
             }
@@ -35,8 +37,12 @@ public enum TimeWindow {
 
         let formatter = ISO8601DateFormatter()
         formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        if let date = formatter.date(from: text) { return date }
-        if let date = ISO8601DateFormatter().date(from: text) { return date }
+        if let date = formatter.date(from: text) {
+            return date
+        }
+        if let date = ISO8601DateFormatter().date(from: text) {
+            return date
+        }
 
         throw Failure.invalid(text)
     }

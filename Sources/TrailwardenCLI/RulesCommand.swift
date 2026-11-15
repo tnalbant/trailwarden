@@ -9,15 +9,13 @@ struct RulesCommand: ParsableCommand {
     static let configuration = CommandConfiguration(
         commandName: "rules",
         abstract: "Inspect the rule set or test a command against it.",
-        subcommands: [RulesList.self, RulesTest.self]
-    )
+        subcommands: [RulesList.self, RulesTest.self])
 }
 
 struct RulesList: ParsableCommand {
     static let configuration = CommandConfiguration(
         commandName: "list",
-        abstract: "Print the rules Trailwarden ships with."
-    )
+        abstract: "Print the rules Trailwarden ships with.")
 
     @Flag(name: .long, help: "Print the rule set as JSON.")
     var json = false
@@ -27,13 +25,14 @@ struct RulesList: ParsableCommand {
         if json {
             let encoder = JSONEncoder()
             encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
-            print(String(decoding: try encoder.encode(rules), as: UTF8.self))
+            try print(String(decoding: encoder.encode(rules), as: UTF8.self))
             return
         }
         for rule in rules.sorted(by: { Self.number(of: $0.id) < Self.number(of: $1.id) }) {
             let severity = rule.severity.rawValue.padding(toLength: 8, withPad: " ", startingAt: 0)
             let state = rule.isEnabled ? "" : "  (disabled)"
-            print("\(rule.id.padding(toLength: 4, withPad: " ", startingAt: 0))\(severity)  \(rule.title)\(state)")
+            print(
+                "\(rule.id.padding(toLength: 4, withPad: " ", startingAt: 0))\(severity)  \(rule.title)\(state)")
         }
     }
 
@@ -46,8 +45,7 @@ struct RulesList: ParsableCommand {
 struct RulesTest: ParsableCommand {
     static let configuration = CommandConfiguration(
         commandName: "test",
-        abstract: "Check one command against the rule set."
-    )
+        abstract: "Check one command against the rule set.")
 
     @Argument(help: "Shell command to evaluate.")
     var command: String

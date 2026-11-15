@@ -1,0 +1,83 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright (c) 2026 Turgay Nalbant
+
+included:
+  - Sources
+  - Tests
+excluded:
+  - .build
+  - Trailwarden.xcodeproj
+
+# Formatting is swiftformat's job; lint is about things a machine cannot decide.
+disabled_rules:
+  - trailing_comma
+  - comment_spacing
+  - opening_brace
+  - closure_parameter_position
+  - implicit_optional_initialization
+  - todo
+  # String(data:encoding:) returning nil is deliberate in the parsers: a broken
+  # line should be skipped, not turned into replacement characters.
+  - optional_data_string_conversion
+
+opt_in_rules:
+  - empty_count
+  - explicit_init
+  - first_where
+  - contains_over_first_not_nil
+  - unneeded_parentheses_in_closure_argument
+  - redundant_nil_coalescing
+
+line_length:
+  warning: 140
+  error: 200
+  ignores_comments: true
+  ignores_urls: true
+
+type_body_length:
+  warning: 500
+  error: 700
+
+file_length:
+  warning: 600
+  error: 900
+
+function_body_length:
+  warning: 140
+  error: 200
+
+type_name:
+  min_length: 2
+  max_length: 50
+
+identifier_name:
+  min_length: 1
+  max_length: 50
+  excluded:
+    - id
+    - x
+    - y
+    - t
+    - L
+    - Lf
+    - db
+    - cwd
+    - ts
+
+nesting:
+  type_level: 3
+  function_level: 4
+
+large_tuple:
+  warning: 4
+  error: 5
+
+function_parameter_count:
+  warning: 7
+  error: 9
+
+cyclomatic_complexity:
+  warning: 16
+  error: 25
+
+reporter: "xcode"

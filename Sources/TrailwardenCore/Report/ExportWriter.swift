@@ -7,19 +7,21 @@ public enum AuditFormat: String, Sendable, CaseIterable, Identifiable {
     case markdown
     case json
 
-    public var id: String { rawValue }
+    public var id: String {
+        rawValue
+    }
 
     public var fileExtension: String {
         switch self {
-        case .markdown: return "md"
-        case .json: return "json"
+        case .markdown: "md"
+        case .json: "json"
         }
     }
 
     public var label: String {
         switch self {
-        case .markdown: return "Markdown"
-        case .json: return "JSON"
+        case .markdown: "Markdown"
+        case .json: "JSON"
         }
     }
 }
@@ -42,24 +44,22 @@ public enum ExportWriter {
         sessions: [SessionSummary],
         events: [Event],
         selection: AuditSelection,
-        redactor: Redactor
-    ) throws -> Data {
+        redactor: Redactor) throws -> Data
+    {
         switch format {
         case .json:
             return try JSONReport.data(
                 sessions: sessions,
                 events: events,
                 selection: selection,
-                redactor: redactor
-            )
+                redactor: redactor)
         case .markdown:
             // The record lists findings only, so only those need masking; running
             // 24k clean events through eight regexes was most of the export time.
             let body = MarkdownReport.render(
                 sessions: sessions,
                 events: events.map { $0.risk.isEmpty ? $0 : redactor.redactForExport($0) },
-                selection: selection
-            )
+                selection: selection)
             return Data(body.utf8)
         }
     }
@@ -71,21 +71,19 @@ public enum ExportWriter {
         events: [Event],
         selection: AuditSelection,
         redactor: Redactor = Redactor(),
-        to url: URL
-    ) throws -> ExportOutcome {
+        to url: URL) throws -> ExportOutcome
+    {
         let started = Date()
         let body = try data(
             format: format,
             sessions: sessions,
             events: events,
             selection: selection,
-            redactor: redactor
-        )
+            redactor: redactor)
 
         try FileManager.default.createDirectory(
             at: url.deletingLastPathComponent(),
-            withIntermediateDirectories: true
-        )
+            withIntermediateDirectories: true)
         try body.write(to: url, options: .atomic)
         try FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: url.path)
 
@@ -97,8 +95,7 @@ public enum ExportWriter {
             events: summary.events,
             findings: summary.findings,
             critical: summary.critical,
-            duration: Date().timeIntervalSince(started)
-        )
+            duration: Date().timeIntervalSince(started))
     }
 
     /// `trailwarden-2026-11-14.md`

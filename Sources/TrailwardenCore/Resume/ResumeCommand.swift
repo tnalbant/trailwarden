@@ -10,11 +10,10 @@ public enum ResumeCommand {
     public static func command(agent: Agent, sessionId: String, cwd: String?) -> String? {
         guard !sessionId.isEmpty else { return nil }
 
-        let changeDirectory: String
-        if let cwd, !cwd.isEmpty {
-            changeDirectory = "cd \(quoted(cwd)) && "
+        let changeDirectory = if let cwd, !cwd.isEmpty {
+            "cd \(quoted(cwd)) && "
         } else {
-            changeDirectory = ""
+            ""
         }
 
         switch agent {

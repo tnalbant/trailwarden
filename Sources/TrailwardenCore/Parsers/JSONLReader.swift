@@ -24,12 +24,12 @@ enum JSONLReader {
             var start = buffer.startIndex
             while let newline = buffer[start...].firstIndex(of: 0x0A) {
                 lineNumber += 1
-                try body(lineNumber, String(decoding: buffer[start..<newline], as: UTF8.self))
+                try body(lineNumber, String(decoding: buffer[start ..< newline], as: UTF8.self))
                 start = buffer.index(after: newline)
             }
 
             if start > buffer.startIndex {
-                buffer.removeSubrange(buffer.startIndex..<start)
+                buffer.removeSubrange(buffer.startIndex ..< start)
             }
         }
 

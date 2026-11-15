@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright (c) 2026 Turgay Nalbant
 
-import XCTest
 @testable import TrailwardenCore
+import XCTest
 
 final class GeminiCLIParserTests: XCTestCase {
     private var fixtureURL: URL {
@@ -27,7 +27,8 @@ final class GeminiCLIParserTests: XCTestCase {
         XCTAssertEqual(read.paths, ["/Users/demo/demo/README.md"])
         XCTAssertEqual(read.preview, "/Users/demo/demo/README.md")
 
-        let user = try XCTUnwrap(result.events.first { $0.kind == .message && $0.preview == "brew upgrade gemini-cli" })
+        let user = try XCTUnwrap(result.events
+            .first { $0.kind == .message && $0.preview == "brew upgrade gemini-cli" })
         XCTAssertNotNil(user.ts.timeIntervalSince1970 > 0)
     }
 
@@ -49,7 +50,9 @@ final class GeminiCLIParserTests: XCTestCase {
         let url = URL(fileURLWithPath: NSTemporaryDirectory())
             .appendingPathComponent("chats", isDirectory: true)
             .appendingPathComponent("session-broken.json")
-        try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+        try FileManager.default.createDirectory(
+            at: url.deletingLastPathComponent(),
+            withIntermediateDirectories: true)
         try "not json at all".write(to: url, atomically: true, encoding: .utf8)
         defer { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }
 
@@ -70,13 +73,11 @@ final class GeminiCLIParserTests: XCTestCase {
         let rules = [Rule(
             id: "T1", title: "shell", severity: .warn,
             match: RuleMatch(tool: "Bash", commandRegex: "brew\\s+upgrade"),
-            message: "package upgrade"
-        )]
+            message: "package upgrade")]
         let engine = try RuleEngine(rules: rules)
         let event = Event(
             id: "e1", ts: Date(), agent: .gemini, sessionId: "s", kind: .toolCall,
-            tool: "Bash", command: "brew upgrade gemini-cli", risk: [], rawJSON: nil
-        )
+            tool: "Bash", command: "brew upgrade gemini-cli", risk: [], rawJSON: nil)
 
         XCTAssertEqual(engine.hits(for: event).map(\.ruleId), ["T1"])
     }

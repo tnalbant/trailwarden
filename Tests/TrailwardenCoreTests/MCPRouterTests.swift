@@ -1,23 +1,46 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright (c) 2026 Turgay Nalbant
 
-import XCTest
 @testable import TrailwardenCore
+import XCTest
 
 final class MCPRouterTests: XCTestCase {
     private func makeRouter() throws -> MCPRouter {
         let store = try EventStore(inMemory: true)
         let now = Date()
         try store.insert(events: [
-            Event(id: "e1", ts: now, agent: .codex, sessionId: "s1", kind: .toolCall,
-                  cwd: "/Users/demo/dev/aurora", tool: "Bash", command: "rm -rf /",
-                  paths: [], preview: "rm -rf /",
-                  risk: [RiskHit(ruleId: "R1", severity: .critical, message: "recursive delete")],
-                  rawJSON: nil),
-            Event(id: "e2", ts: now, agent: .hermes, sessionId: "s2", kind: .message,
-                  cwd: "/Users/demo/dev/ledger", preview: "ship it", risk: [], rawJSON: nil),
-            Event(id: "e3", ts: now, agent: .hermes, sessionId: "s2", kind: .tokenUsage,
-                  preview: "tokens: 100 in / 10 out", risk: [], rawJSON: nil),
+            Event(
+                id: "e1",
+                ts: now,
+                agent: .codex,
+                sessionId: "s1",
+                kind: .toolCall,
+                cwd: "/Users/demo/dev/aurora",
+                tool: "Bash",
+                command: "rm -rf /",
+                paths: [],
+                preview: "rm -rf /",
+                risk: [RiskHit(ruleId: "R1", severity: .critical, message: "recursive delete")],
+                rawJSON: nil),
+            Event(
+                id: "e2",
+                ts: now,
+                agent: .hermes,
+                sessionId: "s2",
+                kind: .message,
+                cwd: "/Users/demo/dev/ledger",
+                preview: "ship it",
+                risk: [],
+                rawJSON: nil),
+            Event(
+                id: "e3",
+                ts: now,
+                agent: .hermes,
+                sessionId: "s2",
+                kind: .tokenUsage,
+                preview: "tokens: 100 in / 10 out",
+                risk: [],
+                rawJSON: nil)
         ])
         return MCPRouter(store: store)
     }
@@ -44,8 +67,9 @@ final class MCPRouterTests: XCTestCase {
         let tools = try XCTUnwrap(result["tools"] as? [[String: Any]])
 
         XCTAssertEqual(tools.count, 4)
-        XCTAssertEqual(Set(tools.compactMap { $0["name"] as? String }),
-                       ["search_events", "list_sessions", "get_event", "audit_summary"])
+        XCTAssertEqual(
+            Set(tools.compactMap { $0["name"] as? String }),
+            ["search_events", "list_sessions", "get_event", "audit_summary"])
         for tool in tools {
             XCTAssertNotNil(tool["inputSchema"], "\(tool["name"] ?? "?") needs a schema")
         }

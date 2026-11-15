@@ -16,7 +16,9 @@ public protocol AgentParser: Sendable {
 }
 
 public extension AgentParser {
-    var fileExtension: String { "jsonl" }
+    var fileExtension: String {
+        "jsonl"
+    }
 }
 
 /// The outcome of parsing a single transcript file.

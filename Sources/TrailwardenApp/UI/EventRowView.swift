@@ -7,17 +7,17 @@ import TrailwardenCore
 extension Severity {
     var tint: Color {
         switch self {
-        case .critical: return Tokens.Palette.accent
-        case .warn: return Color(red: 0.72, green: 0.52, blue: 0.12)
-        case .info: return Tokens.Palette.secondary
+        case .critical: Tokens.Palette.accent
+        case .warn: Color(red: 0.72, green: 0.52, blue: 0.12)
+        case .info: Tokens.Palette.secondary
         }
     }
 
     var label: String {
         switch self {
-        case .critical: return "kritik"
-        case .warn: return LocalizationStore.current.severity(.warn)
-        case .info: return "bilgi"
+        case .critical: "kritik"
+        case .warn: LocalizationStore.current.severity(.warn)
+        case .info: "bilgi"
         }
     }
 }

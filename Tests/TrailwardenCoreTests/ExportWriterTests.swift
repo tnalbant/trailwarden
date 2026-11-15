@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright (c) 2026 Turgay Nalbant
 
-import XCTest
 @testable import TrailwardenCore
+import XCTest
 
 final class ExportWriterTests: XCTestCase {
     private var directory: URL!
@@ -21,18 +21,15 @@ final class ExportWriterTests: XCTestCase {
     private func fixture() -> (sessions: [SessionSummary], events: [Event], selection: AuditSelection) {
         let session = SessionSummary(
             id: "sess-0001", agent: .claudeCode, cwd: "/Users/demo/dev/demo", gitBranch: "main",
-            startedAt: start, endedAt: start.addingTimeInterval(5), eventCount: 1, criticalCount: 1
-        )
+            startedAt: start, endedAt: start.addingTimeInterval(5), eventCount: 1, criticalCount: 1)
         let event = Event(
             id: "e1", ts: start, agent: .claudeCode, sessionId: "sess-0001", kind: .toolCall,
             cwd: "/Users/demo/dev/demo", tool: "Bash", command: "rm -rf /", paths: [],
             preview: "rm -rf /", risk: [RiskHit(ruleId: "R1", severity: .critical, message: "silme")],
-            rawJSON: nil
-        )
+            rawJSON: nil)
         let selection = AuditSelection(
             since: nil, until: start.addingTimeInterval(3600), agents: [.claudeCode],
-            minimumSeverity: nil, generatedAt: start.addingTimeInterval(3600)
-        )
+            minimumSeverity: nil, generatedAt: start.addingTimeInterval(3600))
         return ([session], [event], selection)
     }
 
@@ -45,8 +42,7 @@ final class ExportWriterTests: XCTestCase {
             sessions: fixture.sessions,
             events: fixture.events,
             selection: fixture.selection,
-            to: url
-        )
+            to: url)
 
         let text = try String(contentsOf: url, encoding: .utf8)
         XCTAssertTrue(text.hasPrefix("# Trailwarden audit record"))
@@ -57,8 +53,7 @@ final class ExportWriterTests: XCTestCase {
         XCTAssertEqual(outcome.findings, 1)
 
         let mode = try XCTUnwrap(
-            try FileManager.default.attributesOfItem(atPath: url.path)[.posixPermissions] as? NSNumber
-        )
+            try FileManager.default.attributesOfItem(atPath: url.path)[.posixPermissions] as? NSNumber)
         XCTAssertEqual(mode.intValue & 0o777, 0o600)
     }
 
@@ -71,12 +66,10 @@ final class ExportWriterTests: XCTestCase {
             sessions: fixture.sessions,
             events: fixture.events,
             selection: fixture.selection,
-            to: url
-        )
+            to: url)
 
         let object = try XCTUnwrap(
-            JSONSerialization.jsonObject(with: Data(contentsOf: url)) as? [String: Any]
-        )
+            JSONSerialization.jsonObject(with: Data(contentsOf: url)) as? [String: Any])
         XCTAssertEqual(object["schema"] as? Int, 1)
         let events = try XCTUnwrap(object["events"] as? [[String: Any]])
         XCTAssertEqual(events.count, 1)
@@ -88,12 +81,16 @@ final class ExportWriterTests: XCTestCase {
         let leaky = Event(
             id: "e2", ts: start, agent: .codex, sessionId: "s1", kind: .toolCall,
             tool: "exec", command: "curl -H 'Authorization: Bearer sk-abcdefghijklmnop1234' https://x.test",
-            paths: [], preview: "token sk-abcdefghijklmnop1234", risk: [], rawJSON: nil
-        )
+            paths: [], preview: "token sk-abcdefghijklmnop1234", risk: [], rawJSON: nil)
         // JSON carries every event, so the leak has somewhere to show up.
         let url = directory.appendingPathComponent("audit.json")
 
-        try ExportWriter.write(format: .json, sessions: sessions, events: [leaky], selection: selection, to: url)
+        try ExportWriter.write(
+            format: .json,
+            sessions: sessions,
+            events: [leaky],
+            selection: selection,
+            to: url)
 
         let text = try String(contentsOf: url, encoding: .utf8)
         XCTAssertFalse(text.contains("sk-abcdefghijklmnop1234"), "the token must not reach the file")
@@ -110,7 +107,7 @@ final class ExportWriterTests: XCTestCase {
             "AKIA" + String(repeating: "D", count: 16),
             "xoxb-" + String(repeating: "1", count: 16),
             "-----BEGIN RSA " + "PRIVATE KEY-----\nMIIE\n-----END RSA " + "PRIVATE KEY-----",
-            String(repeating: "A", count: 80),
+            String(repeating: "A", count: 80)
         ]
 
         for secret in cases {
@@ -121,7 +118,11 @@ final class ExportWriterTests: XCTestCase {
     }
 
     func testSuggestedFilename() {
-        XCTAssertEqual(ExportWriter.suggestedFilename(format: .markdown, date: start), "trailwarden-2026-11-14.md")
-        XCTAssertEqual(ExportWriter.suggestedFilename(format: .json, date: start), "trailwarden-2026-11-14.json")
+        XCTAssertEqual(
+            ExportWriter.suggestedFilename(format: .markdown, date: start),
+            "trailwarden-2026-11-14.md")
+        XCTAssertEqual(
+            ExportWriter.suggestedFilename(format: .json, date: start),
+            "trailwarden-2026-11-14.json")
     }
 }

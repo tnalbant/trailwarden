@@ -34,8 +34,7 @@ struct MainWindowView: View {
                     } label: {
                         Label(
                             model.isScanning ? L(.scanning) : L(.rescan),
-                            systemImage: "arrow.clockwise"
-                        )
+                            systemImage: "arrow.clockwise")
                     }
                     .disabled(model.isScanning)
                 }

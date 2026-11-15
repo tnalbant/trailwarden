@@ -6,10 +6,10 @@ import Foundation
 /// Which coding agent produced an event.
 public enum Agent: String, Codable, Sendable, CaseIterable {
     case claudeCode = "claude-code"
-    case codex = "codex"
-    case opencode = "opencode"
-    case gemini = "gemini"
-    case hermes = "hermes"
+    case codex
+    case opencode
+    case gemini
+    case hermes
 }
 
 /// What kind of thing happened inside a session.
@@ -89,8 +89,8 @@ public struct Event: Codable, Identifiable, Sendable, Hashable {
         paths: [String] = [],
         preview: String? = nil,
         risk: [RiskHit] = [],
-        rawJSON: String? = nil
-    ) {
+        rawJSON: String? = nil)
+    {
         self.id = id
         self.ts = ts
         self.agent = agent
@@ -121,8 +121,7 @@ public struct Event: Codable, Identifiable, Sendable, Hashable {
             paths: paths,
             preview: preview,
             risk: risk,
-            rawJSON: rawJSON
-        )
+            rawJSON: rawJSON)
     }
 
     /// A copy that knows which folder it happened in, when the agent did not
@@ -141,8 +140,7 @@ public struct Event: Codable, Identifiable, Sendable, Hashable {
             paths: paths,
             preview: preview,
             risk: risk,
-            rawJSON: rawJSON
-        )
+            rawJSON: rawJSON)
     }
 
     /// Stable identity for an event: the same transcript parsed twice yields
@@ -152,8 +150,8 @@ public struct Event: Codable, Identifiable, Sendable, Hashable {
         sessionId: String,
         source: String,
         line: Int,
-        index: Int
-    ) -> String {
+        index: Int) -> String
+    {
         let material = "\(agent.rawValue)|\(sessionId)|\(source)|\(line):\(index)"
         let digest = SHA256Hasher.hash(Data(material.utf8))
         return digest.map { String(format: "%02x", $0) }.joined()

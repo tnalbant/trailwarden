@@ -9,9 +9,9 @@ import Foundation
 /// falls back to English rather than showing a raw identifier, and the tests
 /// assert that no table misses one.
 public enum UIString: String, CaseIterable, Sendable {
-    // Scope and time
+    /// Scope and time
     case today, last7Days, last30Days, allTime, allSessions, scope, projects
-    // Windows and panels
+    /// Windows and panels
     case windowRules, windowUsage, windowSettings, openDashboard, recentSessions
     // Counts
     case events, event, findings, sessions, eventCount, sessionMeta, sessionCritical
@@ -173,6 +173,6 @@ public enum UITranslations {
 
         .axisDay: "Day",
         .quit: "Quit",
-        .missingFolder: "missing",
+        .missingFolder: "missing"
     ]
 }

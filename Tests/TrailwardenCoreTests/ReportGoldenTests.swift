@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright (c) 2026 Turgay Nalbant
 
-import XCTest
 @testable import TrailwardenCore
+import XCTest
 
 final class ReportGoldenTests: XCTestCase {
     private let start = ISO8601DateFormatter().date(from: "2026-11-14T09:00:00Z")!
@@ -17,8 +17,7 @@ final class ReportGoldenTests: XCTestCase {
             startedAt: start,
             endedAt: start.addingTimeInterval(5),
             eventCount: 3,
-            criticalCount: 1
-        )
+            criticalCount: 1)
     }
 
     private var events: [Event] {
@@ -28,20 +27,17 @@ final class ReportGoldenTests: XCTestCase {
                 kind: .toolCall, cwd: "/Users/demo/dev/demo", gitBranch: "main", tool: "Bash",
                 command: "rm -rf ~", paths: [], preview: "rm -rf ~",
                 risk: [RiskHit(ruleId: "R1", severity: .critical, message: "destructive")],
-                rawJSON: "{}"
-            ),
+                rawJSON: "{}"),
             Event(
                 id: "e2", ts: start.addingTimeInterval(2), agent: .claudeCode, sessionId: "sess-0001",
                 kind: .message, cwd: "/Users/demo/dev/demo", gitBranch: "main", tool: nil,
-                command: nil, paths: [], preview: "hello", risk: [], rawJSON: "{}"
-            ),
+                command: nil, paths: [], preview: "hello", risk: [], rawJSON: "{}"),
             Event(
                 id: "e3", ts: start.addingTimeInterval(3), agent: .claudeCode, sessionId: "sess-0001",
                 kind: .toolCall, cwd: "/Users/demo/dev/demo", gitBranch: "main", tool: "Bash",
                 command: "sudo ls", paths: [], preview: "sudo ls",
                 risk: [RiskHit(ruleId: "R3", severity: .warn, message: "elevated")],
-                rawJSON: "{}"
-            ),
+                rawJSON: "{}")
         ]
     }
 
@@ -100,8 +96,7 @@ final class ReportGoldenTests: XCTestCase {
     func testMarkdownWithNoFindings() {
         let quiet = Event(
             id: "q1", ts: start, agent: .codex, sessionId: "s2", kind: .message,
-            preview: "hello", risk: [], rawJSON: nil
-        )
+            preview: "hello", risk: [], rawJSON: nil)
 
         let markdown = MarkdownReport.render(sessions: [], events: [quiet], selection: selection)
 
@@ -113,8 +108,7 @@ final class ReportGoldenTests: XCTestCase {
         let event = Event(
             id: "p1", ts: start, agent: .claudeCode, sessionId: "s1", kind: .toolCall,
             tool: "Bash", command: "echo a | b", paths: [], preview: "echo a | b",
-            risk: [RiskHit(ruleId: "R3", severity: .warn, message: "m")], rawJSON: nil
-        )
+            risk: [RiskHit(ruleId: "R3", severity: .warn, message: "m")], rawJSON: nil)
 
         let markdown = MarkdownReport.render(sessions: [], events: [event], selection: selection)
 
@@ -167,9 +161,15 @@ final class ReportGoldenTests: XCTestCase {
 
     func testSummaryCountsWorstSeverityPerEvent() {
         let events = [
-            Event(id: "a", ts: start, agent: .claudeCode, sessionId: "s", kind: .toolCall,
-                  risk: [RiskHit(ruleId: "R1", severity: .critical, message: ""),
-                         RiskHit(ruleId: "R3", severity: .warn, message: "")], rawJSON: nil),
+            Event(
+                id: "a",
+                ts: start,
+                agent: .claudeCode,
+                sessionId: "s",
+                kind: .toolCall,
+                risk: [RiskHit(ruleId: "R1", severity: .critical, message: ""),
+                       RiskHit(ruleId: "R3", severity: .warn, message: "")],
+                rawJSON: nil)
         ]
 
         let summary = AuditReport.summarize(sessions: [], events: events)
@@ -189,11 +189,23 @@ final class ReportGoldenTests: XCTestCase {
 
     func testRuleCountsAreOrderedNumerically() {
         let events = [
-            Event(id: "a", ts: start, agent: .claudeCode, sessionId: "s", kind: .toolCall,
-                  risk: [RiskHit(ruleId: "R10", severity: .warn, message: ""),
-                         RiskHit(ruleId: "R2", severity: .critical, message: "")], rawJSON: nil),
-            Event(id: "b", ts: start, agent: .claudeCode, sessionId: "s", kind: .toolCall,
-                  risk: [RiskHit(ruleId: "R2", severity: .critical, message: "")], rawJSON: nil),
+            Event(
+                id: "a",
+                ts: start,
+                agent: .claudeCode,
+                sessionId: "s",
+                kind: .toolCall,
+                risk: [RiskHit(ruleId: "R10", severity: .warn, message: ""),
+                       RiskHit(ruleId: "R2", severity: .critical, message: "")],
+                rawJSON: nil),
+            Event(
+                id: "b",
+                ts: start,
+                agent: .claudeCode,
+                sessionId: "s",
+                kind: .toolCall,
+                risk: [RiskHit(ruleId: "R2", severity: .critical, message: "")],
+                rawJSON: nil)
         ]
 
         let counts = AuditReport.ruleCounts(events: events)

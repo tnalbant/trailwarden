@@ -73,10 +73,9 @@ struct UsageView: View {
                 Chart(model.dailyUsage) { day in
                     BarMark(
                         x: .value(L(.axisDay), day.day, unit: .day),
-                        y: .value("Token", day.tokens)
-                    )
-                    .foregroundStyle(Tokens.Palette.accent.opacity(0.85))
-                    .cornerRadius(3)
+                        y: .value("Token", day.tokens))
+                        .foregroundStyle(Tokens.Palette.accent.opacity(0.85))
+                        .cornerRadius(3)
                 }
                 .chartXAxis {
                     AxisMarks(values: .stride(by: .day, count: max(2, model.dailyUsage.count / 4))) { _ in
@@ -152,13 +151,13 @@ struct UsageView: View {
     static func tokens(_ value: Int) -> String {
         switch value {
         case 1_000_000_000...:
-            return String(format: "%.1fB", Double(value) / 1_000_000_000)
+            String(format: "%.1fB", Double(value) / 1_000_000_000)
         case 1_000_000...:
-            return String(format: "%.1fM", Double(value) / 1_000_000)
-        case 1_000...:
-            return String(format: "%.1fK", Double(value) / 1_000)
+            String(format: "%.1fM", Double(value) / 1_000_000)
+        case 1000...:
+            String(format: "%.1fK", Double(value) / 1000)
         default:
-            return "\(value)"
+            "\(value)"
         }
     }
 

@@ -30,8 +30,7 @@ public enum RulePreferences {
             for: .applicationSupportDirectory,
             in: .userDomainMask,
             appropriateFor: nil,
-            create: true
-        )
+            create: true)
         return base
             .appendingPathComponent("Trailwarden", isDirectory: true)
             .appendingPathComponent("rule-preferences.json")
@@ -47,8 +46,7 @@ public enum RulePreferences {
     public static func save(_ preferences: [RulePreference], to url: URL) throws {
         try FileManager.default.createDirectory(
             at: url.deletingLastPathComponent(),
-            withIntermediateDirectories: true
-        )
+            withIntermediateDirectories: true)
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
         let data = try encoder.encode(preferences.sorted { $0.id < $1.id })
@@ -80,7 +78,6 @@ public extension Rule {
             severity: severity,
             match: match,
             message: message,
-            enabled: enabled
-        )
+            enabled: enabled)
     }
 }

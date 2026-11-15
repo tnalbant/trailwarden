@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright (c) 2026 Turgay Nalbant
 
-import XCTest
 @testable import TrailwardenCore
+import XCTest
 
 final class RuleRefreshTests: XCTestCase {
     private var store: EventStore!
@@ -11,7 +11,7 @@ final class RuleRefreshTests: XCTestCase {
         store = try EventStore(inMemory: true)
     }
 
-    private func event(id: String, command: String, seconds: TimeInterval = 1_000) -> Event {
+    private func event(id: String, command: String, seconds: TimeInterval = 1000) -> Event {
         Event(
             id: id,
             ts: Date(timeIntervalSince1970: seconds),
@@ -24,8 +24,7 @@ final class RuleRefreshTests: XCTestCase {
             paths: [],
             preview: command,
             risk: [],
-            rawJSON: nil
-        )
+            rawJSON: nil)
     }
 
     private func rules(disabling id: String? = nil, severity: Severity? = nil) throws -> [Rule] {
@@ -64,7 +63,7 @@ final class RuleRefreshTests: XCTestCase {
         try RuleEngine.builtIn().reapply(to: store)
         XCTAssertEqual(try XCTUnwrap(store.sessions().first).criticalCount, 1)
 
-        let engine = try RuleEngine(rules: try rules(disabling: "R1"))
+        let engine = try RuleEngine(rules: rules(disabling: "R1"))
         let report = try engine.reapply(to: store)
 
         XCTAssertEqual(report.changed, 1)
@@ -79,7 +78,7 @@ final class RuleRefreshTests: XCTestCase {
         try RuleEngine.builtIn().reapply(to: store)
         XCTAssertEqual(try store.eventCount(matching: EventQuery(minimumSeverity: .critical)), 0)
 
-        let engine = try RuleEngine(rules: try rules(disabling: "R3", severity: .critical))
+        let engine = try RuleEngine(rules: rules(disabling: "R3", severity: .critical))
         try engine.reapply(to: store)
 
         let event = try XCTUnwrap(store.events(ids: ["e1"]).first)
@@ -94,10 +93,10 @@ final class RuleRefreshTests: XCTestCase {
         try RuleEngine.builtIn().reapply(to: store)
 
         let target = RuleEngine.target(for: muted)
-        let mute = Mute(ruleId: "R1", target: target, until: Date().addingTimeInterval(30 * 86_400))
+        let mute = Mute(ruleId: "R1", target: target, until: Date().addingTimeInterval(30 * 86400))
         try store.addMute(mute)
 
-        let engine = try RuleEngine(rules: try RuleCatalog.builtIn(), mutes: try store.mutes())
+        let engine = try RuleEngine(rules: RuleCatalog.builtIn(), mutes: store.mutes())
         try engine.reapply(to: store)
 
         XCTAssertEqual(target, "rm -rf /")
@@ -107,10 +106,9 @@ final class RuleRefreshTests: XCTestCase {
 
     func testRawTextIsNotLoadedDuringReevaluation() throws {
         let event = Event(
-            id: "e1", ts: Date(timeIntervalSince1970: 1_000), agent: .codex, sessionId: "s1",
+            id: "e1", ts: Date(timeIntervalSince1970: 1000), agent: .codex, sessionId: "s1",
             kind: .toolCall, tool: "exec", command: "sudo ls", risk: [],
-            rawJSON: String(repeating: "x", count: 4_096)
-        )
+            rawJSON: String(repeating: "x", count: 4096))
         try store.insert(events: [event])
 
         let loaded = try XCTUnwrap(store.eventsForReevaluation().first)

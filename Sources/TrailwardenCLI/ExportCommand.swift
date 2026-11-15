@@ -9,8 +9,7 @@ struct ExportCommand: ParsableCommand {
     static let configuration = CommandConfiguration(
         commandName: "export",
         abstract: "Write a redacted audit record. Markdown lists sessions and findings; "
-            + "JSON carries every event in the window."
-    )
+            + "JSON carries every event in the window.")
 
     @OptionGroup var store: StoreOptions
 
@@ -46,7 +45,8 @@ struct ExportCommand: ParsableCommand {
         // Make sure the record reflects the transcripts as they are now; the second
         // scan of an unchanged tree costs milliseconds (size + mtime signatures).
         let engine = try RuleEngine.builtIn(mutes: database.mutes())
-        _ = try TranscriptScanner(store: database, rules: engine).scan(roots: ScanRoot.standard(agents: agents))
+        _ = try TranscriptScanner(store: database, rules: engine)
+            .scan(roots: ScanRoot.standard(agents: agents))
 
         var query = EventQuery(since: sinceDate, agents: agents, minimumSeverity: severity)
         query.includeRawJSON = false
@@ -58,8 +58,7 @@ struct ExportCommand: ParsableCommand {
             until: until,
             agents: agent.list,
             minimumSeverity: severity,
-            generatedAt: until
-        )
+            generatedAt: until)
 
         // The app writes through the same writer, so the two cannot drift apart.
         let format: AuditFormat = json ? .json : .markdown
@@ -72,20 +71,17 @@ struct ExportCommand: ParsableCommand {
                 events: events,
                 selection: selection,
                 redactor: redactor,
-                to: URL(fileURLWithPath: out)
-            )
+                to: URL(fileURLWithPath: out))
             Output.write(
                 "wrote \(outcome.url.path) — \(outcome.events) events, \(outcome.findings) findings "
-                    + "(\(outcome.critical) critical)"
-            )
+                    + "(\(outcome.critical) critical)")
         } else {
             let data = try ExportWriter.data(
                 format: format,
                 sessions: sessions,
                 events: events,
                 selection: selection,
-                redactor: redactor
-            )
+                redactor: redactor)
             Output.write(String(decoding: data, as: UTF8.self))
         }
 

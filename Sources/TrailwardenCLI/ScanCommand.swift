@@ -9,8 +9,7 @@ struct ScanCommand: ParsableCommand {
     static let configuration = CommandConfiguration(
         commandName: "scan",
         abstract: "Scan agent transcripts, apply the rules and report findings. "
-            + "Text and Markdown list findings; JSON carries every event in the window."
-    )
+            + "Text and Markdown list findings; JSON carries every event in the window.")
 
     @OptionGroup var store: StoreOptions
 
@@ -30,7 +29,7 @@ struct ScanCommand: ParsableCommand {
     var md = false
 
     func run() throws {
-        if json && md {
+        if json, md {
             throw ValidationError("choose one of --json or --md")
         }
         let sinceDate = try TimeWindow.parse(since)
@@ -41,14 +40,12 @@ struct ScanCommand: ParsableCommand {
 
         let report = try scanner.scan(
             roots: ScanRoot.standard(agents: agents),
-            databases: ScanRoot.standardDatabases(agents: agents)
-        )
+            databases: ScanRoot.standardDatabases(agents: agents))
         let query = EventQuery(
             since: sinceDate,
             agents: agents,
             minimumSeverity: severity,
-            onlyFindings: !json && !md
-        )
+            onlyFindings: !json && !md)
         let events = try database.events(matching: query)
         let sessions = try database.sessions(agents: agents)
         let until = Date()
@@ -57,8 +54,7 @@ struct ScanCommand: ParsableCommand {
             until: until,
             agents: agent.list,
             minimumSeverity: severity,
-            generatedAt: until
-        )
+            generatedAt: until)
 
         if json {
             let data = try JSONReport.data(sessions: sessions, events: events, selection: selection)
@@ -80,16 +76,14 @@ struct ScanCommand: ParsableCommand {
         lines.append(
             "scanned \(report.filesSeen) files: \(report.filesParsed) parsed, "
                 + "\(report.filesUnchanged) unchanged, \(report.eventsStored) events, "
-                + "\(report.skippedLines) skipped lines"
-        )
+                + "\(report.skippedLines) skipped lines")
         for failure in report.failures {
             lines.append("  failed: \(failure)")
         }
         let window = since.map { "since \(Output.timestamp($0))" } ?? "all time"
         let summary = AuditReport.summarize(sessions: [], events: events)
         lines.append(
-            "findings (\(window)): \(summary.findings)  critical \(summary.critical)  warn \(summary.warn)"
-        )
+            "findings (\(window)): \(summary.findings)  critical \(summary.critical)  warn \(summary.warn)")
         for event in events.prefix(30) {
             let hits = event.risk
                 .sorted { $0.severity > $1.severity }
@@ -98,8 +92,7 @@ struct ScanCommand: ParsableCommand {
             let detail = event.command ?? event.preview ?? "-"
             lines.append(
                 "  \(Output.timestamp(event.ts))  \(hits)  \(event.agent.rawValue)  "
-                    + "\(event.tool ?? "-")  \(detail.prefix(100))"
-            )
+                    + "\(event.tool ?? "-")  \(detail.prefix(100))")
         }
         if events.count > 30 {
             lines.append("  … \(events.count - 30) more; use --md or --json for the full list")

@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright (c) 2026 Turgay Nalbant
 
-import XCTest
 @testable import TrailwardenCore
+import XCTest
 
 final class RulePreferencesTests: XCTestCase {
     private var url: URL!
@@ -19,7 +19,7 @@ final class RulePreferencesTests: XCTestCase {
     func testSaveLoadRoundTrip() throws {
         let prefs = [
             RulePreference(id: "R3", enabled: false, severity: .warn),
-            RulePreference(id: "R1", enabled: true, severity: .warn),
+            RulePreference(id: "R1", enabled: true, severity: .warn)
         ]
 
         try RulePreferences.save(prefs, to: url)
@@ -46,7 +46,7 @@ final class RulePreferencesTests: XCTestCase {
         let rules = try RuleCatalog.builtIn()
         let prefs = [
             RulePreference(id: "R1", enabled: false, severity: .warn),
-            RulePreference(id: "RX", enabled: false, severity: .info),
+            RulePreference(id: "RX", enabled: false, severity: .info)
         ]
 
         let applied = RulePreferences.apply(prefs, to: rules)

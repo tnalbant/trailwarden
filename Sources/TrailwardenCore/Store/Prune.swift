@@ -24,7 +24,7 @@ public extension EventStore {
         guard days > 0 else {
             throw PruneError.invalidRetention(days)
         }
-        let cutoff = now.addingTimeInterval(-Double(days) * 86_400)
+        let cutoff = now.addingTimeInterval(-Double(days) * 86400)
 
         let sessionsBefore = try sessions().map(\.id)
         let countStatement = try prepareRowStatement("SELECT COUNT(*) FROM events WHERE ts < ?")
@@ -46,7 +46,7 @@ public extension EventStore {
         WHERE id NOT IN (SELECT DISTINCT session_id FROM events)
         """)
         try empty.step()
-        let removedSessions = sessionsBefore.count - (try sessions().count)
+        let removedSessions = try sessionsBefore.count - (sessions().count)
 
         return PruneReport(removedEvents: removedEvents, removedSessions: removedSessions, cutoff: cutoff)
     }
@@ -57,7 +57,7 @@ public enum PruneError: Error, CustomStringConvertible, Sendable {
 
     public var description: String {
         switch self {
-        case .invalidRetention(let days): return "retention must be at least 1 day, got \(days)"
+        case let .invalidRetention(days): "retention must be at least 1 day, got \(days)"
         }
     }
 }

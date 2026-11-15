@@ -1,0 +1,13 @@
+# SPDX-License-Identifier: Apache-2.0
+# These seven findings are the synthetic fixtures that used to live in the tests:
+# alphabet runs, not real credentials. They were replaced by values built at
+# runtime. The fingerprints below suppress only those historical lines, so a new
+# secret anywhere — including in a test file — is still reported.
+
+ea1c3b081831789ae6cd89cb04a1a580fc7a027a:Tests/TrailwardenCoreTests/ExportWriterTests.swift:curl-auth-header:90
+ea1c3b081831789ae6cd89cb04a1a580fc7a027a:Tests/TrailwardenCoreTests/ExportWriterTests.swift:aws-access-token:109
+ee0085032ecbef54deae38194cee9590ea70f438:Tests/TrailwardenCoreTests/ScannerTests.swift:curl-auth-header:38
+ee0085032ecbef54deae38194cee9590ea70f438:Tests/TrailwardenCoreTests/RedactorTests.swift:private-key:54
+ee0085032ecbef54deae38194cee9590ea70f438:Tests/TrailwardenCoreTests/RedactorTests.swift:github-pat:28
+ee0085032ecbef54deae38194cee9590ea70f438:Tests/TrailwardenCoreTests/RedactorTests.swift:github-pat:105
+ee0085032ecbef54deae38194cee9590ea70f438:Tests/TrailwardenCoreTests/RedactorTests.swift:generic-api-key:21

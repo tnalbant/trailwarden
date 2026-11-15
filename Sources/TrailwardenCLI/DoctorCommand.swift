@@ -8,8 +8,7 @@ import TrailwardenCore
 struct DoctorCommand: ParsableCommand {
     static let configuration = CommandConfiguration(
         commandName: "doctor",
-        abstract: "Check directories, database and rule catalogue."
-    )
+        abstract: "Check directories, database and rule catalogue.")
 
     @OptionGroup var store: StoreOptions
 
@@ -36,16 +35,14 @@ struct DoctorCommand: ParsableCommand {
                 let size = Output.humanBytes((attributes[.size] as? Int) ?? 0)
                 let permissions = String(
                     format: "%03o",
-                    (attributes[.posixPermissions] as? NSNumber)?.intValue ?? 0
-                )
+                    (attributes[.posixPermissions] as? NSNumber)?.intValue ?? 0)
                 let version = try database.schemaVersion()
                 let integrity = try database.integrityCheck()
                 let sessions = try database.sessions().count
                 let events = try database.eventCount()
                 Output.write(
                     "database     \(databaseURL.path)  \(size)  schema \(version)  "
-                        + "mode \(permissions)  integrity \(integrity)"
-                )
+                        + "mode \(permissions)  integrity \(integrity)")
                 Output.write("index        \(sessions) sessions, \(events) events")
                 for agent in Agent.allCases {
                     let count = try database.eventCount(matching: EventQuery(agents: [agent]))
@@ -54,7 +51,9 @@ struct DoctorCommand: ParsableCommand {
                     Output.write("  \(agent.rawValue.padding(toLength: 12, withPad: " ", startingAt: 0))"
                         + " \(sessionCount) sessions, \(count) events")
                 }
-                if integrity != "ok" || version != 4 { healthy = false }
+                if integrity != "ok" || version != 4 {
+                    healthy = false
+                }
             } catch {
                 Output.write("database     FAILED: \(error)")
                 healthy = false
@@ -71,10 +70,14 @@ struct DoctorCommand: ParsableCommand {
 
         for root in ScanRoot.standard() {
             var isDirectory: ObjCBool = false
-            let present = FileManager.default.fileExists(atPath: root.directory.path, isDirectory: &isDirectory)
+            let present = FileManager.default.fileExists(
+                atPath: root.directory.path,
+                isDirectory: &isDirectory)
             let label = root.agent.rawValue.padding(toLength: 12, withPad: " ", startingAt: 0)
             if present, isDirectory.boolValue {
-                Output.write("root \(label) \(root.directory.path)  \(transcriptCount(in: root.directory)) transcripts")
+                Output
+                    .write(
+                        "root \(label) \(root.directory.path)  \(transcriptCount(in: root.directory)) transcripts")
             } else {
                 Output.write("root \(label) \(root.directory.path)  missing")
             }
@@ -88,8 +91,7 @@ struct DoctorCommand: ParsableCommand {
     private func transcriptCount(in directory: URL) -> Int {
         guard let enumerator = FileManager.default.enumerator(
             at: directory,
-            includingPropertiesForKeys: nil
-        ) else { return 0 }
+            includingPropertiesForKeys: nil) else { return 0 }
         var count = 0
         for case let url as URL in enumerator where url.pathExtension == "jsonl" {
             count += 1

@@ -9,7 +9,9 @@ public struct DatabaseSource: Sendable {
     public let database: URL
     public let parser: any DatabaseAgentParser
 
-    public var agent: Agent { parser.agent }
+    public var agent: Agent {
+        parser.agent
+    }
 
     public init(database: URL, parser: any DatabaseAgentParser) {
         self.database = database
@@ -36,7 +38,9 @@ public protocol DatabaseAgentParser: Sendable {
 public struct HermesDatabaseParser: DatabaseAgentParser {
     public init() {}
 
-    public var agent: Agent { .hermes }
+    public var agent: Agent {
+        .hermes
+    }
 
     public static var defaultURL: URL {
         FileManager.default.homeDirectoryForCurrentUser
@@ -58,7 +62,8 @@ public struct HermesDatabaseParser: DatabaseAgentParser {
         // lock. `mode=ro` reads a consistent snapshot instead.
         let uri = "file:\(url.path)?mode=ro"
         guard sqlite3_open_v2(uri, &handle, SQLITE_OPEN_READONLY | SQLITE_OPEN_URI, nil) == SQLITE_OK,
-              let handle else {
+              let handle
+        else {
             throw TranscriptError.unreadable(url.lastPathComponent)
         }
         defer { sqlite3_close(handle) }
@@ -76,8 +81,8 @@ public struct HermesDatabaseParser: DatabaseAgentParser {
             SELECT id, cwd, started_at, input_tokens, output_tokens FROM sessions
             WHERE started_at >= ?
             """,
-            since: cutoff
-        ) { row in
+            since: cutoff)
+        { row in
             guard let id = row.text(0) else { return }
             let cwd = row.text(1)
             let started = Date(timeIntervalSince1970: row.double(2))
@@ -98,8 +103,7 @@ public struct HermesDatabaseParser: DatabaseAgentParser {
                 paths: [],
                 preview: "tokens: \(input) in / \(output) out",
                 risk: [],
-                rawJSON: nil
-            ))
+                rawJSON: nil))
         }
 
         try query(
@@ -109,8 +113,8 @@ public struct HermesDatabaseParser: DatabaseAgentParser {
             WHERE timestamp >= ? AND active = 1 AND role IN ('user', 'assistant')
             ORDER BY timestamp
             """,
-            since: cutoff
-        ) { row in
+            since: cutoff)
+        { row in
             guard let sessionId = row.text(1), let role = row.text(2) else { return }
             let messageId = Int(row.double(0))
             let ts = Date(timeIntervalSince1970: row.double(6))
@@ -128,8 +132,7 @@ public struct HermesDatabaseParser: DatabaseAgentParser {
                     cwd: cwd,
                     preview: Self.trim(content),
                     risk: [],
-                    rawJSON: nil
-                ))
+                    rawJSON: nil))
                 return
             }
 
@@ -140,8 +143,8 @@ public struct HermesDatabaseParser: DatabaseAgentParser {
                     id: "hermes:\(sessionId):\(messageId):\(index)",
                     ts: ts,
                     sessionId: sessionId,
-                    cwd: cwd
-                ) else {
+                    cwd: cwd)
+                else {
                     // A call with no command and no path (a todo update, a memory
                     // write) is simply not an audit event — not a parse failure.
                     continue
@@ -174,8 +177,8 @@ public struct HermesDatabaseParser: DatabaseAgentParser {
         id: String,
         ts: Date,
         sessionId: String,
-        cwd: String?
-    ) -> Event? {
+        cwd: String?) -> Event?
+    {
         // Two shapes in the wild: {"name": …, "arguments": …} and the OpenAI
         // wrapper {"type":"function","function":{"name":…,"arguments":…}}.
         let function = call["function"] as? [String: Any]
@@ -202,16 +205,18 @@ public struct HermesDatabaseParser: DatabaseAgentParser {
             paths: paths,
             preview: command ?? paths.first,
             risk: [],
-            rawJSON: nil
-        )
+            rawJSON: nil)
     }
 
     private static func toolCalls(from text: String) -> [[String: Any]]? {
         guard let data = text.data(using: .utf8),
               let object = try? JSONSerialization.jsonObject(with: data) else { return nil }
-        if let array = object as? [[String: Any]] { return array }
+        if let array = object as? [[String: Any]] {
+            return array
+        }
         if let wrapper = object as? [String: Any],
-           let array = wrapper["tool_calls"] as? [[String: Any]] {
+           let array = wrapper["tool_calls"] as? [[String: Any]]
+        {
             return array
         }
         return nil
@@ -226,8 +231,8 @@ public struct HermesDatabaseParser: DatabaseAgentParser {
         _ handle: OpaquePointer,
         _ sql: String,
         since: Date? = nil,
-        row: (Row) -> Void
-    ) throws {
+        row: (Row) -> Void) throws
+    {
         var statement: OpaquePointer?
         guard sqlite3_prepare_v2(handle, sql, -1, &statement, nil) == SQLITE_OK, let statement else {
             throw TranscriptError.unreadable(sqlite3_errmsg(handle).map { String(cString: $0) } ?? "sql")

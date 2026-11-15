@@ -127,6 +127,6 @@ extension UITranslations {
 
         .axisDay: "Tag",
         .quit: "Beenden",
-        .missingFolder: "fehlt",
+        .missingFolder: "fehlt"
     ]
 }

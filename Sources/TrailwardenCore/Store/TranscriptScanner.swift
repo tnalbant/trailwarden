@@ -8,7 +8,9 @@ public struct ScanRoot: Sendable {
     public let directory: URL
     public let parser: any AgentParser
 
-    public var agent: Agent { parser.agent }
+    public var agent: Agent {
+        parser.agent
+    }
 
     public init(directory: URL, parser: any AgentParser) {
         self.directory = directory
@@ -29,17 +31,14 @@ public struct ScanRoot: Sendable {
         let roots = [
             ScanRoot(
                 directory: home.appendingPathComponent(".claude/projects", isDirectory: true),
-                parser: ClaudeCodeParser()
-            ),
+                parser: ClaudeCodeParser()),
             ScanRoot(
                 directory: home.appendingPathComponent(".codex/sessions", isDirectory: true),
-                parser: CodexParser()
-            ),
+                parser: CodexParser()),
             // Gemini CLI keeps one JSON document per session under tmp/<project>/chats.
             ScanRoot(
                 directory: home.appendingPathComponent(".gemini/tmp", isDirectory: true),
-                parser: GeminiCLIParser()
-            ),
+                parser: GeminiCLIParser())
         ]
         guard let agents, !agents.isEmpty else { return roots }
         return roots.filter { agents.contains($0.agent) }
@@ -111,8 +110,7 @@ public struct TranscriptScanner {
         let keys: Set<URLResourceKey> = [.isRegularFileKey, .fileSizeKey, .contentModificationDateKey]
         guard let enumerator = FileManager.default.enumerator(
             at: root.directory,
-            includingPropertiesForKeys: Array(keys)
-        ) else { return }
+            includingPropertiesForKeys: Array(keys)) else { return }
 
         for case let url as URL in enumerator {
             guard url.pathExtension == root.parser.fileExtension else { continue }
@@ -125,7 +123,8 @@ public struct TranscriptScanner {
 
             if let known = try? store.fileSignature(path: url.path),
                known.size == size,
-               abs(known.mtime - mtime) < 0.5 {
+               abs(known.mtime - mtime) < 0.5
+            {
                 report.filesUnchanged += 1
                 continue
             }
@@ -144,8 +143,7 @@ public struct TranscriptScanner {
                     mtime: mtime,
                     sessionId: events.first?.sessionId,
                     events: stored,
-                    skipped: result.skippedLines
-                )
+                    skipped: result.skippedLines)
                 report.filesParsed += 1
                 report.eventsStored += stored
                 report.skippedLines += result.skippedLines

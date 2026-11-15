@@ -32,10 +32,14 @@ public struct TokenTotals: Sendable, Equatable {
     /// Tokens the model actually read and wrote. A bare "total tokens" line is
     /// the agent's running context size, which repeats on every turn — adding
     /// those up would invent billions of tokens that were never processed.
-    public var processed: Int { input + output }
+    public var processed: Int {
+        input + output
+    }
 
     /// The largest context a session reported, kept as its own number.
-    public var peakContext: Int { total }
+    public var peakContext: Int {
+        total
+    }
 
     static func numbers(in text: String) -> TokenTotals? {
         let lowered = text.lowercased()
@@ -57,7 +61,7 @@ public struct TokenTotals: Sendable, Equatable {
             ("out ", { totals.output = max(totals.output, $0) }),
             // "total tokens: 50" — the label and the number are a few words apart.
             ("total tokens", { totals.total = max(totals.total, $0) }),
-            ("total", { totals.total = max(totals.total, $0) }),
+            ("total", { totals.total = max(totals.total, $0) })
         ]
 
         var found = totals.input > 0 || totals.output > 0
@@ -104,7 +108,9 @@ public struct TokenTotals: Sendable, Equatable {
 public struct DailyTokens: Sendable, Equatable, Identifiable {
     public let day: Date
     public let tokens: Int
-    public var id: Date { day }
+    public var id: Date {
+        day
+    }
 }
 
 public extension EventStore {
@@ -112,8 +118,7 @@ public extension EventStore {
     private func tokenEvents(since: Date) throws -> [Event] {
         var query = EventQuery(
             since: since,
-            excludedKinds: Set(EventKind.allCases).subtracting([.tokenUsage])
-        )
+            excludedKinds: Set(EventKind.allCases).subtracting([.tokenUsage]))
         query.includeRawJSON = false
         return try events(matching: query)
     }

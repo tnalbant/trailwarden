@@ -11,8 +11,7 @@ struct Trailwarden: ParsableCommand {
         commandName: "trailwarden",
         abstract: "Audit trail for coding agents on this Mac.",
         version: TrailwardenVersion.current,
-        subcommands: [ScanCommand.self, ExportCommand.self, RulesCommand.self, DoctorCommand.self]
-    )
+        subcommands: [ScanCommand.self, ExportCommand.self, RulesCommand.self, DoctorCommand.self])
 
     /// The documented contract is 0 clean, 1 findings, 2 usage. `exit(withError:)`
     /// builds its code from the error itself and ignores `exitCode(for:)`, so the
@@ -25,7 +24,9 @@ struct Trailwarden: ParsableCommand {
             command = try parseAsRoot()
         } catch {
             // A --help/--version request must keep the library's output and exit 0.
-            if requestsHelpOrVersion(error) { Self.exit(withError: error) }
+            if requestsHelpOrVersion(error) {
+                Self.exit(withError: error)
+            }
             usageExit()
         }
 
@@ -40,7 +41,9 @@ struct Trailwarden: ParsableCommand {
             Foundation.exit(2)
         } catch {
             // `--help` and `--version` arrive as a command in the run phase.
-            if requestsHelpOrVersion(error) { Self.exit(withError: error) }
+            if requestsHelpOrVersion(error) {
+                Self.exit(withError: error)
+            }
             Output.error("Error: \(error)")
             Foundation.exit(1)
         }

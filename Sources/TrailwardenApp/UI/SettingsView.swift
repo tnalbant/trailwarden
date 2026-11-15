@@ -48,7 +48,9 @@ struct SettingsView: View {
         VStack(alignment: .leading, spacing: 3) {
             Text(L(.windowSettings))
                 .font(Tokens.Typography.serif(18, weight: .semibold))
-            Text(Lf(.settingsVersion, [TrailwardenVersion.current, model.snapshot.totalEvents, model.snapshot.sessions.count]))
+            Text(Lf(
+                .settingsVersion,
+                [TrailwardenVersion.current, model.snapshot.totalEvents, model.snapshot.sessions.count]))
                 .font(Tokens.Typography.mono(9.5))
                 .foregroundStyle(Tokens.Palette.secondary)
         }
@@ -119,7 +121,7 @@ struct SettingsView: View {
         VStack(alignment: .leading, spacing: 7) {
             SectionLabel(text: L(.retention))
             HStack(spacing: 8) {
-                Stepper(value: $retentionDays, in: 30...365, step: 30) {
+                Stepper(value: $retentionDays, in: 30 ... 365, step: 30) {
                     Text(Lf(.retentionDays, [retentionDays]))
                         .font(Tokens.Typography.text(11))
                 }

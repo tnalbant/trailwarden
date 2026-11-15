@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright (c) 2026 Turgay Nalbant
 
-import XCTest
 @testable import TrailwardenCore
+import XCTest
 
 final class EventQueryTests: XCTestCase {
     private var store: EventStore!
@@ -15,8 +15,8 @@ final class EventQueryTests: XCTestCase {
         id: String,
         agent: Agent = .claudeCode,
         secondsFromEpoch: TimeInterval,
-        severity: Severity? = nil
-    ) -> Event {
+        severity: Severity? = nil) -> Event
+    {
         Event(
             id: id,
             ts: Date(timeIntervalSince1970: secondsFromEpoch),
@@ -28,23 +28,22 @@ final class EventQueryTests: XCTestCase {
             paths: [],
             preview: "cmd \(id)",
             risk: severity.map { [RiskHit(ruleId: "R1", severity: $0, message: "m")] } ?? [],
-            rawJSON: nil
-        )
+            rawJSON: nil)
     }
 
     private func seed() throws {
         try store.insert(events: [
-            event(id: "old-critical", secondsFromEpoch: 1_000, severity: .critical),
-            event(id: "mid-warn", secondsFromEpoch: 2_000, severity: .warn),
-            event(id: "new-info", secondsFromEpoch: 3_000, severity: .info),
-            event(id: "newest-clean", secondsFromEpoch: 4_000),
-            event(id: "codex-warn", agent: .codex, secondsFromEpoch: 3_500, severity: .warn),
+            event(id: "old-critical", secondsFromEpoch: 1000, severity: .critical),
+            event(id: "mid-warn", secondsFromEpoch: 2000, severity: .warn),
+            event(id: "new-info", secondsFromEpoch: 3000, severity: .info),
+            event(id: "newest-clean", secondsFromEpoch: 4000),
+            event(id: "codex-warn", agent: .codex, secondsFromEpoch: 3500, severity: .warn)
         ])
     }
 
     func testSinceFilter() throws {
         try seed()
-        let events = try store.events(matching: EventQuery(since: Date(timeIntervalSince1970: 2_500)))
+        let events = try store.events(matching: EventQuery(since: Date(timeIntervalSince1970: 2500)))
         XCTAssertEqual(events.map(\.id), ["newest-clean", "codex-warn", "new-info"])
     }
 

@@ -15,7 +15,9 @@ public extension EventStore {
         try statement.bind([.double(cutoff.timeIntervalSince1970)])
         var ids: Set<String> = []
         while try statement.step() {
-            if let id = statement.text(0) { ids.insert(id) }
+            if let id = statement.text(0) {
+                ids.insert(id)
+            }
         }
         return ids
     }

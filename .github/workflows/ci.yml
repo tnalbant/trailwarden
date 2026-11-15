@@ -32,6 +32,17 @@ jobs:
       - name: Test
         run: swift test
 
+      # Formatting is a machine decision; keep it out of review comments.
+      - name: Format check
+        run: |
+          brew install swiftformat
+          swiftformat --lint .
+
+      - name: Lint
+        run: |
+          brew install swiftlint
+          swiftlint lint --quiet --strict
+
       # Trailwarden must never talk to the network. See THREATMODEL.md.
       - name: No network APIs in Sources
         run: |

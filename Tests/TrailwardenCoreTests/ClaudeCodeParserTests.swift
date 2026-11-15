@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright (c) 2026 Turgay Nalbant
 
-import XCTest
 @testable import TrailwardenCore
+import XCTest
 
 final class ClaudeCodeParserTests: XCTestCase {
     private let parser = ClaudeCodeParser()
@@ -24,7 +24,7 @@ final class ClaudeCodeParserTests: XCTestCase {
             .toolCall, .toolResult,
             .toolCall, .toolResult,
             .permission, .permission,
-            .message,
+            .message
         ])
     }
 
@@ -77,7 +77,7 @@ final class ClaudeCodeParserTests: XCTestCase {
 
         XCTAssertEqual(permissions.map(\.preview), [
             "permission mode: acceptEdits",
-            "mode: default",
+            "mode: default"
         ])
         // These lines carry no timestamp of their own: the last known one is used.
         let reference = try XCTUnwrap(events.last { $0.kind == .toolResult }?.ts)

@@ -13,7 +13,9 @@ enum AppearanceMode: String, CaseIterable, Identifiable {
 
     static let storageKey = "trailwarden.appearance"
 
-    var id: String { rawValue }
+    var id: String {
+        rawValue
+    }
 
     var label: String {
         let localizer = LocalizationStore.current
@@ -26,9 +28,9 @@ enum AppearanceMode: String, CaseIterable, Identifiable {
 
     var nsAppearance: NSAppearance? {
         switch self {
-        case .system: return nil
-        case .light: return NSAppearance(named: .aqua)
-        case .dark: return NSAppearance(named: .darkAqua)
+        case .system: nil
+        case .light: NSAppearance(named: .aqua)
+        case .dark: NSAppearance(named: .darkAqua)
         }
     }
 

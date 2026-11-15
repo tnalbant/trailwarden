@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright (c) 2026 Turgay Nalbant
 
-import XCTest
 @testable import TrailwardenCore
+import XCTest
 
 final class ScannerTests: XCTestCase {
     private var directory: URL!
@@ -93,8 +93,7 @@ final class ScannerTests: XCTestCase {
         try (existing + assistantLine(1) + "\n").write(to: a, atomically: true, encoding: .utf8)
         try FileManager.default.setAttributes(
             [.modificationDate: Date().addingTimeInterval(5)],
-            ofItemAtPath: a.path
-        )
+            ofItemAtPath: a.path)
 
         let third = try scanner().scan(roots: roots())
 
@@ -177,8 +176,7 @@ final class ScannerTests: XCTestCase {
     func testMissingRootIsHarmless() throws {
         let missing = ScanRoot(
             directory: directory.appendingPathComponent("does-not-exist"),
-            parser: ClaudeCodeParser()
-        )
+            parser: ClaudeCodeParser())
 
         let report = try scanner().scan(roots: [missing])
 
