@@ -8,8 +8,10 @@ can actually read, flags risky commands (wide `rm -rf`, secret-file access,
 `curl … | sh`, force pushes), and exports a redacted audit record you can hand to
 someone else.
 
-Nothing leaves the machine: no account, no server, no telemetry, no network code
-at all (CI fails if `URLSession` or friends ever show up in `Sources/`).
+Nothing leaves the machine on its own: no account, no server, no telemetry. The
+only network call in the app is the update check you start yourself — one GET for
+one small JSON file on the newest GitHub release — and CI fails if a network API
+shows up anywhere else in `Sources/`.
 
 > Status: **v0.1.0** — works end to end. Interface in English (US), Turkish, German,
 > Spanish, Italian and French. The plan and the daily progress log live in the
@@ -115,7 +117,10 @@ Tests/                  synthetic fixtures only — real transcripts are never c
 Trailwarden is built for people who do not want their agent transcripts uploaded
 anywhere. Two rules follow from that and are enforced in CI:
 
-1. No networking code in `Sources/`.
+1. No networking code in `Sources/` except the update check in
+   `Sources/TrailwardenApp/Update/UpdateChecker.swift`, which runs only when you
+   click it. CI enforces both halves: a network API anywhere else fails the build,
+   and that file losing its reason to exist fails it too.
 2. No real `.jsonl` transcript in the repository; tests use hand-written
    synthetic fixtures only.
 
