@@ -39,8 +39,8 @@ enum EventFormatting {
 
     /// A row stamp that says which day when the day is not today. The rule lives
     /// in Core so it can be tested without a window.
-    static func stamp(_ date: Date, now: Date = Date()) -> String {
-        ActivityDigest.stamp(date, now: now, locale: LocalizationStore.current.locale)
+    static func stamp(_ date: Date) -> String {
+        ActivityDigest.stamp(date, locale: LocalizationStore.current.locale)
     }
 
     static func day(_ date: Date) -> String {

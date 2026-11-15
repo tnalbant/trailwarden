@@ -97,16 +97,13 @@ public enum ActivityDigest {
         return String(flattened.prefix(detailLimit)) + "…"
     }
 
-    /// "21:00" for today, "15 Nov 21:00" for any other day. A timeline that spans
-    /// months otherwise shows a column of times with no way to order them.
-    public static func stamp(_ date: Date, now: Date = Date(), locale: Locale = .current) -> String {
+    /// Always "15 Nov 21:00", never a bare "21:00". A row that shows only a time
+    /// cannot say which day it belongs to, and the reader should not have to
+    /// infer it from a scroll position.
+    public static func stamp(_ date: Date, locale: Locale = .current) -> String {
         let formatter = DateFormatter()
         formatter.locale = locale
-        if Calendar.current.isDate(date, inSameDayAs: now) {
-            formatter.dateFormat = "HH:mm"
-        } else {
-            formatter.setLocalizedDateFormatFromTemplate("dMMMHHmm")
-        }
+        formatter.setLocalizedDateFormatFromTemplate("dMMMHHmm")
         return formatter.string(from: date)
     }
 

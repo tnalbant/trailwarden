@@ -46,6 +46,9 @@ struct MainWindowView: View {
         .frame(minWidth: 780, minHeight: 480)
         .background(Tokens.Palette.paper)
         .foregroundStyle(Tokens.Palette.ink)
+        .onChange(of: model.findingsRequested) { _, _ in
+            showFindings()
+        }
         .onChange(of: model.sessionToOpen) { _, sessionID in
             guard let sessionID else { return }
             open(sessionID)
@@ -84,9 +87,20 @@ struct MainWindowView: View {
             Spacer()
 
             if model.snapshot.criticalToday > 0 {
-                Text(Lf(.sessionCritical, [model.snapshot.criticalToday]))
-                    .font(Tokens.Typography.text(10, weight: .medium))
+                Button {
+                    showFindings()
+                } label: {
+                    HStack(spacing: 3) {
+                        Text(Lf(.sessionCritical, [model.snapshot.criticalToday]))
+                            .font(Tokens.Typography.text(10, weight: .medium))
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 7, weight: .semibold))
+                    }
                     .foregroundStyle(Tokens.Palette.accent)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .help(L(.severityCritical))
             }
             Text(Lf(.eventCount, [model.snapshot.totalEvents]))
                 .font(Tokens.Typography.mono(10))
@@ -104,6 +118,14 @@ struct MainWindowView: View {
                 timeline.reload()
             }
         }, liveSessionIDs: model.liveSessions)
+    }
+
+    /// "2 critical" is an invitation, not a label: it opens the timeline with the
+    /// finding filter on and today's range, so the two events are the only rows.
+    private func showFindings() {
+        timeline.window = .day
+        timeline.findingsOnly = true
+        mode = .timeline
     }
 
     /// Jumping to a session always means the timeline: the feed is a digest, the
