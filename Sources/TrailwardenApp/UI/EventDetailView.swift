@@ -6,7 +6,11 @@ import SwiftUI
 import TrailwardenCore
 
 /// The right column: what exactly happened, why it was flagged, and the text the
-/// agent actually ran — never wrapped, so a one-line command stays one line.
+/// agent actually ran.
+///
+/// Commands wrap. They used to scroll sideways to stay on one line, which meant a
+/// long command could only be read one screen-width at a time while the column
+/// below it sat empty.
 struct EventDetailView: View {
     @AppStorage(LocalizationStore.defaultsKey) private var language = AppLanguage.system.rawValue
     let event: Event
@@ -21,16 +25,16 @@ struct EventDetailView: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 14) {
+            VStack(alignment: .leading, spacing: 16) {
                 header
                 if !event.risk.isEmpty {
                     riskSection
                 }
                 if let command = event.command {
-                    textSection(L(.labelCommand), command, field: "command", wraps: false)
+                    textSection(L(.labelCommand), command, field: "command")
                 }
                 if let preview = event.preview, event.command == nil {
-                    textSection(L(.labelText), preview, field: "preview", wraps: true)
+                    textSection(L(.labelText), preview, field: "preview")
                 }
                 if let diff {
                     diffSection(diff)
@@ -43,11 +47,49 @@ struct EventDetailView: View {
                 }
                 resumeSection
             }
-            .padding(16)
+            .padding(18)
             .frame(maxWidth: .infinity, alignment: .leading)
         }
         .background(Tokens.Palette.paper)
         .foregroundStyle(Tokens.Palette.ink)
+    }
+
+    // MARK: - Header
+
+    /// One compact block instead of four loose lines: who, what, where, when.
+    private var header: some View {
+        VStack(alignment: .leading, spacing: 7) {
+            HStack(spacing: 7) {
+                Text(EventFormatting.agentLabel(event.agent))
+                    .font(Tokens.Typography.mono(9))
+                    .padding(.horizontal, 5)
+                    .padding(.vertical, 1)
+                    .background(Tokens.Palette.surface)
+                    .clipShape(RoundedRectangle(cornerRadius: 3))
+                Text(event.tool ?? event.kind.rawValue)
+                    .font(Tokens.Typography.mono(10, weight: .medium))
+                Spacer(minLength: 6)
+                Text(EventFormatting.stamp(event.ts))
+                    .font(Tokens.Typography.mono(9.5))
+                    .foregroundStyle(Tokens.Palette.secondary)
+            }
+            VStack(alignment: .leading, spacing: 2) {
+                Text(Sessions.shortID(event.sessionId))
+                    .font(Tokens.Typography.mono(9))
+                    .foregroundStyle(Tokens.Palette.secondary)
+                if let cwd = event.cwd {
+                    Text(ProjectName.display(cwd))
+                        .font(Tokens.Typography.mono(9))
+                        .foregroundStyle(Tokens.Palette.secondary)
+                        .lineLimit(2)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+        }
+        .padding(10)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Tokens.Palette.surface.opacity(0.45))
+        .clipShape(RoundedRectangle(cornerRadius: Tokens.Metrics.radius))
     }
 
     // MARK: - Resume
@@ -61,11 +103,11 @@ struct EventDetailView: View {
                 cwd: event.cwd)
             {
                 SectionLabel(text: L(.resumeSession))
-                HStack(spacing: 8) {
+                HStack(alignment: .top, spacing: 8) {
                     Text(command)
                         .font(Tokens.Typography.mono(9.5))
-                        .lineLimit(1)
-                        .truncationMode(.middle)
+                        .lineLimit(3)
+                        .fixedSize(horizontal: false, vertical: true)
                         .textSelection(.enabled)
                     Spacer(minLength: 6)
                     Button(copiedResume ? L(.copied) : L(.copy)) {
@@ -82,35 +124,6 @@ struct EventDetailView: View {
     }
 
     // MARK: - Sections
-
-    private var header: some View {
-        VStack(alignment: .leading, spacing: 5) {
-            HStack(spacing: 7) {
-                Text(EventFormatting.agentLabel(event.agent))
-                    .font(Tokens.Typography.mono(9))
-                    .padding(.horizontal, 5)
-                    .padding(.vertical, 1)
-                    .background(Tokens.Palette.surface)
-                    .clipShape(RoundedRectangle(cornerRadius: 3))
-                Text(event.tool ?? event.kind.rawValue)
-                    .font(Tokens.Typography.mono(9.5, weight: .medium))
-                Spacer()
-                Text(EventFormatting.stamp(event.ts))
-                    .font(Tokens.Typography.mono(9.5))
-                    .foregroundStyle(Tokens.Palette.secondary)
-            }
-            Text(Sessions.shortID(event.sessionId))
-                .font(Tokens.Typography.mono(9))
-                .foregroundStyle(Tokens.Palette.secondary)
-            if let cwd = event.cwd {
-                Text(ProjectName.display(cwd))
-                    .font(Tokens.Typography.mono(9))
-                    .foregroundStyle(Tokens.Palette.secondary)
-                    .lineLimit(1)
-                    .truncationMode(.middle)
-            }
-        }
-    }
 
     private var riskSection: some View {
         VStack(alignment: .leading, spacing: 5) {
@@ -140,34 +153,24 @@ struct EventDetailView: View {
         .clipShape(RoundedRectangle(cornerRadius: Tokens.Metrics.radius))
     }
 
-    /// Commands keep one line and scroll sideways; prose wraps.
-    private func textSection(_ title: String, _ text: String, field: String, wraps: Bool) -> some View {
+    /// Everything wraps. A command is the reason the window exists, so it gets the
+    /// whole column and as many lines as it needs.
+    private func textSection(_ title: String, _ text: String, field: String) -> some View {
         VStack(alignment: .leading, spacing: 5) {
             HStack {
                 SectionLabel(text: title)
                 Spacer()
                 copyButton(field, text)
             }
-            Group {
-                if wraps {
-                    Text(text)
-                        .font(Tokens.Typography.text(11))
-                        .textSelection(.enabled)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                } else {
-                    ScrollView(.horizontal, showsIndicators: true) {
-                        Text(text)
-                            .font(Tokens.Typography.mono(10.5))
-                            .textSelection(.enabled)
-                            .fixedSize(horizontal: true, vertical: false)
-                    }
-                }
-            }
-            .padding(8)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Tokens.Palette.surface.opacity(0.55))
-            .clipShape(RoundedRectangle(cornerRadius: 6))
+            Text(text)
+                .font(Tokens.Typography.mono(10.5))
+                .lineSpacing(2.5)
+                .textSelection(.enabled)
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(9)
+                .background(Tokens.Palette.surface.opacity(0.55))
+                .clipShape(RoundedRectangle(cornerRadius: 6))
         }
     }
 
@@ -183,6 +186,8 @@ struct EventDetailView: View {
                     Text(prefix(for: line.kind) + line.text)
                         .font(Tokens.Typography.mono(10))
                         .foregroundStyle(color(for: line.kind))
+                        .textSelection(.enabled)
+                        .fixedSize(horizontal: false, vertical: true)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(.horizontal, 6)
                         .padding(.vertical, 1)
@@ -201,8 +206,8 @@ struct EventDetailView: View {
                 Text(ProjectName.display(path))
                     .font(Tokens.Typography.mono(9.5))
                     .textSelection(.enabled)
-                    .lineLimit(1)
-                    .truncationMode(.middle)
+                    .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
             }
         }
     }
@@ -212,10 +217,11 @@ struct EventDetailView: View {
             Text(raw)
                 .font(Tokens.Typography.mono(9))
                 .textSelection(.enabled)
+                .fixedSize(horizontal: false, vertical: true)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(6)
         } label: {
-            SectionLabel(text: "Ham veri (maskeli)")
+            SectionLabel(text: L(.labelRaw))
         }
     }
 

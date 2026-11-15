@@ -50,17 +50,17 @@ struct TimelineView: View {
     var body: some View {
         NavigationSplitView {
             sidebar
-                .navigationSplitViewColumnWidth(min: 190, ideal: 230, max: 320)
+                .navigationSplitViewColumnWidth(min: 200, ideal: 240, max: 320)
         } content: {
             stream
-                .navigationSplitViewColumnWidth(min: 420, ideal: 560, max: 900)
+                .navigationSplitViewColumnWidth(min: 380, ideal: 620, max: 1100)
         } detail: {
             if let event = model.selectedEvent {
                 EventDetailView(event: event, onMute: onMute)
-                    .navigationSplitViewColumnWidth(min: 280, ideal: 380, max: 560)
+                    .navigationSplitViewColumnWidth(min: 340, ideal: 460, max: 720)
             } else {
                 detailPlaceholder
-                    .navigationSplitViewColumnWidth(min: 280, ideal: 380, max: 560)
+                    .navigationSplitViewColumnWidth(min: 340, ideal: 460, max: 720)
             }
         }
         // The paper palette is light-only, so pin the appearance: a dark system
@@ -171,7 +171,7 @@ struct TimelineView: View {
                 .foregroundStyle(Tokens.Palette.secondary)
         }
         .padding(.horizontal, 16)
-        .padding(.vertical, 12)
+        .padding(.vertical, 8)
     }
 
     private var filters: some View {
@@ -248,6 +248,10 @@ struct TimelineView: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        // The content column otherwise paints the window's default white over the
+        // paper background, which is what made the list look like a different
+        // surface than the detail beside it.
+        .background(Tokens.Palette.paper)
     }
 
     private var detailPlaceholder: some View {

@@ -47,6 +47,7 @@ struct TrailwardenApp: App {
 
 /// The menu bar item: a shield, plus today's critical count when there is one.
 private struct MenuBarLabel: View {
+    @Environment(\.openWindow) private var openWindow
     let criticalToday: Int
 
     var body: some View {
@@ -56,5 +57,14 @@ private struct MenuBarLabel: View {
                 Text("\(criticalToday)")
             }
         }
+        #if DEBUG
+        // Screenshots and UI checks need the window without a hand on the mouse;
+        // release builds never see this.
+        .task {
+            if ProcessInfo.processInfo.environment["TRAILWARDEN_OPEN_MAIN"] == "1" {
+                openWindow(id: "main")
+            }
+        }
+        #endif
     }
 }

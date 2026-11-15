@@ -37,7 +37,9 @@ struct FeedView: View {
                 .padding(.horizontal, 16)
                 .padding(.vertical, 12)
             }
+            .background(Tokens.Palette.paper)
         }
+        .background(Tokens.Palette.paper)
     }
 
     private var header: some View {
@@ -99,7 +101,8 @@ struct FeedView: View {
                 Text(time(item.time))
                     .font(Tokens.Typography.mono(9.5))
                     .foregroundStyle(Tokens.Palette.tertiary)
-                    .frame(width: 86, alignment: .leading)
+                    .fixedSize()
+                    .frame(width: 84, alignment: .leading)
 
                 Text(item.label)
                     .font(Tokens.Typography.mono(9))
@@ -114,16 +117,16 @@ struct FeedView: View {
                     Text(item.detail)
                         .font(Tokens.Typography.text(11))
                         .foregroundStyle(item.isMessage ? Tokens.Palette.secondary : Tokens.Palette.ink)
-                        .lineLimit(2)
+                        .lineLimit(3)
+                        .fixedSize(horizontal: false, vertical: true)
                         .multilineTextAlignment(.leading)
+                        .frame(maxWidth: .infinity, alignment: .leading)
                     if let rule = item.ruleMessage, let severity = item.severity {
                         Text(rule)
                             .font(Tokens.Typography.text(9.5))
                             .foregroundStyle(Tokens.Palette.severity(severity))
                     }
                 }
-
-                Spacer(minLength: 4)
 
                 if let severity = item.severity {
                     Circle()

@@ -44,7 +44,9 @@ final class FeedModel: ObservableObject {
                 since: startOfDay,
                 limit: 400,
                 includeRawJSON: false))
-            let items = ActivityDigest.items(from: events, limit: 400)
+            // The feed has the whole width of the window, so it can show more of
+            // each command than the 330-point panel can.
+            let items = ActivityDigest.items(from: events, limit: 400, detailLimit: 240)
             sections = Self.sections(from: items)
             actionCount = items.filter { !$0.isMessage }.count
             criticalCount = items.filter { $0.severity == .critical }.count
