@@ -9,6 +9,6 @@ import Foundation
 /// It only changes when a field is renamed or removed; additive fields do not
 /// bump it.
 public enum TrailwardenVersion {
-    public static let current = "0.1.0-dev"
+    public static let current = "0.1.0"
     public static let schema = 1
 }

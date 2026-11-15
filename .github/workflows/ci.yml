@@ -32,7 +32,7 @@ jobs:
       - name: Test
         run: swift test
 
-      # Trailwarden must never talk to the network. See docs/PRIVACY.md.
+      # Trailwarden must never talk to the network. See THREATMODEL.md.
       - name: No network APIs in Sources
         run: |
           set -euo pipefail

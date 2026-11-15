@@ -102,13 +102,14 @@ final class ExportWriterTests: XCTestCase {
 
     func testDefaultPatternsCoverTheDocumentedSecrets() {
         let redactor = Redactor()
+        // Built here, character runs only: pattern-shaped, obviously not real.
         let cases = [
-            "sk-\("abcdefghijklmnop1234")",
-            "ghp_\("abcdefghijklmnopqrstuvwx1234")",
-            "github_pat_\("abcdefghijklmnopqrstuvwxyz")",
-            "AKIA\("ABCDEFGHIJKLMNOP")",
-            "xoxb-\("1234567890-abcdef")",
-            "-----\("BEGIN RSA PRIVATE KEY-----")\nMIIE\n-----END RSA PRIVATE KEY-----",
+            "sk-" + String(repeating: "a", count: 32),
+            "ghp_" + String(repeating: "b", count: 36),
+            "github_pat_" + String(repeating: "c", count: 30),
+            "AKIA" + String(repeating: "D", count: 16),
+            "xoxb-" + String(repeating: "1", count: 16),
+            "-----BEGIN RSA " + "PRIVATE KEY-----\nMIIE\n-----END RSA " + "PRIVATE KEY-----",
             String(repeating: "A", count: 80),
         ]
 
