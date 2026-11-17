@@ -12,7 +12,7 @@ cask "trailwarden" do
 
   url "https://github.com/tnalbant/trailwarden/releases/download/v#{version}/Trailwarden-#{version}.dmg"
   name "Trailwarden"
-  desc "Offline audit trail for coding agents"
+  desc "Local audit trail for coding agents"
   homepage "https://github.com/tnalbant/trailwarden"
 
   depends_on macos: ">= :sonoma"

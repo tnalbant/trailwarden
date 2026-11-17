@@ -1,7 +1,7 @@
 {
   "name": "trailwarden-mcp",
   "version": "0.2.0",
-  "description": "Offline audit trail for coding agents (Claude Code, Codex, Gemini CLI, Hermes) exposed over MCP. No network code.",
+  "description": "Local audit trail for coding agents (Claude Code, Codex, Gemini CLI, opencode, Cursor, GitHub Copilot, Hermes) over MCP. Nothing leaves your Mac.",
   "license": "Apache-2.0",
   "author": "Turgay Nalbant",
   "homepage": "https://github.com/tnalbant/trailwarden",
@@ -36,7 +36,9 @@
     "audit",
     "claude-code",
     "codex",
-    "offline",
+    "cursor",
+    "copilot",
+    "local-first",
     "macos"
   ]
 }
