@@ -44,6 +44,8 @@ Rules are the easiest way in. Each one is an entry in
   shell appends to `~/.zshrc`" and "the edit tool rewrites `~/.zshrc`".
 - Shell patterns start with the shared command-start prefix (line start, after
   `;`, `&&`, `|`, `(`, or behind `sudo`), so `echo 'rm -rf /'` is not a delete.
+- Run `python3 scripts/embed-rules.py` afterwards: the rules are compiled into
+  the binaries from that file, and a test fails while the two differ.
 - Add the words in all six languages in `RuleLocalization+Added.swift`.
 - Add rows to `RuleCatalogExpansionTests`: commands that must match **and**
   near-misses that must not. A rule without a negative case is not reviewable.

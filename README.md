@@ -16,7 +16,7 @@ small JSON file on the newest GitHub release, made when you click it or, if you
 turn it on in Settings, at most weekly or monthly (off by default) — and CI fails
 if a network API shows up anywhere else in `Sources/`.
 
-> Status: **v0.2.0** — live guard, 27 rules, agent blame, report card, CI gate.
+> Status: **v0.2.1** — live guard, 27 rules, agent blame, report card, CI gate.
 > Interface in English (US), Turkish, German, Spanish, Italian and French.
 
 ![Report card](docs/screenshots/report-light.png)
@@ -121,7 +121,8 @@ them, and does not modify their files. It reads `~/.claude`, `~/.codex`, `~/.gem
 | `npm install -g trailwarden-mcp` | MCP server | with each release |
 | `git clone … && make install` | CLI + MCP server | works today |
 
-See [docs/INSTALL.md](docs/INSTALL.md) for each method, including how to wire
+Recent Homebrew asks you to trust a third-party tap once:
+`brew trust tnalbant/trailwarden`. See [docs/INSTALL.md](docs/INSTALL.md) for each method, including how to wire
 the MCP server into a client.
 
 ## Requirements

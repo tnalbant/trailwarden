@@ -18,7 +18,7 @@ Ayarlar'dan açarsan en fazla haftada veya ayda bir de kendiliğinden yapılır
 (varsayılan olarak kapalıdır). `Sources/` altında başka herhangi bir yerde ağ API'si
 görünürse CI başarısız olur.
 
-> Durum: **v0.2.0** — canlı bekçi, 27 kural, ajan izi, karne, CI kapısı.
+> Durum: **v0.2.1** — canlı bekçi, 27 kural, ajan izi, karne, CI kapısı.
 > Arayüz İngilizce (ABD), Türkçe, Almanca, İspanyolca, İtalyanca ve Fransızca.
 
 ![Karne](docs/screenshots/report-light.tr.png)
@@ -129,7 +129,8 @@ tutar.
 | `npm install -g trailwarden-mcp` | MCP sunucusu | her sürümle |
 | `git clone … && make install` | CLI + MCP sunucusu | bugün çalışır |
 
-Her yöntemin ayrıntısı ve MCP sunucusunu bir istemciye bağlama için
+Yeni Homebrew, üçüncü taraf bir tap'e bir kez güvenmeni ister:
+`brew trust tnalbant/trailwarden`. Her yöntemin ayrıntısı ve MCP sunucusunu bir istemciye bağlama için
 [docs/INSTALL.tr.md](docs/INSTALL.tr.md) dosyasına bak.
 
 ## Gereksinimler

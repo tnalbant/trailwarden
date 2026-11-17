@@ -10,4 +10,4 @@
 --stripunusedargs closure-only
 --commas inline
 --self remove
---exclude .build,Trailwarden.xcodeproj,docs
+--exclude .build,Trailwarden.xcodeproj,docs,Sources/TrailwardenCore/Rules/BuiltInRules.swift

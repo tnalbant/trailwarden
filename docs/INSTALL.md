@@ -23,6 +23,7 @@ command line tools (Swift 6).
 ## 1. Homebrew cask (own tap)
 
 ```bash
+brew trust tnalbant/trailwarden          # once: recent Homebrew asks before loading a third-party tap
 brew install --cask tnalbant/trailwarden/trailwarden
 ```
 

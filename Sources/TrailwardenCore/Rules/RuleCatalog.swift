@@ -5,12 +5,11 @@ import Foundation
 
 /// Loads the built-in rule set and merges user overrides on top of it.
 public enum RuleCatalog {
-    /// Rules shipped inside the module's resource bundle.
+    /// Rules compiled into the binary (`BuiltInRules`, generated from
+    /// `Resources/rules.json`). No resource bundle is involved, so a tool copied
+    /// on its own — by Homebrew, npm or `make install` — still has its rules.
     public static func builtIn() throws -> [Rule] {
-        guard let url = Bundle.module.url(forResource: "rules", withExtension: "json") else {
-            throw RuleError.missingCatalog
-        }
-        return try load(from: url)
+        try decode(Data(BuiltInRules.json.utf8))
     }
 
     public static func load(from url: URL) throws -> [Rule] {

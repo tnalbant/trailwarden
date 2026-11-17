@@ -30,7 +30,8 @@ let package = Package(
         .target(
             name: "TrailwardenCore",
             dependencies: ["CZstd"],
-            resources: [.process("Resources")]),
+            // rules.json is compiled in (Rules/BuiltInRules.swift), not bundled.
+            exclude: ["Resources"]),
         .executableTarget(
             name: "TrailwardenCLI",
             dependencies: [
