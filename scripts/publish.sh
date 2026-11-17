@@ -89,7 +89,7 @@ if [[ $DO_TAP -eq 1 ]]; then
   TAR_SHA="$(curl -sL "https://github.com/tnalbant/trailwarden/archive/refs/tags/v$VERSION.tar.gz" | shasum -a 256 | cut -d' ' -f1)"
   sed -i '' "s/^  version .*/  version \"$VERSION\"/; s/^  sha256 .*/  sha256 \"$DMG_SHA\"/" \
     "$TAP_DIR/Casks/trailwarden.rb"
-  sed -i '' "s|/v[0-9.]*/tar.gz|/v$VERSION.tar.gz|; s/^  sha256 .*/  sha256 \"$TAR_SHA\"/" \
+  sed -i '' "s|/v[0-9.]*\\.tar\\.gz|/v$VERSION.tar.gz|; s/^  sha256 .*/  sha256 \"$TAR_SHA\"/" \
     "$TAP_DIR/Formula/trailwarden-cli.rb"
   ( cd "$TAP_DIR" && git add -A && git commit -m "trailwarden $VERSION" && git push )
 fi
