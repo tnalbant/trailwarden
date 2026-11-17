@@ -173,7 +173,7 @@ public struct MCPRouter: @unchecked Sendable {
                 }
                 if !event.risk.isEmpty {
                     row["findings"] = event.risk.map {
-                        ["rule": $0.ruleId, "severity": $0.severity.rawValue, "message": $0.message]
+                        ["rule": $0.ruleId, "severity": $0.severity.rawValue, "message": $0.englishMessage]
                     }
                 }
                 return row
@@ -238,7 +238,7 @@ public struct MCPRouter: @unchecked Sendable {
                 row["paths"] = event.paths
             }
             row["findings"] = event.risk.map {
-                ["rule": $0.ruleId, "severity": $0.severity.rawValue, "message": $0.message]
+                ["rule": $0.ruleId, "severity": $0.severity.rawValue, "message": $0.englishMessage]
             }
             return Self.text(id, row)
         } catch {

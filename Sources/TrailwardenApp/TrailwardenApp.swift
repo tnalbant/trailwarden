@@ -90,6 +90,9 @@ private struct MenuBarLabel: View {
             if ProcessInfo.processInfo.environment["TRAILWARDEN_OPEN_REPORT"] == "1" {
                 openWindow(id: "report")
             }
+            if ProcessInfo.processInfo.environment["TRAILWARDEN_OPEN_USAGE"] == "1" {
+                openWindow(id: "usage")
+            }
             if ProcessInfo.processInfo.environment["TRAILWARDEN_CHECK_UPDATES"] == "1" {
                 await updates.check()
                 print("[updates] state=\(updates.state)")

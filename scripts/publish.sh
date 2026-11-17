@@ -10,7 +10,9 @@
 #   scripts/publish.sh --npm                # npm publish trailwarden-mcp
 #   scripts/publish.sh --all --yes
 #
-# The tag is created only if the working tree is clean and the gate passes.
+# The tag is created only if the working tree is clean and, when RELEASE_GATE
+# names an extra pre-release check (a script run as `$RELEASE_GATE . --fast`),
+# that check passes.
 
 set -euo pipefail
 cd "$(dirname "$0")/.."
@@ -35,36 +37,38 @@ for arg in "$@"; do
     --npm) DO_NPM=1 ;;
     --all) DO_RELEASE=1; DO_TAP=1; DO_NPM=1 ;;
     --yes) CONFIRMED=1 ;;
-    *) echo "bilinmeyen argüman: $arg" >&2; exit 2 ;;
+    *) echo "unknown argument: $arg" >&2; exit 2 ;;
   esac
 done
 
 if [[ $((DO_RELEASE + DO_TAP + DO_NPM)) -eq 0 ]]; then
-  echo "hiçbir adım seçilmedi. Örnek: scripts/publish.sh --release --yes" >&2
+  echo "no step selected. Example: scripts/publish.sh --release --yes" >&2
   exit 2
 fi
 
-echo "== yayın öncesi kontrol =="
+echo "== pre-release checks =="
 if [[ -n "$(git status --porcelain)" ]]; then
-  echo "HATA: çalışma ağacı temiz değil." >&2
+  echo "ERROR: the working tree is not clean." >&2
   exit 1
 fi
-python3 "$HOME/Desktop/OSS-Motoru/motor/yayin_kapisi.py" . --fast || {
-  echo "HATA: yayın kapısı geçmedi." >&2
-  exit 1
-}
+if [[ -n "${RELEASE_GATE:-}" ]]; then
+  python3 "$RELEASE_GATE" . --fast || {
+    echo "ERROR: the release gate did not pass." >&2
+    exit 1
+  }
+fi
 for file in "$DMG" "$TARBALL" "$SUMS" "$FEED" docs/RELEASE_NOTES.md; do
-  [[ -f "$file" ]] || { echo "HATA: eksik dosya: $file (önce scripts/release.sh)" >&2; exit 1; }
+  [[ -f "$file" ]] || { echo "ERROR: missing file: $file (run scripts/release.sh first)" >&2; exit 1; }
 done
 
 if [[ $CONFIRMED -eq 0 ]]; then
   echo
-  echo "deneme (dry run) — yapılacaklar:"
-  [[ $DO_RELEASE -eq 1 ]] && echo "  · git tag v$VERSION + push + gh release create ile 4 dosya yükle (latest.json dahil)"
-  [[ $DO_TAP -eq 1 ]] && echo "  · $TAP_DIR içinde cask/formula sha256 güncelle + push"
+  echo "dry run — would do:"
+  [[ $DO_RELEASE -eq 1 ]] && echo "  · git tag v$VERSION + push + gh release create with 4 files (latest.json included)"
+  [[ $DO_TAP -eq 1 ]] && echo "  · update cask/formula sha256 in $TAP_DIR + push"
   [[ $DO_NPM -eq 1 ]] && echo "  · npm publish packaging/npm (public)"
   echo
-  echo "uygulamak için sonuna --yes ekle."
+  echo "add --yes to run it."
   exit 0
 fi
 
@@ -79,8 +83,8 @@ if [[ $DO_RELEASE -eq 1 ]]; then
 fi
 
 if [[ $DO_TAP -eq 1 ]]; then
-  echo "== tap güncellemesi =="
-  [[ -d "$TAP_DIR/.git" ]] || { echo "HATA: tap deposu yok: $TAP_DIR" >&2; exit 1; }
+  echo "== tap update =="
+  [[ -d "$TAP_DIR/.git" ]] || { echo "ERROR: no tap repository at $TAP_DIR" >&2; exit 1; }
   DMG_SHA="$(shasum -a 256 "$DMG" | cut -d' ' -f1)"
   TAR_SHA="$(curl -sL "https://github.com/tnalbant/trailwarden/archive/refs/tags/v$VERSION.tar.gz" | shasum -a 256 | cut -d' ' -f1)"
   sed -i '' "s/^  version .*/  version \"$VERSION\"/; s/^  sha256 .*/  sha256 \"$DMG_SHA\"/" \
@@ -95,4 +99,4 @@ if [[ $DO_NPM -eq 1 ]]; then
   ( cd packaging/npm && npm publish --access public )
 fi
 
-echo "bitti."
+echo "done."

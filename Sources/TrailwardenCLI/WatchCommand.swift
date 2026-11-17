@@ -114,7 +114,7 @@ private final class WatchSession: @unchecked Sendable {
             "agent": event.agent.rawValue,
             "session": event.sessionId,
             "findings": event.risk.map {
-                ["rule": $0.ruleId, "severity": $0.severity.rawValue, "message": $0.message]
+                ["rule": $0.ruleId, "severity": $0.severity.rawValue, "message": $0.englishMessage]
             }
         ]
         if let command = event.command {

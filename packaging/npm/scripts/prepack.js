@@ -15,11 +15,11 @@ const targetDir = path.join(__dirname, "..", "vendor");
 const target = path.join(targetDir, "trailwarden-mcp");
 
 if (!fs.existsSync(source)) {
-  console.error("prepack: önce `swift build -c release --product trailwarden-mcp` çalıştır.");
+  console.error("prepack: run `swift build -c release --product trailwarden-mcp` first.");
   process.exit(1);
 }
 
 fs.mkdirSync(targetDir, { recursive: true });
 fs.copyFileSync(source, target);
 fs.chmodSync(target, 0o755);
-console.log(`prepack: ${path.relative(root, target)} hazır`);
+console.log(`prepack: ${path.relative(root, target)} ready`);

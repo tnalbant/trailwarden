@@ -136,7 +136,7 @@ public enum MarkdownReport {
             lines.append("|---|---|---|---|---|---|")
             for event in findings {
                 for hit in event.risk.sorted(by: { $0.severity > $1.severity }) {
-                    let detail = event.command ?? event.preview ?? hit.message
+                    let detail = event.command ?? event.preview ?? hit.englishMessage
                     lines.append(
                         "| \(timestamp(event.ts)) | \(event.agent.rawValue) | \(cell(event.tool ?? "-")) | "
                             + "\(hit.ruleId) | \(hit.severity.rawValue) | \(cell(detail, limit: 80)) |")
@@ -324,7 +324,7 @@ public enum JSONReport {
                     paths: safe.paths,
                     preview: safe.preview,
                     risk: safe.risk.map {
-                        .init(ruleId: $0.ruleId, severity: $0.severity.rawValue, message: $0.message)
+                        .init(ruleId: $0.ruleId, severity: $0.severity.rawValue, message: $0.englishMessage)
                     })
             })
     }

@@ -36,7 +36,7 @@ echo "   output: $OUT"
 if [[ -n "$DEVELOPER_ID" ]]; then
   echo "   identity: $DEVELOPER_ID"
 else
-  echo "   identity: yok — imzasız derleme (Gatekeeper uyarır)"
+  echo "   identity: none — unsigned build (Gatekeeper will warn)"
 fi
 
 mkdir -p "$OUT"
@@ -50,7 +50,7 @@ echo "== building app (Release) =="
 # does not have; codesign gives the same result with fewer moving parts.
 if ! xcodebuild -project Trailwarden.xcodeproj -scheme Trailwarden -configuration Release \
   -derivedDataPath "$OUT" CODE_SIGNING_ALLOWED=NO build > "$OUT/build.log" 2>&1; then
-  echo "HATA: derleme başarısız — ayrıntı: $OUT/build.log" >&2
+  echo "ERROR: build failed — see $OUT/build.log" >&2
   grep -E "error:" "$OUT/build.log" | head -10 >&2
   exit 1
 fi
@@ -61,15 +61,15 @@ if [[ -n "$DEVELOPER_ID" ]]; then
   codesign --verify --strict --verbose=2 "$APP"
 
   if [[ -n "${NOTARY_PROFILE:-}" ]]; then
-    echo "== notarizing (bu birkaç dakika sürebilir) =="
+    echo "== notarizing (this can take a few minutes) =="
     rm -f "$ZIP"
     ditto -c -k --keepParent "$APP" "$ZIP"
     xcrun notarytool submit "$ZIP" --keychain-profile "$NOTARY_PROFILE" --wait
     xcrun stapler staple "$APP"
-    echo "== gatekeeper kontrolü =="
+    echo "== gatekeeper check =="
     spctl -a -vv "$APP"
   else
-    echo "   not: NOTARY_PROFILE verilmedi — notarization atlandı"
+    echo "   note: no NOTARY_PROFILE — notarization skipped"
   fi
 fi
 
@@ -106,7 +106,7 @@ echo "== update feed =="
 # the first paragraph of docs/RELEASE_NOTES.md — and the release page.
 NOTES_FILE="docs/RELEASE_NOTES.md"
 if [[ ! -f "$NOTES_FILE" ]]; then
-  echo "HATA: $NOTES_FILE yok — sürüm notları olmadan yayın yapılmaz." >&2
+  echo "ERROR: $NOTES_FILE is missing — no release without release notes." >&2
   exit 1
 fi
 python3 - "$VERSION" "$NOTES_FILE" "$OUT/latest.json" <<'PY'
@@ -135,13 +135,13 @@ echo "== checksums =="
 ( cd "$OUT" && shasum -a 256 "$(basename "$DMG")" "$(basename "$TARBALL")" latest.json | tee SHA256SUMS )
 
 echo
-echo "hazır:"
+echo "ready:"
 echo "  $DMG"
 echo "  $TARBALL"
 echo "  $OUT/latest.json"
 echo "  $OUT/SHA256SUMS"
 if [[ -z "$DEVELOPER_ID" ]]; then
   echo
-  echo "not: imzasız derleme. Developer ID Application sertifikası kurulunca"
-  echo "     NOTARY_PROFILE=trailwarden scripts/release.sh ile imzalı+notarized üretilir."
+  echo "note: unsigned build. With a Developer ID Application certificate installed,"
+  echo "      NOTARY_PROFILE=trailwarden scripts/release.sh produces a signed, notarized one."
 fi

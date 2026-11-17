@@ -6,12 +6,12 @@ PREFIX ?= /usr/local
 .PHONY: help build test install uninstall app run release clean
 
 help:
-	@echo "make build     - CLI ve MCP ikili dosyalarini derle"
-	@echo "make test      - testleri kos"
-	@echo "make install   - CLI + MCP dosyalarini $(PREFIX)/bin icine kur"
-	@echo "make app       - masaustu uygulamasini derle (Release)"
-	@echo "make run       - uygulamayi ac"
-	@echo "make release   - DMG + tarball + sha256 uret (scripts/release.sh)"
+	@echo "make build     - build the CLI and MCP binaries"
+	@echo "make test      - run the tests"
+	@echo "make install   - install the CLI + MCP into $(PREFIX)/bin"
+	@echo "make app       - build the menu bar app (Release)"
+	@echo "make run       - build and open the app"
+	@echo "make release   - DMG + tarball + sha256 (scripts/release.sh)"
 
 build:
 	swift build -c release
@@ -23,7 +23,7 @@ install: build
 	install -d $(PREFIX)/bin
 	install -m 755 .build/release/trailwarden $(PREFIX)/bin/trailwarden
 	install -m 755 .build/release/trailwarden-mcp $(PREFIX)/bin/trailwarden-mcp
-	@echo "kuruldu: $(PREFIX)/bin/trailwarden"
+	@echo "installed: $(PREFIX)/bin/trailwarden"
 
 uninstall:
 	rm -f $(PREFIX)/bin/trailwarden $(PREFIX)/bin/trailwarden-mcp

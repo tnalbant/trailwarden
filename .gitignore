@@ -31,3 +31,6 @@ build/
 # Editors
 .vscode/
 .idea/
+
+# Built at pack time by packaging/npm/scripts/prepack.js; never committed.
+packaging/npm/vendor/
