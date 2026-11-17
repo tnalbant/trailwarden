@@ -48,6 +48,8 @@ Kurallar işe girmenin en kolay yoludur. Her kural,
 - Kabuk desenleri ortak komut başlangıcı önekiyle başlar (satır başı, `;`,
   `&&`, `|`, `(` sonrası ya da `sudo` ardı), böylece `echo 'rm -rf /'` bir silme
   sayılmaz.
+- Ardından `python3 scripts/embed-rules.py` çalıştır: kurallar bu dosyadan
+  programın içine derlenir; ikisi farklıyken bir test başarısız olur.
 - Metinleri altı dilde de `RuleLocalization+Added.swift` içine ekle.
 - `RuleCatalogExpansionTests` içine satırlar ekle: eşleşmesi gereken komutlar
   **ve** eşleşmemesi gereken yakın örnekler. Olumsuz örneği olmayan bir kural

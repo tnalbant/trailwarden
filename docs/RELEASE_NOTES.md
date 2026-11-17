@@ -1,4 +1,13 @@
 <!-- SPDX-License-Identifier: Apache-2.0 -->
+# Trailwarden 0.2.1
+
+The command line tool and the MCP server now carry their rules inside the binary, so the Homebrew, release-tarball, npm and `make install` builds work on their own. Everything new in 0.2.0 is listed below.
+
+## Fixed
+
+- `trailwarden` and `trailwarden-mcp` installed without the app stopped with "unable to find bundle named Trailwarden_TrailwardenCore" the first time they checked a rule: the rules lived in a resource bundle that only the app carried. They are compiled in now (`scripts/embed-rules.py`), and a test keeps them identical to `rules.json`.
+- The Homebrew formula asks for Xcode 16, which the Swift 6 package needs.
+
 # Trailwarden 0.2.0
 
 Trailwarden now watches your agents live and tells you within seconds when one runs something risky, shows which agent touched a file, and sums up a month of agent work on one page.

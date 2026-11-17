@@ -1,6 +1,6 @@
 {
   "name": "trailwarden-mcp",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Local audit trail for coding agents (Claude Code, Codex, Gemini CLI, opencode, Cursor, GitHub Copilot, Hermes) over MCP. Nothing leaves your Mac.",
   "license": "Apache-2.0",
   "author": "Turgay Nalbant",

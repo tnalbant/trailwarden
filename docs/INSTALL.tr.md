@@ -23,6 +23,7 @@ satırı araçları (Swift 6) gerekir.
 ## 1. Homebrew cask (kendi tap'i)
 
 ```bash
+brew trust tnalbant/trailwarden          # bir kez: yeni Homebrew üçüncü taraf tap'leri yüklemeden önce onay ister
 brew install --cask tnalbant/trailwarden/trailwarden
 ```
 

@@ -7,6 +7,7 @@ included:
 excluded:
   - .build
   - Trailwarden.xcodeproj
+  - Sources/TrailwardenCore/Rules/BuiltInRules.swift   # generated from rules.json
 
 # Formatting is swiftformat's job; lint is about things a machine cannot decide.
 disabled_rules:
