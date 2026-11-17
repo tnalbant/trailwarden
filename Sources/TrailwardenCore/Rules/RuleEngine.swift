@@ -16,13 +16,27 @@ import Foundation
 /// Hits are de-duplicated per `(rule, session, normalized command)` and muted
 /// pairs are dropped, so the timeline shows one entry per situation.
 public struct RuleEngine: Sendable {
+    /// One `RuleMatch`, compiled. Alternatives are compiled the same way, so an
+    /// `anyOf` entry has exactly the semantics of a top-level match.
+    private struct CompiledMatch: @unchecked Sendable {
+        let tools: [String]
+        let commandRegex: NSRegularExpression?
+        let globs: [NSRegularExpression]
+        let excludes: [NSRegularExpression]
+        let anyOf: [CompiledMatch]
+
+        /// A match with no condition at all would flag every event; such a rule
+        /// is skipped instead.
+        var isEmpty: Bool {
+            commandRegex == nil && globs.isEmpty && anyOf.isEmpty
+        }
+    }
+
     private struct CompiledRule: @unchecked Sendable {
         let id: String
         let severity: Severity
         let message: String
-        let tool: String?
-        let commandRegex: NSRegularExpression?
-        let globs: [NSRegularExpression]
+        let match: CompiledMatch
     }
 
     public let rules: [Rule]
@@ -35,25 +49,8 @@ public struct RuleEngine: Sendable {
 
         var compiled: [CompiledRule] = []
         for rule in rules where rule.isEnabled {
-            var regex: NSRegularExpression?
-            if let pattern = rule.match.commandRegex {
-                guard let expression = try? NSRegularExpression(
-                    pattern: pattern,
-                    options: [.caseInsensitive])
-                else {
-                    throw RuleError.invalidPattern(rule.id)
-                }
-                regex = expression
-            }
-            var globs: [NSRegularExpression] = []
-            for pattern in rule.match.pathGlobs ?? [] {
-                let normalized = Self.normalizeGlob(pattern)
-                guard let expression = Glob.regex(for: normalized) else {
-                    throw RuleError.invalidGlob(ruleId: rule.id, pattern: pattern)
-                }
-                globs.append(expression)
-            }
-            if regex == nil, globs.isEmpty {
+            let match = try Self.compile(rule.match, ruleId: rule.id)
+            if match.isEmpty {
                 continue
             }
             compiled.append(
@@ -61,11 +58,65 @@ public struct RuleEngine: Sendable {
                     id: rule.id,
                     severity: rule.severity,
                     message: rule.message,
-                    tool: rule.match.tool,
-                    commandRegex: regex,
-                    globs: globs))
+                    match: match))
         }
         self.compiled = compiled
+    }
+
+    private static func compile(_ match: RuleMatch, ruleId: String) throws -> CompiledMatch {
+        var regex: NSRegularExpression?
+        if let pattern = match.commandRegex {
+            guard let expression = try? NSRegularExpression(
+                pattern: pattern,
+                // `^` matches at every line: a multi-line script is a list of
+                // commands, and the second line runs just like the first.
+                options: [.caseInsensitive, .anchorsMatchLines])
+            else {
+                throw RuleError.invalidPattern(ruleId)
+            }
+            regex = expression
+        }
+        func globs(_ patterns: [String]?) throws -> [NSRegularExpression] {
+            try (patterns ?? []).map { pattern in
+                guard let expression = Glob.regex(for: normalizeGlob(pattern)) else {
+                    throw RuleError.invalidGlob(ruleId: ruleId, pattern: pattern)
+                }
+                return expression
+            }
+        }
+        return try CompiledMatch(
+            tools: match.tool.map { $0.split(separator: "|").map(String.init) } ?? [],
+            commandRegex: regex,
+            globs: globs(match.pathGlobs),
+            excludes: globs(match.excludePathGlobs),
+            anyOf: (match.anyOf ?? []).map { try compile($0, ruleId: ruleId) })
+    }
+
+    private static func evaluate(
+        _ match: CompiledMatch,
+        tool: String?,
+        texts: [String],
+        candidates: [String]) -> Bool
+    {
+        if !match.tools.isEmpty, !match.tools.contains(where: { toolMatches($0, tool) }) {
+            return false
+        }
+        if let regex = match.commandRegex {
+            guard texts.contains(where: { matches(regex, $0) }) else { return false }
+        }
+        if !match.globs.isEmpty {
+            let matched = candidates.contains { candidate in
+                match.globs.contains { Glob.matches($0, candidate) }
+                    && !match.excludes.contains { Glob.matches($0, candidate) }
+            }
+            guard matched else { return false }
+        }
+        if !match.anyOf.isEmpty {
+            return match.anyOf.contains {
+                evaluate($0, tool: tool, texts: texts, candidates: candidates)
+            }
+        }
+        return true
     }
 
     /// Built-in catalogue with no mutes. Used by the CLI and by tests.
@@ -76,23 +127,20 @@ public struct RuleEngine: Sendable {
     // MARK: - Evaluation
 
     public func hits(for event: Event, now: Date = Date()) -> [RiskHit] {
-        let texts = [event.command, event.preview].compactMap(\.self).filter { !$0.isEmpty }
+        // Heredoc bodies are file content (`cat > x <<EOF`), not commands — unless
+        // they are fed to a shell, which `withoutHeredocBodies` keeps.
+        let texts = [event.command, event.preview].compactMap(\.self)
+            .filter { !$0.isEmpty }
+            .map(Self.withoutHeredocBodies)
         let candidates = Self.pathCandidates(for: event)
         let target = Self.target(for: event)
 
+        let tool = Self.canonicalTool(event.tool)
+
         var result: [RiskHit] = []
         for rule in compiled {
-            if let tool = rule.tool, !Self.toolMatches(tool, Self.canonicalTool(event.tool)) {
+            guard Self.evaluate(rule.match, tool: tool, texts: texts, candidates: candidates) else {
                 continue
-            }
-            if let regex = rule.commandRegex {
-                guard texts.contains(where: { Self.matches(regex, $0) }) else { continue }
-            }
-            if !rule.globs.isEmpty {
-                let matched = candidates.contains { candidate in
-                    rule.globs.contains { Glob.matches($0, candidate) }
-                }
-                guard matched else { continue }
             }
             if isMuted(rule.id, target: target, now: now) {
                 continue
@@ -157,13 +205,15 @@ public struct RuleEngine: Sendable {
         guard let tool else { return nil }
         switch tool {
         case "run_shell_command", "shell", "bash", "exec", "exec_command", "local_shell",
-             "terminal", "list_directory", "glob", "grep_search":
+             "terminal", "list_directory", "glob", "grep_search", "run_terminal_command_v2",
+             "run_terminal_cmd", "powershell":
             return "Bash"
-        case "read_file", "read_many_files", "read":
+        case "read_file", "read_many_files", "read", "view", "read_file_v2":
             return "Read"
-        case "write_file", "write", "create_file", "apply_patch":
+        case "write_file", "write", "create_file", "apply_patch", "create":
             return "Write"
-        case "replace", "edit", "edit_file", "str_replace", "apply_diff":
+        case "replace", "edit", "edit_file", "str_replace", "apply_diff", "patch", "MultiEdit",
+             "NotebookEdit", "edit_file_v2", "search_replace", "str_replace_editor":
             return "Edit"
         default:
             return tool
@@ -187,10 +237,44 @@ public struct RuleEngine: Sendable {
     /// a path.
     static func pathCandidates(for event: Event) -> [String] {
         var values = event.paths
-        if let command = event.command {
-            values.append(contentsOf: tokens(in: command))
+        // An edit tool's "command" is the patch text — file content, not paths.
+        // Its structured paths already say which files it touched.
+        let tool = canonicalTool(event.tool)
+        let isEdit = tool == "Write" || tool == "Edit"
+        if let command = event.command, !(isEdit && !event.paths.isEmpty) {
+            values.append(contentsOf: tokens(in: withoutHeredocBodies(command)))
         }
         return values.map(normalizePathToken).filter { !$0.isEmpty }
+    }
+
+    /// `cat > x.py <<'EOF' … EOF` carries a file's content, and content that
+    /// mentions `id_rsa` or `rm -rf ~` is not a command that does it. Only the
+    /// heredoc body is dropped; the command line around it still counts. A body
+    /// fed to a shell (`bash <<EOF`, `ssh host <<EOF`) is a script and stays.
+    private static let heredoc = try? NSRegularExpression(
+        pattern: #"<<-?[ \t]*(['"]?)(\w+)\1[^\n]*\n[\s\S]*?\n[ \t]*\2[ \t]*(?=\n|$)"#)
+    private static let shellBeforeHeredoc = try? NSRegularExpression(
+        pattern: #"\b(?:(?:ba|z|da|k)?sh|ssh|sudo)\b[^\n;&|]*$"#)
+
+    static func withoutHeredocBodies(_ command: String) -> String {
+        guard command.contains("<<"), let heredoc else { return command }
+        var result = command
+        let range = NSRange(result.startIndex..., in: result)
+        for match in heredoc.matches(in: result, range: range).reversed() {
+            guard let found = Range(match.range, in: result),
+                  let name = Range(match.range(at: 2), in: result)
+            else { continue }
+            let lineStart = result[..<found.lowerBound].lastIndex(of: "\n").map { result.index(after: $0) }
+                ?? result.startIndex
+            let lead = String(result[lineStart ..< found.lowerBound])
+            if let shell = shellBeforeHeredoc,
+               shell.firstMatch(in: lead, range: NSRange(lead.startIndex..., in: lead)) != nil
+            {
+                continue
+            }
+            result.replaceSubrange(found, with: "<<" + result[name])
+        }
+        return result
     }
 
     static func tokens(in command: String) -> [String] {
@@ -220,6 +304,13 @@ public struct RuleEngine: Sendable {
         }
         if value.hasPrefix("$HOME") {
             return "~" + value.dropFirst("$HOME".count)
+        }
+        // Edit tools record absolute paths (`/Users/demo/.zshrc`); rules are written
+        // against `~` so they hold on every machine.
+        for root in ["/Users/", "/home/"] where value.hasPrefix(root) {
+            let rest = value.dropFirst(root.count)
+            guard let slash = rest.firstIndex(of: "/") else { return "~" }
+            return "~" + rest[slash...]
         }
         return value
     }

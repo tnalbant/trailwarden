@@ -60,6 +60,19 @@ public enum UIString: String, CaseIterable, Sendable {
     case onboardingTitle, onboardingPrivacy
     // Small words
     case axisDay, quit, missingFolder
+    // Live guard
+    case liveGuard, liveGuardHint, liveOn, liveOff, liveNotifyFor, liveCriticalOnly, liveWarnAndCritical
+    case liveNotificationsDenied, liveMoreFindings
+    // Report card
+    case windowReport, reportTitle, reportWork, reportCommands, reportEdits, reportReads, reportFilesChanged
+    case reportWorthALook, reportNoFindings, reportByAgent, reportHotFiles, reportRules, reportCopySummary
+    case reportSummaryHint, reportEmpty, reportShareTitle, reportShareFiles, reportShareFindings
+    case reportShareFooter, reportOpen
+    // File history in the detail pane
+    case whoTouched, whoNone
+    // Scheduled update check
+    case updateSchedule, updateScheduleNever, updateScheduleWeekly, updateScheduleMonthly
+    case updateScheduleHint, updateLastChecked, updateNeverChecked, updateNotificationTitle
 }
 
 public enum UITranslations {
@@ -178,7 +191,7 @@ public enum UITranslations {
         .exportRange: "Last 30 days",
         .exportHint: "Same content as `trailwarden export` on the command line: redacted, your user name shortened to `~`, file mode 600.",
         .privacySection: "Privacy",
-        .privacyText: "No network access. Nothing leaves this Mac; an export only writes to the file you pick.",
+        .privacyText: "Nothing about your agents leaves this Mac. The only network request is the update check — when you click it, or on the schedule above. An export only writes to the file you pick.",
         .privacyBadge: "A redacted audit record will be written",
         .settingsVersion: "v%@ · %d events · %d sessions",
 
@@ -204,6 +217,47 @@ public enum UITranslations {
 
         .axisDay: "Day",
         .quit: "Quit",
-        .missingFolder: "missing"
+        .missingFolder: "missing",
+
+        .liveGuard: "Live guard",
+        .liveGuardHint: "Re-reads a transcript the moment an agent writes to it and notifies you about risky commands. Nothing leaves the Mac.",
+        .liveOn: "Live",
+        .liveOff: "Live guard off",
+        .liveNotifyFor: "Notify for",
+        .liveCriticalOnly: "Critical only",
+        .liveWarnAndCritical: "Warnings too",
+        .liveNotificationsDenied: "Notifications are turned off for Trailwarden in System Settings.",
+        .liveMoreFindings: "%d more findings — open Trailwarden to see them",
+        .windowReport: "Report",
+        .reportTitle: "Your agents, last %d days",
+        .reportWork: "%d tool calls in %d sessions across %d projects",
+        .reportCommands: "commands",
+        .reportEdits: "edits",
+        .reportReads: "reads",
+        .reportFilesChanged: "files changed",
+        .reportWorthALook: "Worth a look",
+        .reportNoFindings: "Nothing risky in this window.",
+        .reportByAgent: "Who did the work",
+        .reportHotFiles: "Most-changed files",
+        .reportRules: "Rules that fired",
+        .reportCopySummary: "Copy summary",
+        .reportSummaryHint: "The summary holds counts and rule names only — no commands, paths or project names.",
+        .reportEmpty: "No agent activity in this window yet. Run a scan, or wait for the live guard.",
+        .reportShareTitle: "My coding agents, last %d days",
+        .reportShareFiles: "%d files changed",
+        .reportShareFindings: "%d critical, %d warnings",
+        .reportShareFooter: "Audited locally with Trailwarden — github.com/tnalbant/trailwarden",
+        .reportOpen: "Open in timeline",
+        .whoTouched: "Other agents on this file",
+        .whoNone: "No other agent touched it.",
+
+        .updateSchedule: "Automatic update check",
+        .updateScheduleNever: "Off",
+        .updateScheduleWeekly: "Weekly",
+        .updateScheduleMonthly: "Monthly",
+        .updateScheduleHint: "Off by default. When on, Trailwarden reads one small file from the latest GitHub release on this schedule. Nothing is sent: no identifiers, nothing about your agents.",
+        .updateLastChecked: "Last checked %@",
+        .updateNeverChecked: "Not checked yet",
+        .updateNotificationTitle: "Trailwarden %@ is available"
     ]
 }

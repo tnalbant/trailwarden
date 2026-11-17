@@ -14,14 +14,19 @@ lets you export a redacted record.
 3. Trailwarden runs with the user's privileges. It does not ask for root, does
    not install a privileged helper, and is not a background daemon.
 
+4. The live guard is part of the app process. It asks the kernel (FSEvents)
+   which transcript files changed and posts local notifications through the
+   user's own Notification Center; it opens no socket and starts no helper.
+
 ## What it protects against
 
-- **Leaving the machine.** The app never goes online on its own. There is exactly
-  one network call in the codebase, `Sources/TrailwardenApp/Update/UpdateChecker.swift`,
-  and it runs only when the reader clicks "Check for updates": a GET for one small
-  JSON document (`version`, `notes`, `url`), no cookies, no identifiers, no query
-  string, no timer, nothing at launch. Everything else stays local, and CI fails the
-  build if a network API appears in any other file under `Sources/`.
+- **Leaving the machine.** The app never sends anything about the agents. There is
+  exactly one network call in the codebase, `Sources/TrailwardenApp/Update/UpdateChecker.swift`:
+  a GET for one small JSON document (`version`, `notes`, `url`), no cookies, no
+  identifiers, no query string. It runs when the reader clicks "Check for
+  updates", or — only if the reader picks a schedule in Settings, which is off by
+  default — at most once a week or once a month. Everything else stays local, and
+  CI fails the build if a network API appears in any other file under `Sources/`.
 - **Secrets in exports.** Known token shapes are masked before storage and
   again on export; the raw line is masked too. A test asserts every documented
   pattern is caught, and an export test asserts a token never reaches the file.
@@ -45,6 +50,10 @@ lets you export a redacted record.
 | Boundary | Risk | Mitigation |
 |---|---|---|
 | transcript files → parser | malformed input | line-level tolerance, a broken file never aborts a scan |
+| editor state database → Cursor parser | reading more than the chats (settings, sign-in tokens live in the same file) | opened read-only; the only queries are key-range reads of `composerData:` and `bubbleId:` rows in `cursorDiskKV`; `ItemTable` is never queried, and a test plants a token there to prove it stays unread |
+| `.zst` archive → decoder | malformed or hostile compressed data | the official Zstandard decoder (fuzzed upstream), streamed in bounded chunks; a frame asking for a window over 128 MB is refused; a corrupt or truncated file fails that file only |
 | parser → database | redaction miss | rules run on raw text, store only ever sees masked text |
 | database → export | leaking paths or tokens | second redaction pass, `~` shortening, 0600 |
 | rules file → regex engine | catastrophic backtracking | patterns are anchored and bounded; user rules are validated at load |
+| index → notification | a command shown on the lock screen | the notification carries the already-masked command; macOS hides notification previews on the lock screen by default |
+| index → shareable summary | leaking work details | the report card's summary is built from counts, agent names and rule titles only; a test asserts no command, path or project name reaches it |

@@ -5,9 +5,9 @@
     "severity": "critical",
     "match": {
       "tool": "Bash",
-      "commandRegex": "(?:^|[;&|]\\s*|\\$\\()\\s*rm\\s+(?:-[a-zA-Z]*[rf][a-zA-Z]*\\s+)+(?:~|/|\\$HOME|\\*)(?=[\\s/'\\\"*]|$)"
+      "commandRegex": "(?:^|[;&|(]\\s*|\\bsudo\\s+(?:-[a-zA-Z]+\\s+)*|\\bxargs\\s+(?:-\\S+\\s+)*)\\s*rm\\s+(?:-[a-zA-Z-]*\\s+)*?(?:-[a-zA-Z]*[rR][a-zA-Z]*|--recursive)\\s+(?:-[a-zA-Z-]+\\s+)*(?:--\\s+)?[\\\"']?(?:/\\*?|\\*|(?:~|\\$HOME|\\$\\{HOME\\})(?:/[^/\\s'\\\";|&*)]*)?/?\\*?|/Users(?:/[^/\\s'\\\";|&*)]+)?/?|/(?:System|Library|Applications|usr|etc|bin|sbin|var|private|opt|Volumes)/?)[\\\"']?(?=[\\s;|&)]|$)"
     },
-    "message": "Ev dizinini veya dosya sisteminin kökünü hedefleyen geri dönüşsüz silme"
+    "message": "Ev dizinini, bir üst düzey klasörü veya dosya sisteminin kökünü hedefleyen geri dönüşsüz silme"
   },
   {
     "id": "R2",
@@ -15,9 +15,9 @@
     "severity": "critical",
     "match": {
       "tool": "Bash",
-      "commandRegex": "(?:^|[;&|]\\s*|\\$\\()\\s*(?:curl|wget)\\b[^|;&\\n]*\\|\\s*(?:sudo\\s+)?(?:ba|z|da)?sh\\b"
+      "commandRegex": "(?:^|[;&|(]\\s*|\\bsudo\\s+(?:-[a-zA-Z]+\\s+)*|\\bxargs\\s+(?:-\\S+\\s+)*)\\s*(?:(?:curl|wget)\\b[^|;&\\n]*\\|\\s*(?:sudo\\s+)?(?:(?:ba|z|da|k|fi)?sh\\b|(?:python3?|node|perl|ruby)(?:\\s+-)?\\s*(?=$|[;&|)]))|(?:ba|z)?sh\\s+(?:-c\\s+)?[\\\"']?(?:\\$\\(|<\\()\\s*(?:curl|wget)\\b)"
     },
-    "message": "Uzaktan indirilen içerik doğrudan kabuğa veriliyor"
+    "message": "Uzaktan indirilen içerik doğrudan kabuğa veya yorumlayıcıya veriliyor"
   },
   {
     "id": "R3",
@@ -25,7 +25,7 @@
     "severity": "warn",
     "match": {
       "tool": "Bash",
-      "commandRegex": "(?:^|[;&|]\\s*|\\$\\()\\s*sudo\\b"
+      "commandRegex": "(?:^|[;&|(]\\s*)\\s*sudo\\b"
     },
     "message": "Komut yönetici yetkisiyle çalışıyor"
   },
@@ -43,15 +43,27 @@
         "**/.gnupg/**",
         "**/.config/gh",
         "**/.config/gh/**",
-        "**/.env",
-        "**/.env.*",
         "**/*.pem",
+        "**/*.p12",
         "**/id_rsa",
         "**/id_ed25519",
-        "**/*keychain*"
+        "**/id_ecdsa",
+        "**/*keychain*",
+        "**/.netrc",
+        "**/.pypirc",
+        "**/.kube/config",
+        "**/.docker/config.json",
+        "**/.codex/auth.json",
+        "**/.gemini/oauth_creds.json"
+      ],
+      "excludePathGlobs": [
+        "**/.ssh/*.pub",
+        "**/.ssh/known_hosts",
+        "**/.ssh/known_hosts.old",
+        "**/.ssh/config"
       ]
     },
-    "message": "Kimlik bilgisi içerebilecek dosya"
+    "message": "Kimlik bilgisi veya özel anahtar içerebilecek dosya"
   },
   {
     "id": "R5",
@@ -59,7 +71,7 @@
     "severity": "warn",
     "match": {
       "tool": "Bash",
-      "commandRegex": "(?:^|[;&|]\\s*|\\$\\()\\s*git\\s+push\\b[^\\n]*(?:--force(?:-with-lease)?\\b|\\s-f\\b|\\+[A-Za-z])"
+      "commandRegex": "(?:^|[;&|(]\\s*|\\bsudo\\s+(?:-[a-zA-Z]+\\s+)*|\\bxargs\\s+(?:-\\S+\\s+)*)\\s*git\\s+push\\b[^\\n]*(?:--force(?:-with-lease)?\\b|\\s-f\\b|\\s\\+[A-Za-z])"
     },
     "message": "Uzak geçmişi geri dönüşsüz değiştirebilir"
   },
@@ -69,7 +81,7 @@
     "severity": "warn",
     "match": {
       "tool": "Bash",
-      "commandRegex": "(?:^|[;&|]\\s*|\\$\\()\\s*(?:chmod\\s+(?:-R\\s+)?777\\b|chown\\s+-R\\b)"
+      "commandRegex": "(?:^|[;&|(]\\s*|\\bsudo\\s+(?:-[a-zA-Z]+\\s+)*|\\bxargs\\s+(?:-\\S+\\s+)*)\\s*(?:chmod\\s+(?:-R\\s+)?(?:0?777|a\\+rwx)\\b|chown\\s+-R\\b)"
     },
     "message": "Dosya izinleri genişletiliyor"
   },
@@ -79,7 +91,7 @@
     "severity": "critical",
     "match": {
       "tool": "Bash",
-      "commandRegex": "(?:^|[;&|]\\s*|\\$\\()\\s*curl\\b[^\\n]*(?:\\s(?:-d|--data|--data-binary|--data-raw)\\s*@)"
+      "commandRegex": "(?:^|[;&|(]\\s*|\\bsudo\\s+(?:-[a-zA-Z]+\\s+)*|\\bxargs\\s+(?:-\\S+\\s+)*)\\s*curl\\b[^\\n]*(?:\\s(?:-d|--data|--data-binary|--data-raw|--data-urlencode)\\s*[\\\"']?@|\\s(?:-F|--form)\\s*[\\\"']?[\\w.-]+=@|\\s(?:-T|--upload-file)\\s)"
     },
     "message": "Yerel dosya içeriği ağ üzerinden gönderiliyor"
   },
@@ -89,7 +101,7 @@
     "severity": "warn",
     "match": {
       "tool": "Bash",
-      "commandRegex": "(?:^|[;&|]\\s*|\\$\\()\\s*docker\\s+run\\b[^\\n]*(?:--privileged\\b|--net[= ]host\\b|-v\\s+/:/host)"
+      "commandRegex": "(?:^|[;&|(]\\s*|\\bsudo\\s+(?:-[a-zA-Z]+\\s+)*|\\bxargs\\s+(?:-\\S+\\s+)*)\\s*(?:docker|podman)\\s+run\\b[^\\n]*(?:--privileged\\b|--net(?:work)?[= ]host\\b|-v\\s+/:/)"
     },
     "message": "Konteyner ana makine kaynaklarına geniş yetkiyle bağlanıyor"
   },
@@ -99,17 +111,9 @@
     "severity": "warn",
     "match": {
       "tool": "Bash",
-      "commandRegex": "(?:^|[;&|]\\s*|\\$\\()\\s*(?:cp|mv|install|tee|touch|mkdir|ln|truncate)\\b|>>?\\s",
-      "pathGlobs": [
-        "/etc/**",
-        "/usr/**",
-        "~/Library/LaunchAgents",
-        "~/Library/LaunchAgents/**",
-        "../../**",
-        ".."
-      ]
+      "commandRegex": "(?:(?:^|[;&|(]\\s*|\\bsudo\\s+(?:-[a-zA-Z]+\\s+)*|\\bxargs\\s+(?:-\\S+\\s+)*)\\s*(?:cp|mv|install|tee|touch|mkdir|ln|truncate|rsync)\\b[^;&|\\n]*\\s|>>?\\s*)[\\\"']?(?:/etc/|/usr/(?!local/)|/Library/|/System/|/bin/|/sbin/|\\.\\./\\.\\./)"
     },
-    "message": "Proje dizininin dışına yazılıyor"
+    "message": "Proje dizininin ve kullanıcı alanının dışına, sistem klasörlerine yazılıyor"
   },
   {
     "id": "R10",
@@ -117,8 +121,246 @@
     "severity": "warn",
     "match": {
       "tool": "Bash",
-      "commandRegex": "(?:^|[;&|]\\s*|\\$\\()\\s*(?:git\\s+clean\\b[^\\n]*-[a-zA-Z]*[fd]x|git\\s+reset\\s+--hard\\b|find\\b[^\\n]*\\s-delete\\b)"
+      "commandRegex": "(?:^|[;&|(]\\s*|\\bsudo\\s+(?:-[a-zA-Z]+\\s+)*|\\bxargs\\s+(?:-\\S+\\s+)*)\\s*(?:git\\s+clean\\b[^\\n]*-[a-zA-Z]*[fd]x|git\\s+reset\\s+--hard\\b|git\\s+checkout\\s+(?:--\\s+)?\\.(?=\\s|$)|git\\s+restore\\s+(?:--\\S+\\s+)*\\.(?=\\s|$)|git\\s+stash\\s+(?:drop|clear)\\b|find\\b[^\\n]*\\s-delete\\b)"
     },
     "message": "İzlenmeyen dosyalar veya yerel değişiklikler geri alınamaz şekilde siliniyor"
+  },
+  {
+    "id": "R11",
+    "title": "Ortam dosyası erişimi",
+    "severity": "warn",
+    "match": {
+      "pathGlobs": [
+        "**/.env",
+        "**/.env.*"
+      ],
+      "excludePathGlobs": [
+        "**/.env.example",
+        "**/.env.sample",
+        "**/.env.template",
+        "**/.env.dist",
+        "**/.env.defaults",
+        "**/.env.*.example"
+      ]
+    },
+    "message": "Ortam dosyası API anahtarı veya parola içerebilir"
+  },
+  {
+    "id": "R12",
+    "title": "Anahtarlıktan parola okuma",
+    "severity": "critical",
+    "match": {
+      "tool": "Bash",
+      "commandRegex": "(?:^|[;&|(]\\s*|\\bsudo\\s+(?:-[a-zA-Z]+\\s+)*|\\bxargs\\s+(?:-\\S+\\s+)*)\\s*security\\s+(?:dump-keychain\\b|find-(?:generic|internet)-password\\b[^;&|\\n]*\\s-[a-zA-Z]*[wg]\\b|export\\b)"
+    },
+    "message": "macOS Anahtarlığı'ndaki bir parola veya anahtar açığa okunuyor"
+  },
+  {
+    "id": "R13",
+    "title": "Kalıcılık kurulumu",
+    "severity": "warn",
+    "match": {
+      "anyOf": [
+        {
+          "tool": "Bash",
+          "commandRegex": "(?:(?:^|[;&|(]\\s*|\\bsudo\\s+(?:-[a-zA-Z]+\\s+)*|\\bxargs\\s+(?:-\\S+\\s+)*)\\s*(?:launchctl\\s+(?:load|bootstrap|enable|submit)\\b|crontab\\s+(?!-l\\b)\\S|(?:cp|mv|ln|tee|install|mkdir|touch)\\b[^;&|\\n]*Launch(?:Agents|Daemons)\\b)|>>?\\s*[\\\"']?\\S*Launch(?:Agents|Daemons)/)"
+        },
+        {
+          "tool": "Write|Edit",
+          "pathGlobs": [
+            "~/Library/LaunchAgents/**",
+            "/Library/LaunchAgents/**",
+            "/Library/LaunchDaemons/**"
+          ]
+        }
+      ]
+    },
+    "message": "Oturum kapansa da kendiliğinden çalışacak bir iş kuruluyor (launchd veya cron)"
+  },
+  {
+    "id": "R14",
+    "title": "Kabuk başlangıç dosyası değişikliği",
+    "severity": "warn",
+    "match": {
+      "anyOf": [
+        {
+          "tool": "Bash",
+          "commandRegex": "(?:>>?|\\btee\\s+(?:-a\\s+)?|\\bsed\\s+-i\\b[^;&|\\n]*\\s)\\s*[\\\"']?(?:~|\\$HOME|\\$\\{HOME\\}|/Users/[^/\\s'\\\"]+)/\\.(?:zshrc|zshenv|zprofile|zlogin|bashrc|bash_profile|profile)\\b"
+        },
+        {
+          "tool": "Write|Edit",
+          "pathGlobs": [
+            "~/.zshrc",
+            "~/.zshenv",
+            "~/.zprofile",
+            "~/.zlogin",
+            "~/.bashrc",
+            "~/.bash_profile",
+            "~/.profile",
+            "~/.config/fish/config.fish"
+          ]
+        }
+      ]
+    },
+    "message": "Her yeni terminalde çalışacak bir başlangıç dosyası değiştiriliyor"
+  },
+  {
+    "id": "R15",
+    "title": "Ajan ayarı değişikliği",
+    "severity": "warn",
+    "match": {
+      "anyOf": [
+        {
+          "tool": "Write|Edit",
+          "pathGlobs": [
+            "**/.claude/settings.json",
+            "**/.claude/settings.local.json",
+            "~/.claude.json",
+            "**/.claude/hooks/**",
+            "~/.codex/config.toml",
+            "**/.mcp.json",
+            "**/.gemini/settings.json",
+            "~/.hermes/config.yaml",
+            "**/.cursor/mcp.json",
+            "**/.cursor/hooks.json",
+            "~/.cursor/cli-config.json",
+            "~/.copilot/config.json",
+            "~/.copilot/mcp-config.json"
+          ]
+        },
+        {
+          "tool": "Bash",
+          "commandRegex": "(?:>>?|\\btee\\s+(?:-a\\s+)?|\\bsed\\s+-i\\b[^;&|\\n]*\\s|\\b(?:cp|mv)\\s+[^;&|\\n]*\\s)\\s*[\\\"']?\\S*(?:\\.claude/settings(?:\\.local)?\\.json|\\.claude\\.json|\\.codex/config\\.toml|\\.mcp\\.json|\\.gemini/settings\\.json|\\.cursor/(?:mcp|hooks|cli-config)\\.json|\\.copilot/(?:config|mcp-config)\\.json)\\b"
+        }
+      ]
+    },
+    "message": "Bir ajanın izinleri, kancaları veya MCP sunucuları değiştiriliyor"
+  },
+  {
+    "id": "R16",
+    "title": "Onay atlatma",
+    "severity": "critical",
+    "match": {
+      "tool": "Bash",
+      "commandRegex": "(?:^|[;&|(]\\s*|\\bsudo\\s+(?:-[a-zA-Z]+\\s+)*|\\bxargs\\s+(?:-\\S+\\s+)*)\\s*(?:\\S*/)?(?:claude|codex|gemini|qwen|opencode|cursor-agent|copilot)\\b[^;&|\\n]*\\s(?:--dangerously-skip-permissions|--dangerously-bypass-approvals-and-sandbox|--permission-mode[= ]bypassPermissions|--yolo|-y)\\b"
+    },
+    "message": "Bir ajan, onay sormadan her şeyi çalıştıracak şekilde başlatılıyor"
+  },
+  {
+    "id": "R17",
+    "title": "Git kancası atlatma",
+    "severity": "warn",
+    "match": {
+      "tool": "Bash",
+      "commandRegex": "(?:^|[;&|(]\\s*|\\bsudo\\s+(?:-[a-zA-Z]+\\s+)*|\\bxargs\\s+(?:-\\S+\\s+)*)\\s*git\\s+(?:-c\\s+\\S+\\s+)*(?:commit\\b[^;&|\\n]*\\s(?:--no-verify\\b|-[a-zA-Z]*n[a-zA-Z]*\\b)|(?:push|merge|rebase|am|cherry-pick)\\b[^;&|\\n]*\\s--no-verify\\b)"
+    },
+    "message": "Commit veya push öncesi kontroller (lint, test, sır taraması) devre dışı"
+  },
+  {
+    "id": "R18",
+    "title": "GitHub kaynağı silme",
+    "severity": "critical",
+    "match": {
+      "tool": "Bash",
+      "commandRegex": "(?:^|[;&|(]\\s*|\\bsudo\\s+(?:-[a-zA-Z]+\\s+)*|\\bxargs\\s+(?:-\\S+\\s+)*)\\s*gh\\s+(?:repo\\s+delete|release\\s+delete|secret\\s+delete|api\\b[^;&|\\n]*(?:-X|--method)\\s*DELETE)\\b"
+    },
+    "message": "Bir depo, sürüm veya gizli değer GitHub'dan siliniyor"
+  },
+  {
+    "id": "R19",
+    "title": "Paket veya sürüm yayınlama",
+    "severity": "warn",
+    "match": {
+      "tool": "Bash",
+      "commandRegex": "(?:^|[;&|(]\\s*|\\bsudo\\s+(?:-[a-zA-Z]+\\s+)*|\\bxargs\\s+(?:-\\S+\\s+)*)\\s*(?:(?:npm|pnpm|yarn|bun)\\s+publish\\b|cargo\\s+publish\\b|twine\\s+upload\\b|gem\\s+push\\b|pod\\s+trunk\\s+push\\b|gh\\s+release\\s+create\\b|docker\\s+push\\b|(?:poetry|uv|flit|hatch)\\s+publish\\b|xcrun\\s+altool\\b[^;&|\\n]*--upload|vsce\\s+publish\\b)"
+    },
+    "message": "Herkese açık bir pakete veya sürüme yayın yapılıyor"
+  },
+  {
+    "id": "R20",
+    "title": "CI hattı değişikliği",
+    "severity": "warn",
+    "match": {
+      "tool": "Write|Edit",
+      "pathGlobs": [
+        "**/.github/workflows/**",
+        "**/.github/actions/**",
+        "**/.gitlab-ci.yml",
+        "**/.circleci/**",
+        "**/Jenkinsfile",
+        "**/.buildkite/**"
+      ]
+    },
+    "message": "Sunucuda gizli değerlerle çalışan CI tanımı değiştiriliyor"
+  },
+  {
+    "id": "R21",
+    "title": "macOS korumasını kapatma",
+    "severity": "critical",
+    "match": {
+      "tool": "Bash",
+      "commandRegex": "(?:^|[;&|(]\\s*|\\bsudo\\s+(?:-[a-zA-Z]+\\s+)*|\\bxargs\\s+(?:-\\S+\\s+)*)\\s*(?:spctl\\s+--(?:master|global)-disable\\b|csrutil\\s+disable\\b|xattr\\s+(?:-[a-zA-Z]+\\s+)*-[a-zA-Z]*d[a-zA-Z]*\\s+com\\.apple\\.quarantine\\b|defaults\\s+write\\s+\\S*LaunchServices\\S*\\s+LSQuarantine\\b|\\S*socketfilterfw\\s+--setglobalstate\\s+off\\b)"
+    },
+    "message": "Gatekeeper, SIP, karantina veya güvenlik duvarı gibi bir koruma kapatılıyor"
+  },
+  {
+    "id": "R22",
+    "title": "Uzak kabuk",
+    "severity": "critical",
+    "match": {
+      "tool": "Bash",
+      "commandRegex": "(?:>&|<>|0<&|\\bexec\\s+\\d*<>)\\s*/dev/(?:tcp|udp)/|\\b(?:nc|ncat|netcat)\\b[^;&|\\n]*\\s-[a-zA-Z]*[ec]\\b|\\bsocat\\b[^;&|\\n]*\\bexec:|\\bbash\\s+-i\\b[^;&|\\n]*>&"
+    },
+    "message": "Kabuk bir ağ bağlantısına bağlanıyor; makine dışarıdan yönetilebilir"
+  },
+  {
+    "id": "R23",
+    "title": "Disk silme",
+    "severity": "critical",
+    "match": {
+      "tool": "Bash",
+      "commandRegex": "(?:^|[;&|(]\\s*|\\bsudo\\s+(?:-[a-zA-Z]+\\s+)*|\\bxargs\\s+(?:-\\S+\\s+)*)\\s*(?:diskutil\\s+(?:eraseDisk|eraseVolume|partitionDisk|zeroDisk|randomDisk|secureErase|reformat)\\b|dd\\b[^;&|\\n]*\\bof=/dev/|mkfs(?:\\.\\w+)?\\s|newfs_\\w+\\s)"
+    },
+    "message": "Bir disk veya bölüm siliniyor ya da üzerine yazılıyor"
+  },
+  {
+    "id": "R24",
+    "title": "Yıkıcı veritabanı komutu",
+    "severity": "critical",
+    "match": {
+      "tool": "Bash",
+      "commandRegex": "\\bDROP\\s+(?:TABLE|DATABASE|SCHEMA)\\b|\\bTRUNCATE\\s+TABLE\\b|\\bDELETE\\s+FROM\\s+[\\w.\\\"`]+\\s*(?:;|$|[\\\"'])|\\bdropdb\\s|\\bFLUSHALL\\b|\\bdropDatabase\\("
+    },
+    "message": "Tablo, şema veya veritabanı siliniyor; koşulsuz DELETE tüm satırları götürür"
+  },
+  {
+    "id": "R25",
+    "title": "Altyapı silme",
+    "severity": "critical",
+    "match": {
+      "tool": "Bash",
+      "commandRegex": "(?:^|[;&|(]\\s*|\\bsudo\\s+(?:-[a-zA-Z]+\\s+)*|\\bxargs\\s+(?:-\\S+\\s+)*)\\s*(?:terraform\\s+(?:destroy\\b|apply\\b[^;&|\\n]*-auto-approve)|pulumi\\s+destroy\\b|kubectl\\s+delete\\b|helm\\s+uninstall\\b|aws\\s+s3\\s+(?:rb\\b|rm\\b[^;&|\\n]*--recursive)|aws\\s+\\S+\\s+delete-\\S+|gcloud\\b[^;&|\\n]*\\sdelete\\b|az\\b[^;&|\\n]*\\sdelete\\b|flyctl?\\s+(?:apps\\s+)?destroy\\b|vercel\\s+(?:rm|remove)\\b|wrangler\\s+(?:delete|d1\\s+delete|r2\\s+bucket\\s+delete)\\b|heroku\\s+apps:destroy\\b|supabase\\s+db\\s+reset\\b)"
+    },
+    "message": "Bulut kaynakları, sunucular veya veritabanları siliniyor"
+  },
+  {
+    "id": "R26",
+    "title": "İz silme",
+    "severity": "critical",
+    "match": {
+      "tool": "Bash",
+      "commandRegex": "(?:\\brm\\b|\\btruncate\\b|\\bshred\\b|>)[^;&|\\n]*(?:\\.claude/projects|\\.codex/sessions|\\.codex/history|\\.gemini/tmp|\\.hermes/state\\.db|\\.local/share/opencode/opencode\\.db|\\.copilot/session-state|\\.cursor/projects|Cursor/User/globalStorage/state\\.vscdb|\\.zsh_history|\\.bash_history|Application\\\\? Support/Trailwarden)|\\bhistory\\s+-[cw]\\b|\\bunset\\s+HISTFILE\\b|\\bHISTFILE=/dev/null"
+    },
+    "message": "Ajan transkriptleri, kabuk geçmişi veya Trailwarden indeksi siliniyor"
+  },
+  {
+    "id": "R27",
+    "title": "Komutta açık anahtar",
+    "severity": "critical",
+    "match": {
+      "tool": "Bash",
+      "commandRegex": "\\bsk-(?:ant-|proj-)?[A-Za-z0-9_-]{20,}|\\bgh[pousr]_[A-Za-z0-9]{30,}|\\bgithub_pat_[A-Za-z0-9_]{30,}|\\bAKIA[0-9A-Z]{16}\\b|\\bxox[baprs]-[A-Za-z0-9-]{10,}|\\bAIza[0-9A-Za-z_-]{35}\\b|-----BEGIN [A-Z ]*PRIVATE KEY-----|\\[redacted:(?:openai-key|github-token|aws-key|slack-token|private-key)\\]"
+    },
+    "message": "Bir API anahtarı komut satırına açıkça yazılmış; transkriptte ve kabuk geçmişinde kalır"
   }
 ]

@@ -49,6 +49,15 @@ final class AppModel: ObservableObject {
     @Published private(set) var lastScanSummary: String?
     @Published var errorMessage: String?
     @Published var onboardingDone: Bool
+    /// Set when a notification is clicked: the window opens on that event.
+    @Published var eventToSelect: String?
+    /// Bumped to ask the menu bar label (always on screen) to open the main window.
+    @Published var windowRequested = 0
+
+    /// The live guard. Lazy so its callback can refer back to the model.
+    lazy var live = LiveMonitor(databaseURL: databaseURL) { [weak self] in
+        self?.refresh()
+    }
 
     // Rules screen state: the effective rule list, the active mutes, and the
     // outcome of the last re-run.
@@ -71,6 +80,33 @@ final class AppModel: ObservableObject {
         onboardingDone = UserDefaults.standard.bool(forKey: Self.onboardingKey)
         loadRules()
         refresh()
+        NotificationCenter.default.addObserver(
+            forName: .trailwardenOpenEvent,
+            object: nil,
+            queue: .main)
+        { [weak self] note in
+            let session = note.userInfo?["session"] as? String
+            let event = note.userInfo?["event"] as? String
+            MainActor.assumeIsolated {
+                self?.openEvent(event, in: session)
+            }
+        }
+        // An index opened with TRAILWARDEN_DB is someone else's — the demo, or a
+        // copy for a bug report — so live transcripts are not written into it
+        // unless TRAILWARDEN_LIVE=1 asks for that.
+        let overridden = ProcessInfo.processInfo.environment["TRAILWARDEN_DB"] != nil
+        let liveAllowed = !overridden || ProcessInfo.processInfo.environment["TRAILWARDEN_LIVE"] == "1"
+        if onboardingDone, liveAllowed {
+            live.sync()
+        }
+    }
+
+    /// Jumps to one event: the window opens on its session with it selected.
+    func openEvent(_ eventID: String?, in sessionID: String?) {
+        guard let sessionID else { return }
+        eventToSelect = eventID
+        sessionToOpen = sessionID
+        windowRequested += 1
     }
 
     // MARK: - Reading
@@ -323,29 +359,47 @@ final class AppModel: ObservableObject {
     func finishOnboarding() {
         UserDefaults.standard.set(true, forKey: Self.onboardingKey)
         onboardingDone = true
+        live.sync()
     }
 
-    /// What the app will read, with a live count per transcript root.
+    /// What the app will read, with a live count per transcript root. Agents
+    /// that keep one history database count as one file.
     static func transcriptRoots() -> [TranscriptRoot] {
-        ScanRoot.standard().map { root in
+        let folders = ScanRoot.standard().map { root in
             let exists = FileManager.default.fileExists(atPath: root.directory.path)
             return TranscriptRoot(
                 agent: root.agent,
                 path: root.directory.path,
-                files: exists ? countTranscripts(in: root.directory) : 0,
+                files: exists ? countTranscripts(in: root) : 0,
                 exists: exists)
         }
+        let databases = ScanRoot.standardDatabases().map { source in
+            let exists = FileManager.default.fileExists(atPath: source.database.path)
+            return TranscriptRoot(
+                agent: source.agent,
+                path: source.database.path,
+                files: exists ? 1 : 0,
+                exists: exists)
+        }
+        return folders + databases
     }
 
-    private static func countTranscripts(in directory: URL) -> Int {
-        guard let enumerator = FileManager.default.enumerator(at: directory, includingPropertiesForKeys: nil)
+    private static func countTranscripts(in root: ScanRoot) -> Int {
+        guard let enumerator = FileManager.default.enumerator(
+            at: root.directory,
+            includingPropertiesForKeys: nil)
         else {
             return 0
         }
         var count = 0
-        for case let url as URL in enumerator where url.pathExtension == "jsonl" {
+        for case let url as URL in enumerator where root.parser.accepts(url) {
             count += 1
         }
         return count
     }
+}
+
+extension Notification.Name {
+    /// Posted by the notification delegate with `session` and `event` in userInfo.
+    static let trailwardenOpenEvent = Notification.Name("app.trailwarden.openEvent")
 }

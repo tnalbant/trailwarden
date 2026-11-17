@@ -68,7 +68,10 @@ public struct MCPRouter: @unchecked Sendable {
                         "type": "string",
                         "description": "full-text search over command, preview and tool"
                     ],
-                    "agent": ["type": "string", "description": "claude-code, codex, gemini or hermes"],
+                    "agent": [
+                        "type": "string",
+                        "description": "claude-code, codex, gemini, hermes, opencode, cursor or copilot"
+                    ],
                     "since_days": ["type": "integer", "description": "how far back to look, default 7"],
                     "only_findings": ["type": "boolean", "description": "only events with a rule hit"],
                     "limit": ["type": "integer", "description": "max events, default 50"]
@@ -96,6 +99,21 @@ public struct MCPRouter: @unchecked Sendable {
             ]
         ],
         [
+            "name": "file_history",
+            "description": "Which agents changed, read or ran commands on a file or folder, newest first "
+                + "(git blame for agents). Use it before editing a file another agent may be working on.",
+            "inputSchema": [
+                "type": "object",
+                "properties": [
+                    "path": ["type": "string", "description": "absolute path, or relative to cwd"],
+                    "cwd": ["type": "string", "description": "folder a relative path starts from"],
+                    "changes_only": ["type": "boolean", "description": "only edits and writes"],
+                    "limit": ["type": "integer", "description": "default 20"]
+                ],
+                "required": ["path"]
+            ]
+        ],
+        [
             "name": "audit_summary",
             "description": "How many events, findings and critical hits in a window, broken down by agent and rule.",
             "inputSchema": [
@@ -111,6 +129,7 @@ public struct MCPRouter: @unchecked Sendable {
         case "list_sessions": listSessions(arguments, id: id)
         case "get_event": getEvent(arguments, id: id)
         case "audit_summary": auditSummary(arguments, id: id)
+        case "file_history": fileHistory(arguments, id: id)
         default:
             Self.error(id: id, code: -32602, message: "unknown tool \(name)")
         }
@@ -224,6 +243,53 @@ public struct MCPRouter: @unchecked Sendable {
             return Self.text(id, row)
         } catch {
             return Self.error(id: id, code: -32603, message: "lookup failed: \(error)")
+        }
+    }
+
+    private func fileHistory(_ arguments: [String: Any], id: Any?) -> String {
+        guard let path = arguments["path"] as? String, !path.isEmpty else {
+            return Self.error(id: id, code: -32602, message: "path is required")
+        }
+        let cwd = arguments["cwd"] as? String ?? FileManager.default.currentDirectoryPath
+        let limit = min(arguments["limit"] as? Int ?? 20, 200)
+        let changesOnly = arguments["changes_only"] as? Bool ?? false
+        do {
+            let target = FileHistory.Target.resolve(path, cwd: cwd)
+            var touches = try FileHistory.touches(
+                of: target,
+                in: store,
+                limit: changesOnly ? limit * 10 : limit)
+            if changesOnly {
+                touches = Array(touches.filter { $0.action == .changed }.prefix(limit))
+            }
+            let rows = touches.map { touch -> [String: Any] in
+                let event = touch.event
+                var row: [String: Any] = [
+                    "event": event.id,
+                    "ts": ISO8601DateFormatter().string(from: event.ts),
+                    "agent": event.agent.rawValue,
+                    "session": event.sessionId,
+                    "action": touch.action.rawValue
+                ]
+                if let tool = event.tool {
+                    row["tool"] = tool
+                }
+                if touch.action == .command, let command = event.command {
+                    row["command"] = String(command.prefix(300))
+                }
+                if !event.risk.isEmpty {
+                    row["findings"] = event.risk.map { ["rule": $0.ruleId, "severity": $0.severity.rawValue] }
+                }
+                return row
+            }
+            var payload: [String: Any] = ["path": target.absolute, "count": rows.count, "touches": rows]
+            if let change = touches.first(where: { $0.action == .changed }) {
+                payload["last_changed_by"] = change.event.agent.rawValue
+                payload["last_changed_at"] = ISO8601DateFormatter().string(from: change.event.ts)
+            }
+            return Self.text(id, payload)
+        } catch {
+            return Self.error(id: id, code: -32603, message: "file history failed: \(error)")
         }
     }
 

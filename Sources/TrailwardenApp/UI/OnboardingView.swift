@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright (c) 2026 Turgay Nalbant
 
+import AppKit
 import SwiftUI
 import TrailwardenCore
 
@@ -9,6 +10,7 @@ import TrailwardenCore
 struct OnboardingView: View {
     @AppStorage(LocalizationStore.defaultsKey) private var language = AppLanguage.system.rawValue
     @ObservedObject var model: AppModel
+    @Environment(\.openWindow) private var openWindow
     @State private var roots: [TranscriptRoot] = AppModel.transcriptRoots()
 
     var body: some View {
@@ -22,7 +24,7 @@ struct OnboardingView: View {
                         Text(root.agent.rawValue)
                             .font(Tokens.Typography.mono(9))
                         Spacer()
-                        Text(root.exists ? Lf(.filesCount, [root.files]) : "yok")
+                        Text(root.exists ? Lf(.filesCount, [root.files]) : L(.missingFolder))
                             .font(Tokens.Typography.text(9))
                             .foregroundStyle(Tokens.Palette.secondary)
                     }
@@ -43,6 +45,9 @@ struct OnboardingView: View {
                 Task {
                     await model.scan()
                     model.finishOnboarding()
+                    // The first thing after the first scan: what the agents did.
+                    openWindow(id: "report")
+                    NSApp.activate(ignoringOtherApps: true)
                 }
             } label: {
                 Text(model.isScanning ? L(.scanning) : L(.startScan))

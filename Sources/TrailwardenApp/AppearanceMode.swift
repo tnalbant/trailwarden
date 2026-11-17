@@ -34,10 +34,14 @@ enum AppearanceMode: String, CaseIterable, Identifiable {
         }
     }
 
+    /// `NSApp` belongs to the main actor; both callers (the delegate and the
+    /// Settings picker) are already there.
+    @MainActor
     func apply() {
         NSApp.appearance = nsAppearance
     }
 
+    @MainActor
     static func applyStored() {
         let raw = UserDefaults.standard.string(forKey: storageKey) ?? AppearanceMode.system.rawValue
         (AppearanceMode(rawValue: raw) ?? .system).apply()

@@ -20,6 +20,7 @@ OUT="${OUT:-$HOME/dev/.trailwarden-release}"
 DMG="$OUT/Trailwarden-$VERSION.dmg"
 TARBALL="$OUT/trailwarden-$VERSION-macos-arm64.tar.gz"
 SUMS="$OUT/SHA256SUMS"
+FEED="$OUT/latest.json"
 TAP_DIR="${TAP_DIR:-$HOME/dev/homebrew-trailwarden}"
 
 DO_RELEASE=0
@@ -52,14 +53,14 @@ python3 "$RELEASE_GATE" . --fast || {
   echo "HATA: yayın kapısı geçmedi." >&2
   exit 1
 }
-for file in "$DMG" "$TARBALL" "$SUMS"; do
+for file in "$DMG" "$TARBALL" "$SUMS" "$FEED" docs/RELEASE_NOTES.md; do
   [[ -f "$file" ]] || { echo "HATA: eksik dosya: $file (önce scripts/release.sh)" >&2; exit 1; }
 done
 
 if [[ $CONFIRMED -eq 0 ]]; then
   echo
   echo "deneme (dry run) — yapılacaklar:"
-  [[ $DO_RELEASE -eq 1 ]] && echo "  · git tag v$VERSION + push + gh release create ile 3 dosya yükle"
+  [[ $DO_RELEASE -eq 1 ]] && echo "  · git tag v$VERSION + push + gh release create ile 4 dosya yükle (latest.json dahil)"
   [[ $DO_TAP -eq 1 ]] && echo "  · $TAP_DIR içinde cask/formula sha256 güncelle + push"
   [[ $DO_NPM -eq 1 ]] && echo "  · npm publish packaging/npm (public)"
   echo
@@ -71,7 +72,9 @@ if [[ $DO_RELEASE -eq 1 ]]; then
   echo "== GitHub release =="
   git tag -a "v$VERSION" -m "Trailwarden $VERSION"
   git push origin "v$VERSION"
-  gh release create "v$VERSION" "$DMG" "$TARBALL" "$SUMS" \
+  # latest.json must travel with every release: the app's update check reads it
+  # through GitHub's releases/latest/download/ redirect.
+  gh release create "v$VERSION" "$DMG" "$TARBALL" "$SUMS" "$FEED" \
     --title "Trailwarden $VERSION" --notes-file docs/RELEASE_NOTES.md
 fi
 

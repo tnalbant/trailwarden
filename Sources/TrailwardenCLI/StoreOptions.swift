@@ -28,17 +28,27 @@ struct StoreOptions: ParsableArguments {
     }
 }
 
-/// `--agent all|claude|codex`.
+/// `--agent all|claude|codex|gemini|hermes|opencode|cursor|copilot`.
 enum AgentOption: String, ExpressibleByArgument, CaseIterable {
     case all
     case claude
     case codex
+    case gemini
+    case hermes
+    case opencode
+    case cursor
+    case copilot
 
     var agents: Set<Agent>? {
         switch self {
         case .all: nil
         case .claude: [.claudeCode]
         case .codex: [.codex]
+        case .gemini: [.gemini]
+        case .hermes: [.hermes]
+        case .opencode: [.opencode]
+        case .cursor: [.cursor]
+        case .copilot: [.copilot]
         }
     }
 

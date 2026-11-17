@@ -3,11 +3,13 @@
 
 import Foundation
 import TrailwardenCore
+import UserNotifications
 
-/// The only file in the app that talks to the network, and it does so once, when
-/// the reader clicks "Check for updates". Nothing runs on launch, nothing runs on
-/// a timer, and nothing is sent: the request carries no identifiers, no cursor and
-/// no usage data — it is a GET for one small JSON document.
+/// The only file in the app that talks to the network. It goes online when the
+/// reader clicks "Check for updates", or — only if the reader picked a schedule
+/// in Settings (off by default) — at most once a week or once a month. Nothing is
+/// sent either way: the request carries no identifiers, no cursor and no usage
+/// data — it is a GET for one small JSON document.
 ///
 /// `THREATMODEL.md` documents this as the single exception; CI allows the network
 /// APIs here and nowhere else in `Sources/`.
@@ -46,15 +48,72 @@ final class UpdateChecker: ObservableObject {
         return Self.publishedFeed
     }
 
-    func check(current: String = TrailwardenVersion.installed) async {
+    /// When the feed was last read successfully, by hand or on schedule.
+    @Published private(set) var lastCheck: Date?
+    private var timer: Timer?
+
+    init() {
+        lastCheck = UserDefaults.standard.object(forKey: UpdateSchedule.lastCheckKey) as? Date
+    }
+
+    static var schedule: UpdateSchedule {
+        UpdateSchedule(rawValue: UserDefaults.standard.string(forKey: UpdateSchedule.storageKey) ?? "") ??
+            .never
+    }
+
+    /// Starts the schedule the reader picked. With `never` (the default) this
+    /// does nothing at all: no timer, no request. The timer only wakes every few
+    /// hours to ask "is a check due?", which is a date comparison, not a request.
+    func startSchedule() {
+        timer?.invalidate()
+        timer = nil
+        guard Self.schedule != .never else { return }
+        Task { await runIfDue() }
+        timer = Timer.scheduledTimer(withTimeInterval: 6 * 3600, repeats: true) { [weak self] _ in
+            Task { @MainActor in await self?.runIfDue() }
+        }
+    }
+
+    func runIfDue(now: Date = Date()) async {
+        guard Self.schedule.isDue(lastCheck: lastCheck, now: now), state != .checking else { return }
+        await check(automatic: true)
+    }
+
+    /// - Parameter automatic: a scheduled check stays quiet when it fails (the
+    ///   reader did not ask, so an offline Mac is not news) and announces a new
+    ///   version once with a notification.
+    func check(current: String = TrailwardenVersion.installed, automatic: Bool = false) async {
+        let previous = state
         state = .checking
         do {
             let data = try await fetch(feedURL)
             let feed = try UpdateFeed.decode(data)
-            state = feed.isNewer(than: current) ? .available(feed) : .upToDate
+            let newer = feed.isNewer(than: current)
+            state = newer ? .available(feed) : .upToDate
+            let now = Date()
+            lastCheck = now
+            UserDefaults.standard.set(now, forKey: UpdateSchedule.lastCheckKey)
+            if automatic, newer {
+                announce(feed)
+            }
         } catch {
-            state = .failed
+            state = automatic ? previous : .failed
         }
+    }
+
+    /// One notification per published version, however often the schedule runs.
+    private func announce(_ feed: UpdateFeed) {
+        let defaults = UserDefaults.standard
+        guard defaults.string(forKey: UpdateSchedule.notifiedVersionKey) != feed.version else { return }
+        defaults.set(feed.version, forKey: UpdateSchedule.notifiedVersionKey)
+        let content = UNMutableNotificationContent()
+        content.title = Lf(.updateNotificationTitle, [feed.version])
+        content.body = feed.notes ?? ""
+        if let url = feed.url {
+            content.userInfo = ["url": url.absoluteString]
+        }
+        UNUserNotificationCenter.current().add(
+            UNNotificationRequest(identifier: "update-\(feed.version)", content: content, trigger: nil))
     }
 
     private func fetch(_ url: URL) async throws -> Data {

@@ -13,7 +13,8 @@ an issue that says what you were doing and what happened.
   screenshot of your own sessions — CI refuses stray `.jsonl` files, and the
   screenshots in the README come from `scripts/seed-demo.py`.
 - **One logical change per pull request.** No drive-by reformatting or dependency
-  bumps; the whole third-party budget is one pinned package.
+  bumps; the whole third-party budget is one pinned package, plus the vendored
+  Zstandard decoder in `Sources/CZstd` (update it only as its README says).
 - Every Swift file starts with the SPDX header.
 
 ## Building
@@ -30,6 +31,23 @@ A change in behaviour needs a test that fails without it — if you cannot make
 the suite fail by reverting your change, the test is not evidence. Literal
 expected values (`"3 events"`) beat assertions written against the constant
 being tested.
+
+## Adding a rule
+
+Rules are the easiest way in. Each one is an entry in
+`Sources/TrailwardenCore/Resources/rules.json`:
+
+- `tool` (`Bash`, `Write|Edit`, …), `commandRegex`, `pathGlobs` and
+  `excludePathGlobs`; `anyOf` lists alternatives, so one rule can cover "the
+  shell appends to `~/.zshrc`" and "the edit tool rewrites `~/.zshrc`".
+- Shell patterns start with the shared command-start prefix (line start, after
+  `;`, `&&`, `|`, `(`, or behind `sudo`), so `echo 'rm -rf /'` is not a delete.
+- Add the words in all six languages in `RuleLocalization+Added.swift`.
+- Add rows to `RuleCatalogExpansionTests`: commands that must match **and**
+  near-misses that must not. A rule without a negative case is not reviewable.
+- Try it on your own history before opening the PR:
+  `trailwarden rules apply && trailwarden scan --since 30d`. If it fires on
+  ordinary work, it will be switched off on day one.
 
 ## Adding an agent
 

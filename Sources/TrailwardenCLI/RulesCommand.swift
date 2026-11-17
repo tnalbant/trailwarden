@@ -9,7 +9,7 @@ struct RulesCommand: ParsableCommand {
     static let configuration = CommandConfiguration(
         commandName: "rules",
         abstract: "Inspect the rule set or test a command against it.",
-        subcommands: [RulesList.self, RulesTest.self])
+        subcommands: [RulesList.self, RulesTest.self, RulesApply.self])
 }
 
 struct RulesList: ParsableCommand {
@@ -63,5 +63,28 @@ struct RulesTest: ParsableCommand {
         for hit in hits {
             print("\(hit.severity.rawValue)  \(hit.ruleId)  \(hit.message)")
         }
+    }
+}
+
+/// Re-runs the rules over everything already in the index — after an update
+/// that ships new rules, or after a change in the Rules window.
+struct RulesApply: ParsableCommand {
+    static let configuration = CommandConfiguration(
+        commandName: "apply",
+        abstract: "Re-run the rule set over the whole index.")
+
+    @OptionGroup var store: StoreOptions
+
+    func run() throws {
+        let database = try store.open()
+        let builtIn = try RuleCatalog.builtIn()
+        let stored = try (try? RulePreferences.defaultURL()).map { try RulePreferences.load(from: $0) } ?? []
+        let engine = try RuleEngine(
+            rules: RulePreferences.apply(stored, to: builtIn),
+            mutes: database.mutes())
+        let report = try engine.reapply(to: database)
+        print(String(
+            format: "%d events checked, %d changed, %.2f s",
+            report.events, report.changed, report.duration))
     }
 }

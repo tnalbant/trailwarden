@@ -11,7 +11,14 @@ struct Trailwarden: ParsableCommand {
         commandName: "trailwarden",
         abstract: "Audit trail for coding agents on this Mac.",
         version: TrailwardenVersion.current,
-        subcommands: [ScanCommand.self, ExportCommand.self, RulesCommand.self, DoctorCommand.self])
+        subcommands: [
+            ScanCommand.self,
+            WatchCommand.self,
+            WhoCommand.self,
+            ExportCommand.self,
+            RulesCommand.self,
+            DoctorCommand.self
+        ])
 
     /// The documented contract is 0 clean, 1 findings, 2 usage. `exit(withError:)`
     /// builds its code from the error itself and ignores `exitCode(for:)`, so the
@@ -60,7 +67,7 @@ struct Trailwarden: ParsableCommand {
 
     private static func usageExit() -> Never {
         Output.error("Error: could not parse the command line.")
-        Output.error("Usage: trailwarden <scan|export|rules|doctor> [options]")
+        Output.error("Usage: trailwarden <scan|watch|who|export|rules|doctor> [options]")
         Output.error("  Run 'trailwarden --help' for the full syntax.")
         Foundation.exit(2)
     }

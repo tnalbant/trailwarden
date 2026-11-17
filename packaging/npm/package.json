@@ -1,6 +1,6 @@
 {
   "name": "trailwarden-mcp",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Offline audit trail for coding agents (Claude Code, Codex, Gemini CLI, Hermes) exposed over MCP. No network code.",
   "license": "Apache-2.0",
   "author": "Turgay Nalbant",

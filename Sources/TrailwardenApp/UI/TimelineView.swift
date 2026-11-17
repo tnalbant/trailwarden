@@ -59,7 +59,14 @@ struct TimelineView: View {
                 .frame(minWidth: 400, idealWidth: 620)
             Group {
                 if let event = model.selectedEvent {
-                    EventDetailView(event: event, onMute: onMute)
+                    EventDetailView(
+                        event: event,
+                        onMute: onMute,
+                        databaseURL: model.databaseURL,
+                        onOpen: { other in
+                            model.selection = .session(other.sessionId)
+                            model.selectedEventID = other.id
+                        })
                 } else {
                     detailPlaceholder
                 }

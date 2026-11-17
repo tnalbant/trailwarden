@@ -117,7 +117,7 @@ final class RuleEngineTests: XCTestCase {
 
             // R4 - credential files
             Case(command: "cat ~/.ssh/id_rsa", tool: "Bash", paths: [], expected: ["R4"], note: "ssh key"),
-            Case(command: "cp .env .env.bak", tool: "Bash", paths: [], expected: ["R4"], note: "env file"),
+            Case(command: "cp .env .env.bak", tool: "Bash", paths: [], expected: ["R11"], note: "env file"),
             Case(
                 command: "openssl rsa -in server.pem",
                 tool: "Bash",
@@ -237,7 +237,7 @@ final class RuleEngineTests: XCTestCase {
                 command: "mkdir ~/Library/LaunchAgents",
                 tool: "Bash",
                 paths: [],
-                expected: ["R9"],
+                expected: ["R13"],
                 note: "launch agent"),
             Case(
                 command: "cp a ../../outside/b",
@@ -293,14 +293,18 @@ final class RuleEngineTests: XCTestCase {
 
     // MARK: - Catalogue
 
-    func testCatalogueShipsTenRules() throws {
+    func testCatalogueShipsTwentySevenRules() throws {
         let rules = try RuleCatalog.builtIn()
 
-        XCTAssertEqual(rules.count, 10)
-        XCTAssertEqual(rules.map(\.id), ["R1", "R2", "R3", "R4", "R5", "R6", "R7", "R8", "R9", "R10"])
+        XCTAssertEqual(rules.count, 27)
+        XCTAssertEqual(rules.map(\.id), (1 ... 27).map { "R\($0)" })
         XCTAssertEqual(rules.map(\.severity), [
             .critical, .critical, .warn, .critical, .warn,
-            .warn, .critical, .warn, .warn, .warn
+            .warn, .critical, .warn, .warn, .warn,
+            .warn, .critical, .warn, .warn, .warn,
+            .critical, .warn, .critical, .warn, .warn,
+            .critical, .critical, .critical, .critical, .critical,
+            .critical, .critical
         ])
         XCTAssertTrue(rules.allSatisfy { !$0.title.isEmpty && !$0.message.isEmpty })
     }

@@ -96,7 +96,10 @@ final class TimelineModel: ObservableObject {
     private var store: EventStore?
     private var searchTask: Task<Void, Never>?
 
+    let databaseURL: URL
+
     init(databaseURL: URL) {
+        self.databaseURL = databaseURL
         do {
             store = try EventStore(url: databaseURL)
         } catch {

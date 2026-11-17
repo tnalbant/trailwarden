@@ -96,16 +96,49 @@ rm -f "$TARBALL"
 mkdir -p "$OUT/trailwarden-$VERSION-macos-arm64"
 cp .build/release/trailwarden .build/release/trailwarden-mcp "$OUT/trailwarden-$VERSION-macos-arm64/"
 cp LICENSE README.md "$OUT/trailwarden-$VERSION-macos-arm64/"
+cp Sources/TrailwardenApp/Resources/Acknowledgements.txt "$OUT/trailwarden-$VERSION-macos-arm64/"
 tar -czf "$TARBALL" -C "$OUT" "trailwarden-$VERSION-macos-arm64"
 rm -rf "$OUT/trailwarden-$VERSION-macos-arm64"
 
+echo "== update feed =="
+# The app's "Check for updates" reads latest.json from the newest GitHub release
+# (UpdateChecker.publishedFeed). It carries the version, one sentence of notes —
+# the first paragraph of docs/RELEASE_NOTES.md — and the release page.
+NOTES_FILE="docs/RELEASE_NOTES.md"
+if [[ ! -f "$NOTES_FILE" ]]; then
+  echo "HATA: $NOTES_FILE yok — sürüm notları olmadan yayın yapılmaz." >&2
+  exit 1
+fi
+python3 - "$VERSION" "$NOTES_FILE" "$OUT/latest.json" <<'PY'
+import json, sys
+version, notes_path, out = sys.argv[1:4]
+summary = ""
+for line in open(notes_path, encoding="utf-8"):
+    text = line.strip()
+    if not text or text.startswith("#") or text.startswith("<!--"):
+        if summary:
+            break
+        continue
+    summary = (summary + " " + text).strip()
+feed = {
+    "version": version,
+    "notes": summary,
+    "url": f"https://github.com/tnalbant/trailwarden/releases/tag/v{version}",
+}
+with open(out, "w", encoding="utf-8") as handle:
+    json.dump(feed, handle, ensure_ascii=False, indent=2)
+    handle.write("\n")
+print("   " + json.dumps(feed, ensure_ascii=False))
+PY
+
 echo "== checksums =="
-( cd "$OUT" && shasum -a 256 "$(basename "$DMG")" "$(basename "$TARBALL")" | tee SHA256SUMS )
+( cd "$OUT" && shasum -a 256 "$(basename "$DMG")" "$(basename "$TARBALL")" latest.json | tee SHA256SUMS )
 
 echo
 echo "hazır:"
 echo "  $DMG"
 echo "  $TARBALL"
+echo "  $OUT/latest.json"
 echo "  $OUT/SHA256SUMS"
 if [[ -z "$DEVELOPER_ID" ]]; then
   echo

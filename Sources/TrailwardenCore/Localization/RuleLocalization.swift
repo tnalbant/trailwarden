@@ -3,7 +3,7 @@
 
 import Foundation
 
-/// The ten rules keep their machine-readable form in `rules.json`; their words
+/// The rules keep their machine-readable form in `rules.json`; their words
 /// live here, keyed by rule id, so adding a language never touches a regex.
 ///
 /// The Turkish text in `rules.json` stays the fallback, which means a rule added
@@ -15,49 +15,59 @@ public struct RuleText: Sendable {
 
 public enum RuleLocalization {
     public static func text(forRule id: String, language: AppLanguage) -> RuleText? {
-        entries[id]?[language == .system ? .english : language]
+        allEntries[id]?[language == .system ? .english : language]
     }
+
+    /// Built-in rules from the first release; the rest live in
+    /// `RuleLocalization+Added.swift` so neither table grows past a screenful of review.
+    static let allEntries = entries.merging(addedEntries) { first, _ in first }
 
     static let entries: [String: [AppLanguage: RuleText]] = [
         "R1": [
             .english: RuleText(
                 title: "Destructive delete",
-                message: "An irreversible delete aimed at the home folder or the root of the file system"),
+                message: "An irreversible delete aimed at the home folder, a top-level folder or the root of "
+                    + "the file system"),
             .turkish: RuleText(
                 title: "Yıkıcı silme",
-                message: "Ev dizinini veya dosya sisteminin kökünü hedefleyen geri dönüşsüz silme"),
+                message: "Ev dizinini, bir üst düzey klasörü veya dosya sisteminin kökünü hedefleyen geri "
+                    + "dönüşsüz silme"),
             .german: RuleText(
                 title: "Destruktives Löschen",
-                message: "Unwiderrufliches Löschen im Home-Verzeichnis oder im Wurzelverzeichnis des Dateisystems"),
+                message: "Unwiderrufliches Löschen, das auf das Home-Verzeichnis, einen Ordner der obersten "
+                    + "Ebene oder die Wurzel des Dateisystems zielt"),
             .spanish: RuleText(
                 title: "Borrado destructivo",
-                message: "Borrado irreversible sobre la carpeta personal o la raíz del sistema"),
+                message: "Borrado irreversible dirigido a la carpeta personal, a una carpeta de primer nivel "
+                    + "o a la raíz del sistema"),
             .italian: RuleText(
                 title: "Cancellazione distruttiva",
-                message: "Cancellazione irreversibile sulla cartella personale o sulla radice del filesystem"),
+                message: "Cancellazione irreversibile diretta alla cartella personale, a una cartella di "
+                    + "primo livello o alla radice del filesystem"),
             .french: RuleText(
                 title: "Suppression destructive",
-                message: "Suppression irréversible visant le dossier personnel ou la racine du système")
+                message: "Suppression irréversible visant le dossier personnel, un dossier de premier niveau "
+                    + "ou la racine du système")
         ],
         "R2": [
             .english: RuleText(
                 title: "Download and run",
-                message: "Remote content is piped straight into a shell"),
+                message: "Remote content is piped straight into a shell or an interpreter"),
             .turkish: RuleText(
                 title: "İndirip çalıştırma",
-                message: "Uzaktan indirilen içerik doğrudan kabuğa veriliyor"),
+                message: "Uzaktan indirilen içerik doğrudan kabuğa veya yorumlayıcıya veriliyor"),
             .german: RuleText(
                 title: "Herunterladen und ausführen",
-                message: "Remote-Inhalt wird direkt in eine Shell geleitet"),
+                message: "Remote-Inhalt wird direkt in eine Shell oder einen Interpreter geleitet"),
             .spanish: RuleText(
                 title: "Descargar y ejecutar",
-                message: "El contenido remoto se envía directamente a un shell"),
+                message: "El contenido remoto se envía directamente a un shell o a un intérprete"),
             .italian: RuleText(
                 title: "Scarica ed esegui",
-                message: "Il contenuto remoto finisce direttamente in una shell"),
+                message: "Il contenuto remoto finisce direttamente in una shell o in un interprete"),
             .french: RuleText(
                 title: "Télécharger et exécuter",
-                message: "Le contenu distant part directement dans un shell")
+                message: "Le contenu distant part directement dans un shell ou un interpréteur")
         ],
         "R3": [
             .english: RuleText(
@@ -82,22 +92,22 @@ public enum RuleLocalization {
         "R4": [
             .english: RuleText(
                 title: "Secret file access",
-                message: "A file that may hold credentials"),
+                message: "A file that may hold credentials or a private key"),
             .turkish: RuleText(
                 title: "Sır dosyası erişimi",
-                message: "Kimlik bilgisi içerebilecek dosya"),
+                message: "Kimlik bilgisi veya özel anahtar içerebilecek dosya"),
             .german: RuleText(
                 title: "Zugriff auf Secret-Dateien",
-                message: "Eine Datei, die Zugangsdaten enthalten kann"),
+                message: "Eine Datei, die Zugangsdaten oder einen privaten Schlüssel enthalten kann"),
             .spanish: RuleText(
                 title: "Acceso a archivos de secretos",
-                message: "Un archivo que puede contener credenciales"),
+                message: "Un archivo que puede contener credenciales o una clave privada"),
             .italian: RuleText(
                 title: "Accesso a file di segreti",
-                message: "Un file che può contenere credenziali"),
+                message: "Un file che può contenere credenziali o una chiave privata"),
             .french: RuleText(
                 title: "Accès aux fichiers de secrets",
-                message: "Un fichier susceptible de contenir des identifiants")
+                message: "Un fichier susceptible de contenir des identifiants ou une clé privée")
         ],
         "R5": [
             .english: RuleText(
@@ -182,22 +192,22 @@ public enum RuleLocalization {
         "R9": [
             .english: RuleText(
                 title: "Write outside the workspace",
-                message: "Writing outside the project folder"),
+                message: "Writing outside the project and the user's space, into system folders"),
             .turkish: RuleText(
                 title: "Çalışma dizini dışına yazma",
-                message: "Proje dizininin dışına yazılıyor"),
+                message: "Proje dizininin ve kullanıcı alanının dışına, sistem klasörlerine yazılıyor"),
             .german: RuleText(
                 title: "Schreiben außerhalb des Arbeitsordners",
-                message: "Es wird außerhalb des Projektordners geschrieben"),
+                message: "Es wird außerhalb des Projekts und des Benutzerbereichs in Systemordner geschrieben"),
             .spanish: RuleText(
                 title: "Escritura fuera del proyecto",
-                message: "Se escribe fuera de la carpeta del proyecto"),
+                message: "Se escribe fuera del proyecto y del espacio del usuario, en carpetas del sistema"),
             .italian: RuleText(
                 title: "Scrittura fuori dal progetto",
-                message: "Si scrive fuori dalla cartella del progetto"),
+                message: "Si scrive fuori dal progetto e dallo spazio dell'utente, in cartelle di sistema"),
             .french: RuleText(
                 title: "Écriture hors du projet",
-                message: "Écriture en dehors du dossier du projet")
+                message: "Écriture en dehors du projet et de l'espace de l'utilisateur, dans des dossiers système")
         ],
         "R10": [
             .english: RuleText(

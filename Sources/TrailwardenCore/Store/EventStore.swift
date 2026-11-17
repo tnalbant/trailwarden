@@ -130,6 +130,7 @@ public final class EventStore {
             try database.execute("DROP TRIGGER IF EXISTS events_au")
             try database.execute("DROP TABLE IF EXISTS events_fts")
         }
+        let rebuildIndex = try userVersion() < 2
         try database.execute("""
         CREATE VIRTUAL TABLE IF NOT EXISTS events_fts USING fts5(
             preview, command, tool,
@@ -156,6 +157,12 @@ public final class EventStore {
             VALUES (new.rowid, new.preview, new.command, new.tool);
         END
         """)
+        // A freshly created external-content index starts empty while `events`
+        // may already hold rows (an upgraded v1 file). Without a rebuild the
+        // first UPDATE asks FTS to delete a row it never had: "malformed".
+        if rebuildIndex {
+            try database.execute("INSERT INTO events_fts(events_fts) VALUES('rebuild')")
+        }
         try database.execute("""
         CREATE TABLE IF NOT EXISTS mutes (
             rule_id TEXT NOT NULL,
@@ -169,7 +176,14 @@ public final class EventStore {
         if try userVersion() < 4, try !columnExists("severity_rank", in: "events") {
             try database.execute("ALTER TABLE events ADD COLUMN severity_rank INTEGER")
         }
-        try database.execute("PRAGMA user_version = 4")
+        // v5: the parsers learned Codex code-mode and the redactor stopped masking
+        // long paths as blobs. Forgetting the file signatures makes the next scan
+        // read every transcript once more; events keep their ids, so the rewrite
+        // replaces rows instead of adding to them.
+        if try userVersion() < 5 {
+            try database.execute("DELETE FROM scanned_files")
+        }
+        try database.execute("PRAGMA user_version = 5")
     }
 
     /// Row statements for the query layer; keeps the database handle private.

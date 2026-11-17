@@ -66,10 +66,10 @@ final class MCPRouterTests: XCTestCase {
         let result = try XCTUnwrap(response["result"] as? [String: Any])
         let tools = try XCTUnwrap(result["tools"] as? [[String: Any]])
 
-        XCTAssertEqual(tools.count, 4)
+        XCTAssertEqual(tools.count, 5)
         XCTAssertEqual(
             Set(tools.compactMap { $0["name"] as? String }),
-            ["search_events", "list_sessions", "get_event", "audit_summary"])
+            ["search_events", "list_sessions", "get_event", "file_history", "audit_summary"])
         for tool in tools {
             XCTAssertNotNil(tool["inputSchema"], "\(tool["name"] ?? "?") needs a schema")
         }

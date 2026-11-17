@@ -57,6 +57,8 @@ enum EventFormatting {
         case .opencode: "opencode"
         case .gemini: "gemini"
         case .hermes: "hermes"
+        case .cursor: "cursor"
+        case .copilot: "copilot"
         }
     }
 }

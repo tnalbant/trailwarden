@@ -19,12 +19,16 @@ public struct ScanRoot: Sendable {
 
     /// Agents whose history lives in a database rather than in files.
     public static func standardDatabases(agents: Set<Agent>? = nil) -> [DatabaseSource] {
-        let source = DatabaseSource(database: HermesDatabaseParser.defaultURL, parser: HermesDatabaseParser())
-        guard let agents, !agents.isEmpty else { return [source] }
-        return agents.contains(.hermes) ? [source] : []
+        let sources = [
+            DatabaseSource(database: HermesDatabaseParser.defaultURL, parser: HermesDatabaseParser()),
+            DatabaseSource(database: OpencodeDatabaseParser.defaultURL, parser: OpencodeDatabaseParser()),
+            DatabaseSource(database: CursorDatabaseParser.defaultURL, parser: CursorDatabaseParser())
+        ]
+        guard let agents, !agents.isEmpty else { return sources }
+        return sources.filter { agents.contains($0.agent) }
     }
 
-    /// The two directories Trailwarden reads by default, optionally narrowed to
+    /// The directories Trailwarden reads by default, optionally narrowed to
     /// the agents the user asked for.
     public static func standard(agents: Set<Agent>? = nil) -> [ScanRoot] {
         let home = FileManager.default.homeDirectoryForCurrentUser
@@ -38,7 +42,11 @@ public struct ScanRoot: Sendable {
             // Gemini CLI keeps one JSON document per session under tmp/<project>/chats.
             ScanRoot(
                 directory: home.appendingPathComponent(".gemini/tmp", isDirectory: true),
-                parser: GeminiCLIParser())
+                parser: GeminiCLIParser()),
+            // Copilot CLI and the Copilot app: session-state/<session>/events.jsonl.
+            ScanRoot(
+                directory: home.appendingPathComponent(".copilot/session-state", isDirectory: true),
+                parser: CopilotParser())
         ]
         guard let agents, !agents.isEmpty else { return roots }
         return roots.filter { agents.contains($0.agent) }
@@ -106,50 +114,93 @@ public struct TranscriptScanner {
         }
     }
 
-    private func scan(root: ScanRoot, into report: inout ScanReport) {
-        let keys: Set<URLResourceKey> = [.isRegularFileKey, .fileSizeKey, .contentModificationDateKey]
-        guard let enumerator = FileManager.default.enumerator(
-            at: root.directory,
-            includingPropertiesForKeys: Array(keys)) else { return }
-
-        for case let url as URL in enumerator {
-            guard url.pathExtension == root.parser.fileExtension else { continue }
-            let values = try? url.resourceValues(forKeys: keys)
-            guard values?.isRegularFile == true else { continue }
-            report.filesSeen += 1
-
-            let size = values?.fileSize ?? 0
-            let mtime = values?.contentModificationDate?.timeIntervalSince1970 ?? 0
-
-            if let known = try? store.fileSignature(path: url.path),
-               known.size == size,
-               abs(known.mtime - mtime) < 0.5
-            {
-                report.filesUnchanged += 1
+    /// Re-reads only the files that changed, for the live watcher: no folder walk,
+    /// so a pass costs one parse per file the agent just wrote. A path outside
+    /// every root is ignored; a database path re-reads that database.
+    public func scan(
+        changed urls: [URL],
+        roots: [ScanRoot],
+        databases: [DatabaseSource] = []) -> ScanReport
+    {
+        var report = ScanReport()
+        var databasesToRead: [DatabaseSource] = []
+        for url in urls {
+            let path = url.standardizedFileURL.path
+            if let source = databases.first(where: {
+                let database = $0.database.standardizedFileURL.path
+                return path == database || path == database + "-wal"
+            }) {
+                if !databasesToRead.contains(where: { $0.database == source.database }) {
+                    databasesToRead.append(source)
+                }
                 continue
             }
+            guard let root = roots.first(where: {
+                path.hasPrefix($0.directory.standardizedFileURL.path + "/")
+                    && $0.parser.accepts(url)
+            }) else { continue }
+            scan(file: url, root: root, into: &report)
+        }
+        for source in databasesToRead {
+            scan(database: source, into: &report)
+        }
+        return report
+    }
 
-            do {
-                let result = try root.parser.parse(file: url)
-                // Rules run on the raw text, then the store only ever sees the
-                // masked copy: a hit carries its message, never the secret.
-                let annotated = rules?.annotate(result.events) ?? result.events
-                let events = annotated.map { redactor.redact($0) }
-                let stored = try store.insert(events: events)
-                try store.recordScan(
-                    path: url.path,
-                    agent: root.agent,
-                    size: size,
-                    mtime: mtime,
-                    sessionId: events.first?.sessionId,
-                    events: stored,
-                    skipped: result.skippedLines)
-                report.filesParsed += 1
-                report.eventsStored += stored
-                report.skippedLines += result.skippedLines
-            } catch {
-                report.failures.append("\(url.lastPathComponent): \(error)")
-            }
+    private static let fileKeys: Set<URLResourceKey> = [
+        .isRegularFileKey,
+        .fileSizeKey,
+        .contentModificationDateKey
+    ]
+
+    private func scan(root: ScanRoot, into report: inout ScanReport) {
+        guard let enumerator = FileManager.default.enumerator(
+            at: root.directory,
+            includingPropertiesForKeys: Array(Self.fileKeys)) else { return }
+
+        for case let url as URL in enumerator {
+            guard root.parser.accepts(url) else { continue }
+            scan(file: url, root: root, into: &report)
+        }
+    }
+
+    private func scan(file url: URL, root: ScanRoot, into report: inout ScanReport) {
+        let keys = Self.fileKeys
+        let values = try? url.resourceValues(forKeys: keys)
+        guard values?.isRegularFile == true else { return }
+        report.filesSeen += 1
+
+        let size = values?.fileSize ?? 0
+        let mtime = values?.contentModificationDate?.timeIntervalSince1970 ?? 0
+
+        if let known = try? store.fileSignature(path: url.path),
+           known.size == size,
+           abs(known.mtime - mtime) < 0.5
+        {
+            report.filesUnchanged += 1
+            return
+        }
+
+        do {
+            let result = try root.parser.parse(file: url)
+            // Rules run on the raw text, then the store only ever sees the
+            // masked copy: a hit carries its message, never the secret.
+            let annotated = rules?.annotate(result.events) ?? result.events
+            let events = annotated.map { redactor.redact($0) }
+            let stored = try store.insert(events: events)
+            try store.recordScan(
+                path: url.path,
+                agent: root.agent,
+                size: size,
+                mtime: mtime,
+                sessionId: events.first?.sessionId,
+                events: stored,
+                skipped: result.skippedLines)
+            report.filesParsed += 1
+            report.eventsStored += stored
+            report.skippedLines += result.skippedLines
+        } catch {
+            report.failures.append("\(url.lastPathComponent): \(error)")
         }
     }
 }

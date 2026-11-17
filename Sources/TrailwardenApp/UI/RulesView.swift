@@ -124,13 +124,15 @@ struct RulesView: View {
 
     private func ruleMatchSummary(_ rule: Rule) -> String {
         var parts: [String] = []
-        if let tool = rule.match.tool {
-            parts.append(Lf(.ruleTool, [tool]))
+        let tools = rule.match.allTools
+        if !tools.isEmpty {
+            parts.append(Lf(.ruleTool, [tools.joined(separator: ", ")]))
         }
-        if let regex = rule.match.commandRegex {
+        for regex in rule.match.allCommandPatterns {
             parts.append("/\(regex)/")
         }
-        if let globs = rule.match.pathGlobs {
+        let globs = rule.match.allPathGlobs
+        if !globs.isEmpty {
             parts.append(globs.joined(separator: " "))
         }
         return parts.isEmpty ? L(.ruleMatchesAll) : parts.joined(separator: " · ")
