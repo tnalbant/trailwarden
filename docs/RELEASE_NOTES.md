@@ -1,7 +1,9 @@
 <!-- SPDX-License-Identifier: Apache-2.0 -->
 # Trailwarden 0.2.1
 
-The command line tool and the MCP server now carry their rules inside the binary, so the Homebrew, release-tarball, npm and `make install` builds work on their own. Everything new in 0.2.0 is listed below.
+The command line tool and the MCP server now carry their rules inside the binary, so the Homebrew, release-tarball, npm and `make install` builds work on their own.
+
+Everything new in 0.2.0 is listed below.
 
 ## Fixed
 
