@@ -13,11 +13,17 @@ public protocol AgentParser: Sendable {
     /// Transcript files this parser understands; the scanner skips the rest.
     var fileExtension: String { get }
     func parse(file: URL) throws -> ParseResult
+    /// Whether the scanner and the live watcher should hand this file over.
+    func accepts(_ url: URL) -> Bool
 }
 
 public extension AgentParser {
     var fileExtension: String {
         "jsonl"
+    }
+
+    func accepts(_ url: URL) -> Bool {
+        url.pathExtension == fileExtension
     }
 }
 

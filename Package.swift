@@ -7,6 +7,9 @@ import PackageDescription
 /// Dependency policy: exactly one third-party package (Apple's argument parser).
 /// Everything else (JSONL parsing, rules, SQLite/FTS5, MCP) is written in-tree on
 /// top of system frameworks, so the audit trail stays inspectable and offline.
+/// The one vendored exception is `CZstd`: the official Zstandard decompressor
+/// (BSD, Meta), as its single-file build, because macOS ships no zstd decoder
+/// and Codex compresses older sessions with it. See Sources/CZstd/README.md.
 let package = Package(
     name: "Trailwarden",
     platforms: [
@@ -22,7 +25,11 @@ let package = Package(
     ],
     targets: [
         .target(
+            name: "CZstd",
+            exclude: ["LICENSE", "README.md"]),
+        .target(
             name: "TrailwardenCore",
+            dependencies: ["CZstd"],
             resources: [.process("Resources")]),
         .executableTarget(
             name: "TrailwardenCLI",

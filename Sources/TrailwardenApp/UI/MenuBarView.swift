@@ -15,7 +15,14 @@ struct MenuBarView: View {
     @AppStorage(LocalizationStore.defaultsKey) private var language = AppLanguage.system.rawValue
     @ObservedObject var model: AppModel
     @ObservedObject var updates: UpdateChecker
+    @ObservedObject var live: LiveMonitor
     @Environment(\.openWindow) private var openWindow
+
+    init(model: AppModel, updates: UpdateChecker) {
+        self.model = model
+        self.updates = updates
+        live = model.live
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -64,6 +71,24 @@ struct MenuBarView: View {
             Text("Trailwarden")
                 .font(Tokens.Typography.serif(14, weight: .semibold))
             Spacer()
+            if model.onboardingDone {
+                // Is anyone watching right now? Click to open the switch.
+                Button {
+                    openWindow(id: "settings")
+                    NSApp.activate(ignoringOtherApps: true)
+                } label: {
+                    HStack(spacing: 4) {
+                        Circle()
+                            .fill(live.isRunning ? Tokens.Palette.accent : Tokens.Palette.tertiary)
+                            .frame(width: 6, height: 6)
+                        Text(live.isRunning ? L(.liveOn) : L(.liveOff))
+                            .font(Tokens.Typography.text(9.5, weight: .medium))
+                            .foregroundStyle(live.isRunning ? Tokens.Palette.ink : Tokens.Palette.secondary)
+                    }
+                }
+                .buttonStyle(.plain)
+                .help(L(.liveGuardHint))
+            }
             Text("v\(TrailwardenVersion.current)")
                 .font(Tokens.Typography.mono(9))
                 .foregroundStyle(Tokens.Palette.secondary)
@@ -235,6 +260,9 @@ struct MenuBarView: View {
         HStack(spacing: 8) {
             footerButton(L(.openDashboard), tint: Tokens.Palette.accent, weight: .medium) {
                 openWindow(id: "main")
+            }
+            footerButton(L(.windowReport)) {
+                openWindow(id: "report")
             }
             footerButton(L(.windowUsage)) {
                 openWindow(id: "usage")

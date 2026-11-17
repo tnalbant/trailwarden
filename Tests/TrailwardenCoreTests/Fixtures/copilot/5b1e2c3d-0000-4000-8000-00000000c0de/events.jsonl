@@ -1,0 +1,16 @@
+{"type":"session.start","data":{"sessionId":"5b1e2c3d-0000-4000-8000-00000000c0de","copilotVersion":"1.0.0","context":{"cwd":"/Users/demo/dev/aurora","branch":"main","repository":"demo/aurora"}},"id":"e1","timestamp":"2026-11-17T18:10:54.082Z","parentId":null}
+{"type":"hook.start","data":{"hookType":"sessionStart"},"id":"e2","timestamp":"2026-11-17T18:10:54.100Z"}
+{"type":"user.message","data":{"content":"make a notes folder and a file in it"},"id":"e3","timestamp":"2026-11-17T18:11:00.000Z"}
+{"type":"session.usage_record","data":{"usage":{"model":"demo-model","inputTokens":1200,"outputTokens":80}},"id":"e4","timestamp":"2026-11-17T18:11:01.000Z"}
+{"type":"assistant.message","data":{"content":"","reasoningText":"plan the folder","toolRequests":[{"toolCallId":"c1","name":"bash"}]},"id":"e5","timestamp":"2026-11-17T18:11:02.000Z"}
+{"type":"tool.execution_start","data":{"toolCallId":"c1","toolName":"bash","arguments":{"command":"mkdir -p /Users/demo/notes && git push --force origin main","description":"make it"}},"id":"e6","timestamp":"2026-11-17T18:11:03.000Z"}
+{"type":"tool.execution_complete","data":{"toolCallId":"c1","success":true,"result":{"content":"done"},"shellExecution":{"exitCode":0}},"id":"e7","timestamp":"2026-11-17T18:11:04.000Z"}
+{"type":"tool.execution_start","data":{"toolCallId":"c2","toolName":"create","arguments":{"path":"/Users/demo/notes/a.md","file_text":"rm -rf ~ is text, not a command"}},"id":"e8","timestamp":"2026-11-17T18:11:05.000Z"}
+{"type":"tool.execution_complete","data":{"toolCallId":"c2","success":true,"fileEdits":[{"path":"/Users/demo/notes/a.md","kind":"create"}],"result":{"content":"Created file"}},"id":"e9","timestamp":"2026-11-17T18:11:06.000Z"}
+{"type":"tool.execution_start","data":{"toolCallId":"c3","toolName":"view","arguments":{"path":"/Users/demo/dev/aurora/.env"}},"id":"e10","timestamp":"2026-11-17T18:11:07.000Z"}
+{"type":"tool.execution_complete","data":{"toolCallId":"c3","success":false,"result":{"content":"denied"}},"id":"e11","timestamp":"2026-11-17T18:11:08.000Z"}
+{"type":"tool.execution_start","data":{"toolCallId":"c4","toolName":"rg","arguments":{"pattern":"rm -rf /","paths":["/Users/demo/dev/aurora/src"]}},"id":"e12","timestamp":"2026-11-17T18:11:09.000Z"}
+{"type":"permission.requested","data":{"permissionRequest":{"kind":"shell","toolName":"bash"}},"id":"e13","timestamp":"2026-11-17T18:11:10.000Z"}
+{"type":"assistant.message","data":{"content":"Done."},"id":"e14","timestamp":"2026-11-17T18:11:11.000Z"}
+{"type":"some.future_type","data":{},"id":"e15","timestamp":"2026-11-17T18:11:12.000Z"}
+not json

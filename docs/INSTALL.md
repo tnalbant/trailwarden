@@ -82,8 +82,12 @@ kadar kendi tap kullanılır.
 
 ```bash
 trailwarden doctor          # okunabilen ajan dosyalarını listeler
+trailwarden watch           # canlı: her bulguyu oluştuğu anda yazar
+trailwarden who README.md   # bu dosyaya hangi ajan dokundu
 trailwarden --help
 ```
 
-Uygulama ilk açılışta "Henüz veri yok — Tara'ya bas." der; `Tara` düğmesi mevcut
-transkriptleri indeksler.
+Uygulama ilk açılışta neyi okuyacağını gösterir; `Tara` düğmesi mevcut
+transkriptleri indeksler ve ardından 30 günlük karneyi açar. Canlı bekçi bundan
+sonra kendiliğinden çalışır ve kritik bir komutta bildirim gönderir (Ayarlar →
+Canlı bekçi).

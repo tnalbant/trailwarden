@@ -8,28 +8,62 @@ import Foundation
 /// Transcript files routinely grow past 100 MB, so the reader works on fixed
 /// size chunks and only keeps the unfinished tail between reads. Line numbers
 /// are physical (blank lines included) because event ids are derived from them.
+/// A `.zst` file yields the same lines, in the same order, as its plain copy.
 enum JSONLReader {
     static let chunkSize = 1 << 20
 
-    static func forEachLine(at url: URL, _ body: (Int, String) throws -> Void) throws {
-        let handle = try FileHandle(forReadingFrom: url)
-        defer { try? handle.close() }
+    /// `name.jsonl.zst` is read through the zstd decoder; everything else as is.
+    static func isCompressed(_ url: URL) -> Bool {
+        url.pathExtension == "zst"
+    }
 
+    static func forEachLine(at url: URL, _ body: (Int, String) throws -> Void) throws {
         var buffer = Data()
         var lineNumber = 0
+        // Bytes of `buffer` already searched for a newline. A line of several
+        // megabytes arrives over many chunks; without this every chunk would
+        // search the whole unfinished line again.
+        var searched = 0
 
-        while let chunk = try handle.read(upToCount: chunkSize), !chunk.isEmpty {
+        func consume(_ chunk: Data) throws {
             buffer.append(chunk)
 
-            var start = buffer.startIndex
-            while let newline = buffer[start...].firstIndex(of: 0x0A) {
-                lineNumber += 1
-                try body(lineNumber, String(decoding: buffer[start ..< newline], as: UTF8.self))
-                start = buffer.index(after: newline)
+            var lines: [Range<Int>] = []
+            buffer.withUnsafeBytes { (raw: UnsafeRawBufferPointer) in
+                guard let base = raw.baseAddress else { return }
+                var start = 0
+                var from = searched
+                while from < raw.count,
+                      let hit = memchr(base + from, 0x0A, raw.count - from)
+                {
+                    let newline = base.distance(to: UnsafeRawPointer(hit))
+                    lines.append(start ..< newline)
+                    start = newline + 1
+                    from = start
+                }
+                searched = raw.count
             }
 
-            if start > buffer.startIndex {
-                buffer.removeSubrange(buffer.startIndex ..< start)
+            let origin = buffer.startIndex
+            for range in lines {
+                lineNumber += 1
+                let slice = buffer[(origin + range.lowerBound) ..< (origin + range.upperBound)]
+                try body(lineNumber, String(decoding: slice, as: UTF8.self))
+            }
+
+            if let last = lines.last {
+                buffer.removeSubrange(origin ..< (origin + last.upperBound + 1))
+                searched -= last.upperBound + 1
+            }
+        }
+
+        if isCompressed(url) {
+            try ZstdReader.forEachChunk(at: url, consume)
+        } else {
+            let handle = try FileHandle(forReadingFrom: url)
+            defer { try? handle.close() }
+            while let chunk = try handle.read(upToCount: chunkSize), !chunk.isEmpty {
+                try consume(chunk)
             }
         }
 

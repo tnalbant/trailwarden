@@ -15,6 +15,9 @@ struct EventDetailView: View {
     @AppStorage(LocalizationStore.defaultsKey) private var language = AppLanguage.system.rawValue
     let event: Event
     var onMute: ((RiskHit, Event) -> Void)?
+    /// Where to look up other agents' work on the same file.
+    var databaseURL: URL?
+    var onOpen: ((Event) -> Void)?
     @State private var copiedResume = false
 
     @State private var copiedField: String?
@@ -46,6 +49,10 @@ struct EventDetailView: View {
                     }
                     if !event.paths.isEmpty {
                         pathsSection
+                    }
+                    if let databaseURL, let path = event.paths.first {
+                        FileNeighborsView(event: event, path: path, databaseURL: databaseURL, onOpen: onOpen)
+                            .id(event.id)
                     }
                     if let raw = event.rawJSON {
                         rawSection(raw)
@@ -267,6 +274,72 @@ struct EventDetailView: View {
         case .removal: Tokens.Palette.diffRemoval
         case .header: Tokens.Palette.diffHeader
         case .context: Tokens.Palette.ink.opacity(0.78)
+        }
+    }
+}
+
+/// "Who else touched this file?" — the other sessions that changed, read or
+/// named the same path, so two agents working on one file are visible from
+/// either side.
+private struct FileNeighborsView: View {
+    let event: Event
+    let path: String
+    let databaseURL: URL
+    var onOpen: ((Event) -> Void)?
+    @State private var touches: [FileTouch]?
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 5) {
+            SectionLabel(text: L(.whoTouched))
+            if let touches {
+                if touches.isEmpty {
+                    Text(L(.whoNone))
+                        .font(Tokens.Typography.text(10))
+                        .foregroundStyle(Tokens.Palette.secondary)
+                }
+                ForEach(touches) { touch in
+                    Button {
+                        onOpen?(touch.event)
+                    } label: {
+                        HStack(alignment: .firstTextBaseline, spacing: 6) {
+                            Text(EventFormatting.agentLabel(touch.event.agent))
+                                .font(Tokens.Typography.mono(9, weight: .medium))
+                            Text(touch.action.rawValue)
+                                .font(Tokens.Typography.mono(9))
+                                .foregroundStyle(touch.action == .changed
+                                    ? Tokens.Palette.accent
+                                    : Tokens.Palette.secondary)
+                            Text(EventFormatting.stamp(touch.event.ts))
+                                .font(Tokens.Typography.mono(9))
+                                .foregroundStyle(Tokens.Palette.tertiary)
+                            Spacer(minLength: 0)
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 7, weight: .semibold))
+                                .foregroundStyle(Tokens.Palette.tertiary)
+                        }
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                }
+            } else {
+                ProgressView()
+                    .controlSize(.mini)
+            }
+        }
+        .task {
+            let url = databaseURL
+            let target = FileHistory.Target(
+                absolute: path.hasPrefix("~")
+                    ? NSHomeDirectory() + path.dropFirst()
+                    : path,
+                isDirectory: false)
+            let session = event.sessionId
+            touches = await Task.detached(priority: .userInitiated) { () -> [FileTouch] in
+                guard let store = try? EventStore(url: url),
+                      let found = try? FileHistory.touches(of: target, in: store, limit: 40)
+                else { return [] }
+                return Array(found.filter { $0.event.sessionId != session }.prefix(6))
+            }.value
         }
     }
 }

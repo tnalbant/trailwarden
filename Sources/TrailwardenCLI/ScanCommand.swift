@@ -16,7 +16,9 @@ struct ScanCommand: ParsableCommand {
     @Option(name: .long, help: "How far back to report: 7d, 12h, 90m, an ISO date, or all.")
     var since = "all"
 
-    @Option(name: .long, help: "Agent to scan: all, claude or codex.")
+    @Option(
+        name: .long,
+        help: "Agent to scan: all, claude, codex, gemini, hermes, opencode, cursor or copilot.")
     var agent: AgentOption = .all
 
     @Option(name: .long, help: "Minimum severity to report: info, warn or critical.")
@@ -27,6 +29,13 @@ struct ScanCommand: ParsableCommand {
 
     @Flag(name: .long, help: "Print a Markdown report.")
     var md = false
+
+    @Option(
+        name: .long,
+        help: ArgumentHelp(
+            "Exit with status 1 when a finding of this severity or worse is in the window: "
+                + "critical (default), warn, info or none."))
+    var failOn: FailThreshold = .critical
 
     func run() throws {
         if json, md {
@@ -65,8 +74,12 @@ struct ScanCommand: ParsableCommand {
             Output.write(textReport(report: report, events: events, since: sinceDate))
         }
 
-        let summary = AuditReport.summarize(sessions: sessions, events: events)
-        if summary.critical > 0 {
+        // CI gate: same window and agents as the report, but its own severity,
+        // so `--severity critical --fail-on warn` still fails on a warning.
+        if let threshold = failOn.severity,
+           try database.eventCount(
+               matching: EventQuery(since: sinceDate, agents: agents, minimumSeverity: threshold)) > 0
+        {
             throw ExitCode(1)
         }
     }
@@ -98,5 +111,22 @@ struct ScanCommand: ParsableCommand {
             lines.append("  … \(events.count - 30) more; use --md or --json for the full list")
         }
         return lines.joined(separator: "\n")
+    }
+}
+
+/// `--fail-on`: the lowest severity that makes `scan` exit with 1.
+enum FailThreshold: String, ExpressibleByArgument, CaseIterable {
+    case critical
+    case warn
+    case info
+    case none
+
+    var severity: Severity? {
+        switch self {
+        case .critical: .critical
+        case .warn: .warn
+        case .info: .info
+        case .none: nil
+        }
     }
 }

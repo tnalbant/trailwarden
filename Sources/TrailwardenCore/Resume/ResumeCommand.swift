@@ -27,6 +27,11 @@ public enum ResumeCommand {
             return "\(changeDirectory)opencode --session \(sessionId)"
         case .hermes:
             return "\(changeDirectory)hermes --resume \(sessionId)"
+        case .cursor, .copilot:
+            // Cursor chats live in the editor, and Copilot's resume flag could
+            // not be verified on a machine with the app; no command is better
+            // than a wrong one.
+            return nil
         }
     }
 

@@ -77,7 +77,7 @@ struct DoctorCommand: ParsableCommand {
             if present, isDirectory.boolValue {
                 Output
                     .write(
-                        "root \(label) \(root.directory.path)  \(transcriptCount(in: root.directory)) transcripts")
+                        "root \(label) \(root.directory.path)  \(transcriptCount(in: root)) transcripts")
             } else {
                 Output.write("root \(label) \(root.directory.path)  missing")
             }
@@ -88,12 +88,12 @@ struct DoctorCommand: ParsableCommand {
         }
     }
 
-    private func transcriptCount(in directory: URL) -> Int {
+    private func transcriptCount(in root: ScanRoot) -> Int {
         guard let enumerator = FileManager.default.enumerator(
-            at: directory,
+            at: root.directory,
             includingPropertiesForKeys: nil) else { return 0 }
         var count = 0
-        for case let url as URL in enumerator where url.pathExtension == "jsonl" {
+        for case let url as URL in enumerator where root.parser.accepts(url) {
             count += 1
         }
         return count

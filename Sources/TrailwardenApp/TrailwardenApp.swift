@@ -29,6 +29,12 @@ struct TrailwardenApp: App {
         .defaultSize(width: 1180, height: 720)
         .windowResizability(.contentMinSize)
 
+        Window(L(.windowReport), id: "report") {
+            ReportView(model: model)
+        }
+        .defaultSize(width: 860, height: 760)
+        .windowResizability(.contentMinSize)
+
         Window(L(.windowRules), id: "rules") {
             RulesView(model: model)
         }
@@ -42,7 +48,7 @@ struct TrailwardenApp: App {
         .windowResizability(.contentMinSize)
 
         Window(L(.windowSettings), id: "settings") {
-            SettingsView(model: model)
+            SettingsView(model: model, updates: updates)
         }
         .defaultSize(width: 640, height: 560)
         .windowResizability(.contentMinSize)
@@ -63,6 +69,17 @@ private struct MenuBarLabel: View {
                 Text("\(criticalToday)")
             }
         }
+        // The label exists for the whole life of the app, so it owns the update
+        // schedule. With the default (never) this starts nothing.
+        .task {
+            updates.startSchedule()
+        }
+        // A clicked notification asks for the window; the label is always on
+        // screen, so it is the one view that can open it at any time.
+        .onChange(of: model.windowRequested) { _, _ in
+            openWindow(id: "main")
+            NSApp.activate(ignoringOtherApps: true)
+        }
         #if DEBUG
         // Screenshots and UI checks need the window without a hand on the mouse;
         // release builds never see this.
@@ -70,10 +87,31 @@ private struct MenuBarLabel: View {
             if ProcessInfo.processInfo.environment["TRAILWARDEN_OPEN_MAIN"] == "1" {
                 openWindow(id: "main")
             }
+            if ProcessInfo.processInfo.environment["TRAILWARDEN_OPEN_REPORT"] == "1" {
+                openWindow(id: "report")
+            }
             if ProcessInfo.processInfo.environment["TRAILWARDEN_CHECK_UPDATES"] == "1" {
                 await updates.check()
                 print("[updates] state=\(updates.state)")
                 fflush(stdout)
+            }
+            if let path = ProcessInfo.processInfo.environment["TRAILWARDEN_SNAPSHOT_REPORT"],
+               let store = try? EventStore(url: model.databaseURL),
+               let card = try? ReportCard.build(from: store)
+            {
+                let renderer = ImageRenderer(
+                    content: ReportView(model: model, preloaded: card, scrolls: false)
+                        .frame(width: 860))
+                renderer.scale = 2
+                if let image = renderer.nsImage,
+                   let tiff = image.tiffRepresentation,
+                   let rep = NSBitmapImageRep(data: tiff),
+                   let png = rep.representation(using: .png, properties: [:])
+                {
+                    try? png.write(to: URL(fileURLWithPath: path))
+                    print("[snapshot] \(path)")
+                    fflush(stdout)
+                }
             }
             if let path = ProcessInfo.processInfo.environment["TRAILWARDEN_SNAPSHOT_PANEL"] {
                 // The menu bar panel cannot be opened from a script, so its contents

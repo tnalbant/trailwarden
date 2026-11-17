@@ -10,6 +10,8 @@ public enum Agent: String, Codable, Sendable, CaseIterable {
     case opencode
     case gemini
     case hermes
+    case cursor
+    case copilot
 }
 
 /// What kind of thing happened inside a session.

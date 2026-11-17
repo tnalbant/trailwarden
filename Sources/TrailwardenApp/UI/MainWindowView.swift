@@ -91,6 +91,22 @@ struct MainWindowView: View {
             guard let sessionID else { return }
             open(sessionID)
             model.sessionToOpen = nil
+            if let eventID = model.eventToSelect {
+                timeline.selectedEventID = eventID
+                model.eventToSelect = nil
+            }
+        }
+        .onAppear {
+            // A notification clicked while the window was closed: the request
+            // arrived before this view existed to observe it.
+            if let sessionID = model.sessionToOpen {
+                open(sessionID)
+                model.sessionToOpen = nil
+                if let eventID = model.eventToSelect {
+                    timeline.selectedEventID = eventID
+                    model.eventToSelect = nil
+                }
+            }
         }
     }
 

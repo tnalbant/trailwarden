@@ -25,7 +25,9 @@ struct ExportCommand: ParsableCommand {
     @Option(name: .long, help: "How far back: 30d, 12h, an ISO date, or all.")
     var since = "30d"
 
-    @Option(name: .long, help: "Agent to include: all, claude or codex.")
+    @Option(
+        name: .long,
+        help: "Agent to include: all, claude, codex, gemini, hermes, opencode, cursor or copilot.")
     var agent: AgentOption = .all
 
     @Option(name: .long, help: "Only include events at or above this severity.")

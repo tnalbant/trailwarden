@@ -4,7 +4,9 @@
 import Foundation
 
 /// Parser for Codex CLI rollout files
-/// (`~/.codex/sessions/YYYY/MM/DD/rollout-<time>-<uuid>.jsonl`).
+/// (`~/.codex/sessions/YYYY/MM/DD/rollout-<time>-<uuid>.jsonl`). Codex later
+/// compresses older rollouts to `….jsonl.zst`; those are read through the
+/// vendored zstd decoder and give the same events, with the same ids.
 ///
 /// Every line is `{ timestamp, ordinal, type, payload, metadata }`. The payload
 /// carries the meaning: `message`, `reasoning`, `custom_tool_call`,
@@ -16,6 +18,18 @@ public struct CodexParser: AgentParser {
     public let agent: Agent = .codex
 
     public init() {}
+
+    public func accepts(_ url: URL) -> Bool {
+        url.pathExtension == "jsonl"
+            || (url.pathExtension == "zst" && url.deletingPathExtension().pathExtension == "jsonl")
+    }
+
+    /// The plain `.jsonl` path a file stands for. Event ids are derived from it,
+    /// so a rollout that Codex compresses after it was indexed keeps its ids and
+    /// is not counted twice.
+    static func logicalPath(of file: URL) -> String {
+        file.pathExtension == "zst" ? file.deletingPathExtension().path : file.path
+    }
 
     // A switch over the transcript's event types: every case is one shape the
     // agent writes, and counting them as branches says nothing useful.
@@ -30,7 +44,7 @@ public struct CodexParser: AgentParser {
         var toolNamesByCallId: [String: String] = [:]
         var indexInLine = 0
 
-        let source = file.path
+        let source = Self.logicalPath(of: file)
         let fallbackTimestamp = Self.modificationDate(of: file) ?? Date(timeIntervalSince1970: 0)
         let formatter = Self.fractionalFormatter()
 
@@ -128,10 +142,10 @@ public struct CodexParser: AgentParser {
                     if let callId = payload["call_id"] as? String, let name {
                         toolNamesByCallId[callId] = name
                     }
-                    let input = Self.toolInput(payload["input"])
+                    let input = Self.codeModeInput(payload["input"]) ?? Self.toolInput(payload["input"])
                     add(
                         .toolCall,
-                        tool: name,
+                        tool: input.tool ?? name,
                         command: input.command,
                         paths: input.paths,
                         preview: input.preview)
@@ -210,11 +224,25 @@ public struct CodexParser: AgentParser {
     /// `custom_tool_call.input` is a raw string for the `exec` tool and an object
     /// for others; `function_call.arguments` is a JSON string that was already
     /// decoded by the caller.
-    static func toolInput(_ value: Any?) -> (command: String?, paths: [String], preview: String?) {
-        if let string = value as? String, !string.isEmpty {
-            return (string, [], string)
+    typealias ToolInput = (tool: String?, command: String?, paths: [String], preview: String?)
+
+    /// A code-mode program, recorded as what it runs rather than as JavaScript.
+    /// A patch keeps its source as the command: the detail view draws the diff
+    /// from it.
+    static func codeModeInput(_ value: Any?) -> ToolInput? {
+        guard let source = value as? String, let program = CodexCodeMode.read(source) else { return nil }
+        guard !program.commands.isEmpty else {
+            return (program.displayTool, source, program.patchedPaths, source)
         }
-        guard let dict = value as? [String: Any] else { return (nil, [], nil) }
+        let commands = program.commands.joined(separator: "\n")
+        return (program.displayTool, commands, program.patchedPaths, commands)
+    }
+
+    static func toolInput(_ value: Any?) -> ToolInput {
+        if let string = value as? String, !string.isEmpty {
+            return (nil, string, [], string)
+        }
+        guard let dict = value as? [String: Any] else { return (nil, nil, [], nil) }
 
         var command: String?
         if let string = dict["command"] as? String {
@@ -238,7 +266,7 @@ public struct CodexParser: AgentParser {
         let preview = (dict["description"] as? String)
             ?? (dict["title"] as? String)
             ?? command
-        return (command, paths, preview)
+        return (nil, command, paths, preview)
     }
 
     static func arguments(_ value: Any?) -> [String: Any]? {
@@ -283,7 +311,7 @@ public struct CodexParser: AgentParser {
     /// `rollout-<timestamp>-<uuid>.jsonl` -> `<uuid>`; anything else keeps the
     /// file stem so two sessions never collide.
     static func sessionID(from file: URL) -> String {
-        let stem = file.deletingPathExtension().lastPathComponent
+        let stem = URL(fileURLWithPath: logicalPath(of: file)).deletingPathExtension().lastPathComponent
         guard let uuid = uuidSuffix(of: stem) else { return stem }
         return uuid
     }

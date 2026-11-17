@@ -74,6 +74,28 @@ final class RedactorTests: XCTestCase {
         XCTAssertEqual(normal.redact("cert \(blob) end"), "cert [redacted:blob] end")
     }
 
+    func testLongPathIsNotABlob() {
+        let path = "/Users/someone/Desktop/SerialBridge/Sources/SerialBridgeCore/Protocol/FrameDecoder.swift"
+        XCTAssertEqual(normal.redact("cat \(path)"), "cat \(path)")
+        // A real base64 blob with an incidental slash is still masked.
+        let blob = "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAu1SU1LfVLPHCozMxH2Mo4lgOEePzNm0tRgeLezV/ZRT"
+        XCTAssertEqual(normal.redact("key \(blob)"), "key [redacted:blob]")
+    }
+
+    func testTheLiteralPrefilterNeverHidesAMatch() {
+        XCTAssertTrue(Redactor.mayContain("x AKIA y", Array("akia".utf8)))
+        XCTAssertTrue(Redactor.mayContain("Authorization: BEARER t", Array("bearer".utf8)))
+        XCTAssertTrue(Redactor.mayContain("sk-", Array("sk-".utf8)))
+        XCTAssertFalse(Redactor.mayContain("sk", Array("sk-".utf8)))
+        XCTAssertFalse(Redactor.mayContain("nothing secret here", Array("xox".utf8)))
+        XCTAssertTrue(Redactor.mayContain("ğüş xoxb", Array("xox".utf8)), "non-ASCII before the hint")
+        // Every base rule with a hint, on its own fixture, behind a long line.
+        let filler = String(repeating: "ordinary text ", count: 2000)
+        for secret in [openAIKey, gitHubKey, gitHubPat, awsKey, slackKey] {
+            XCTAssertFalse(normal.redact(filler + secret).contains(secret))
+        }
+    }
+
     func testEmailOnlyMaskedAtStrictLevel() {
         XCTAssertEqual(
             normal.redact("mail dev@example.com now"),
