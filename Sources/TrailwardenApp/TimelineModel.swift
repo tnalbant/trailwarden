@@ -105,6 +105,11 @@ final class TimelineModel: ObservableObject {
         } catch {
             errorMessage = String(describing: error)
         }
+        #if DEBUG
+            if ProcessInfo.processInfo.environment["TRAILWARDEN_SELECT_FINDING"] == "1" {
+                findingsOnly = true
+            }
+        #endif
         reload()
     }
 
@@ -123,6 +128,14 @@ final class TimelineModel: ObservableObject {
             // made and that is still in the page survives a reload.
             if selectedEventID == nil || !events.contains(where: { $0.id == selectedEventID }) {
                 selectedEventID = events.first?.id
+                #if DEBUG
+                    // Screenshots open on a finding, so the inspector shows a rule.
+                    if ProcessInfo.processInfo.environment["TRAILWARDEN_SELECT_FINDING"] == "1",
+                       let finding = events.first(where: { !$0.risk.isEmpty })
+                    {
+                        selectedEventID = finding.id
+                    }
+                #endif
             }
             errorMessage = nil
         } catch {

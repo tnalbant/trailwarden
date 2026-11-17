@@ -1,5 +1,7 @@
 # Contributing
 
+**English** · [Türkçe](CONTRIBUTING.tr.md)
+
 Thanks for looking. This is a small, opinionated tool, so the fastest way in is
 an issue that says what you were doing and what happened.
 

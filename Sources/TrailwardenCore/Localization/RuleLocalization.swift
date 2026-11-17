@@ -241,3 +241,16 @@ public extension Rule {
         RuleLocalization.text(forRule: id, language: localizer.language)?.message ?? message
     }
 }
+
+public extension RiskHit {
+    /// A stored hit keeps the message it was annotated with (the rules file's
+    /// own text); what a reader sees follows the interface language.
+    func localizedMessage(_ localizer: Localizer) -> String {
+        RuleLocalization.text(forRule: ruleId, language: localizer.language)?.message ?? message
+    }
+
+    /// The command line, the MCP server and exports speak English.
+    var englishMessage: String {
+        RuleLocalization.text(forRule: ruleId, language: .english)?.message ?? message
+    }
+}

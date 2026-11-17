@@ -14,8 +14,8 @@ const binary = path.join(__dirname, "..", "vendor", "trailwarden-mcp");
 
 if (!fs.existsSync(binary)) {
   console.error(
-    "trailwarden-mcp: vendor/trailwarden-mcp bulunamadı.\n" +
-      "Kaynaktan kurmak için: git clone https://github.com/tnalbant/trailwarden && make install"
+    "trailwarden-mcp: vendor/trailwarden-mcp is missing.\n" +
+      "To build from source: git clone https://github.com/tnalbant/trailwarden && make install"
   );
   process.exit(2);
 }

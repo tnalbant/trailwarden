@@ -1,5 +1,7 @@
 # Threat model
 
+**English** · [Türkçe](THREATMODEL.tr.md)
+
 ## What Trailwarden is
 
 A local reader for the transcript files that coding agents already write to

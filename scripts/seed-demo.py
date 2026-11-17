@@ -32,12 +32,19 @@ projects = [
     (f"{DEMO_HOME}/dev/pixel-forge", "main", "gemini"),
     (f"{DEMO_HOME}/dev/notes-sync", "fix/conflict", "claude-code"),
     (f"{DEMO_HOME}/dev/homelab", "main", "hermes"),
+    (f"{DEMO_HOME}/dev/aurora-web", "main", "cursor"),
+    (f"{DEMO_HOME}/dev/ledger-cli", "main", "copilot"),
+    (f"{DEMO_HOME}/dev/notes-sync", "main", "opencode"),
 ]
 TOOLS = {
     "claude-code": {"shell": "Bash", "read": "Read", "edit": "Edit", "write": "Write"},
     "codex": {"shell": "exec_command", "read": "exec_command", "edit": "apply_patch", "write": "apply_patch"},
     "gemini": {"shell": "run_shell_command", "read": "read_file", "edit": "replace", "write": "write_file"},
     "hermes": {"shell": "terminal", "read": "read_file", "edit": "patch", "write": "write_file"},
+    "cursor": {"shell": "run_terminal_command_v2", "read": "read_file_v2", "edit": "edit_file_v2",
+               "write": "edit_file_v2"},
+    "copilot": {"shell": "bash", "read": "view", "edit": "edit", "write": "create"},
+    "opencode": {"shell": "shell", "read": "read", "edit": "edit", "write": "write"},
 }
 # Everyday work, weighted heavily, and a few moments the rules exist for.
 routine = [

@@ -148,7 +148,7 @@ struct EventDetailView: View {
                     Text(hit.ruleId)
                         .font(Tokens.Typography.mono(9.5, weight: .medium))
                         .foregroundStyle(hit.severity.tint)
-                    Text(hit.message)
+                    Text(hit.localizedMessage(LocalizationStore.current))
                         .font(Tokens.Typography.text(10.5))
                         .fixedSize(horizontal: false, vertical: true)
                     Spacer(minLength: 4)

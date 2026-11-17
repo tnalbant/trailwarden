@@ -1,0 +1,14 @@
+# SPDX-License-Identifier: Apache-2.0
+# Default gitleaks rules, plus one narrow exception: the vendored Zstandard
+# decoder names two SIMD variables `data_key_lo` / `data_key_hi`, which the
+# generic-api-key rule reads as a key. Only those names, only in Sources/CZstd.
+
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Zstandard decoder SIMD variable names (vendored, unmodified)"
+condition = "AND"
+paths = ['''^Sources/CZstd/zstddeclib\.c$''']
+regexTarget = "match"
+regexes = ['''data_key_(?:lo|hi)\s*=''']

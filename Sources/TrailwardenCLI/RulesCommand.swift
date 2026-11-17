@@ -31,8 +31,8 @@ struct RulesList: ParsableCommand {
         for rule in rules.sorted(by: { Self.number(of: $0.id) < Self.number(of: $1.id) }) {
             let severity = rule.severity.rawValue.padding(toLength: 8, withPad: " ", startingAt: 0)
             let state = rule.isEnabled ? "" : "  (disabled)"
-            print(
-                "\(rule.id.padding(toLength: 4, withPad: " ", startingAt: 0))\(severity)  \(rule.title)\(state)")
+            let title = RuleLocalization.text(forRule: rule.id, language: .english)?.title ?? rule.title
+            print("\(rule.id.padding(toLength: 4, withPad: " ", startingAt: 0))\(severity)  \(title)\(state)")
         }
     }
 
@@ -61,7 +61,7 @@ struct RulesTest: ParsableCommand {
             return
         }
         for hit in hits {
-            print("\(hit.severity.rawValue)  \(hit.ruleId)  \(hit.message)")
+            print("\(hit.severity.rawValue)  \(hit.ruleId)  \(hit.englishMessage)")
         }
     }
 }

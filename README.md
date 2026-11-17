@@ -2,6 +2,8 @@
 
 # Trailwarden
 
+**English** · [Türkçe](README.tr.md)
+
 **The audit trail for your coding agents.** Claude Code, Codex, Gemini CLI,
 opencode, Cursor, GitHub Copilot and Hermes Agent already write down everything they do on your Mac. Trailwarden reads
 those transcripts, tells you the moment an agent runs something risky, shows which
@@ -77,7 +79,8 @@ so no real project appears in them.
   the agents already write. No price is printed: the same token costs different
   money depending on plan and model.
 - **Resume** — the exact command to carry on from a session (`claude --resume`,
-  `codex resume`, `gemini --resume`), quoted and ready to copy.
+  `codex resume`, `gemini --resume`, `opencode --session`, `hermes --resume`),
+  quoted and ready to copy.
 - **MCP server** — `trailwarden-mcp` speaks JSON-RPC over stdio so other agents
   can ask the same questions (`search_events`, `list_sessions`, `get_event`,
   `file_history`, `audit_summary`). `file_history` lets an agent check who else
@@ -110,14 +113,16 @@ them, and does not modify their files. It reads `~/.claude`, `~/.codex`, `~/.gem
 
 ## Install
 
-```bash
-brew install --cask tnalbant/trailwarden/trailwarden   # menu bar app
-brew install tnalbant/trailwarden/trailwarden-cli      # CLI + MCP server
-```
+| Method | Installs | |
+|---|---|---|
+| `brew install --cask tnalbant/trailwarden/trailwarden` | menu bar app | with each release |
+| `brew install tnalbant/trailwarden/trailwarden-cli` | CLI + MCP server | with each release |
+| DMG from [Releases](https://github.com/tnalbant/trailwarden/releases) | menu bar app | with each release |
+| `npm install -g trailwarden-mcp` | MCP server | with each release |
+| `git clone … && make install` | CLI + MCP server | works today |
 
-Also available as a DMG from Releases, as `npm install -g trailwarden-mcp`, and
-from source (`make install`). See [docs/INSTALL.md](docs/INSTALL.md) for each
-method, including how to wire the MCP server into a client.
+See [docs/INSTALL.md](docs/INSTALL.md) for each method, including how to wire
+the MCP server into a client.
 
 ## Requirements
 
