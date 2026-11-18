@@ -20,7 +20,7 @@ cd "$(dirname "$0")/.."
 VERSION="${VERSION:-$(grep -m1 'MARKETING_VERSION' project.yml | cut -d'"' -f2)}"
 OUT="${OUT:-$HOME/dev/.trailwarden-release}"
 DMG="$OUT/Trailwarden-$VERSION.dmg"
-TARBALL="$OUT/trailwarden-$VERSION-macos-arm64.tar.gz"
+TARBALL="$OUT/trailwarden-$VERSION-macos-universal.tar.gz"
 SUMS="$OUT/SHA256SUMS"
 FEED="$OUT/latest.json"
 TAP_DIR="${TAP_DIR:-$HOME/dev/homebrew-trailwarden}"
@@ -85,6 +85,11 @@ fi
 if [[ $DO_TAP -eq 1 ]]; then
   echo "== tap update =="
   [[ -d "$TAP_DIR/.git" ]] || { echo "ERROR: no tap repository at $TAP_DIR" >&2; exit 1; }
+  # The tap gets this repository's cask and formula as they are, then this
+  # release's version and checksums: a change made in packaging/homebrew ships
+  # with the next release instead of staying behind.
+  cp packaging/homebrew/Casks/trailwarden.rb "$TAP_DIR/Casks/trailwarden.rb"
+  cp packaging/homebrew/Formula/trailwarden-cli.rb "$TAP_DIR/Formula/trailwarden-cli.rb"
   DMG_SHA="$(shasum -a 256 "$DMG" | cut -d' ' -f1)"
   TAR_SHA="$(curl -sL "https://github.com/tnalbant/trailwarden/archive/refs/tags/v$VERSION.tar.gz" | shasum -a 256 | cut -d' ' -f1)"
   sed -i '' "s/^  version .*/  version \"$VERSION\"/; s/^  sha256 .*/  sha256 \"$DMG_SHA\"/" \

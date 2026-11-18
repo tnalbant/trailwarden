@@ -75,7 +75,7 @@ final class RedactorTests: XCTestCase {
     }
 
     func testLongPathIsNotABlob() {
-        let path = "/Users/someone/Desktop/SerialBridge/Sources/SerialBridgeCore/Protocol/FrameDecoder.swift"
+        let path = "/Users/someone/Desktop/ExampleApp/Sources/ExampleAppCore/Protocol/FrameDecoder.swift"
         XCTAssertEqual(normal.redact("cat \(path)"), "cat \(path)")
         // A real base64 blob with an incidental slash is still masked.
         let blob = "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAu1SU1LfVLPHCozMxH2Mo4lgOEePzNm0tRgeLezV/ZRT"
