@@ -121,7 +121,7 @@ struct FeedView: View {
                         .fixedSize(horizontal: false, vertical: true)
                         .multilineTextAlignment(.leading)
                         .frame(maxWidth: .infinity, alignment: .leading)
-                    if let rule = item.ruleMessage, let severity = item.severity {
+                    if let rule = item.ruleLine(LocalizationStore.current), let severity = item.severity {
                         Text(rule)
                             .font(Tokens.Typography.text(9.5))
                             .foregroundStyle(Tokens.Palette.severity(severity))
@@ -139,7 +139,7 @@ struct FeedView: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .help(item.ruleMessage ?? item.detail)
+        .help(item.ruleLine(LocalizationStore.current) ?? item.detail)
     }
 
     private var dateLabel: String {

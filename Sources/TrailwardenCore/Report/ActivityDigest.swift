@@ -19,11 +19,24 @@ public struct ActivityItem: Sendable, Identifiable, Equatable {
     public let detail: String
     public let project: String?
     public let severity: Severity?
+    /// The rule's own id, so the line can be rendered in the reader's language.
+    public let ruleId: String?
+    /// The message stored with the event — the rules file's text, not the
+    /// reader's language. `ruleLine(_:)` is what a view should show.
     public let ruleMessage: String?
     public let kind: EventKind
 
     public var isMessage: Bool {
         kind == .message
+    }
+
+    /// The rule line in the interface language, falling back to the stored
+    /// message when the id is unknown (a rule added by hand, or an old event).
+    public func ruleLine(_ localizer: Localizer) -> String? {
+        if let ruleId, let text = RuleLocalization.text(forRule: ruleId, language: localizer.language) {
+            return text.message
+        }
+        return ruleMessage
     }
 }
 
@@ -66,6 +79,7 @@ public enum ActivityDigest {
             detail: detail(for: event, limit: detailLimit) ?? "",
             project: project(from: event.cwd),
             severity: hit?.severity,
+            ruleId: hit?.ruleId,
             ruleMessage: hit?.message,
             kind: event.kind)
     }

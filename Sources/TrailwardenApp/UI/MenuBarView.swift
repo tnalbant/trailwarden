@@ -129,7 +129,7 @@ struct MenuBarView: View {
                 }
                 .buttonStyle(.plain)
                 .help(L(.whatHappened))
-                if let rule = critical.ruleMessage {
+                if let rule = critical.ruleLine(LocalizationStore.current) {
                     Text(rule)
                         .font(Tokens.Typography.text(10))
                         .foregroundStyle(Tokens.Palette.secondary)
@@ -215,7 +215,7 @@ struct MenuBarView: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .help(item.ruleMessage ?? item.detail)
+        .help(item.ruleLine(LocalizationStore.current) ?? item.detail)
     }
 
     // MARK: - Updates

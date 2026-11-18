@@ -115,4 +115,32 @@ final class ActivityDigestTests: XCTestCase {
         XCTAssertEqual(item.label, "message")
         XCTAssertEqual(item.detail, "şu dosyaya bak")
     }
+
+    /// The stored message is the rules file's own text; a row has to follow the
+    /// interface language or an English window shows a Turkish sentence.
+    func testTheRuleLineFollowsTheInterfaceLanguage() {
+        let item = ActivityDigest.item(from: event(
+            command: "rm -rf ~/old",
+            risk: [RiskHit(ruleId: "R1", severity: .critical, message: "stored text")]))
+
+        XCTAssertEqual(item.ruleId, "R1")
+        let english = item.ruleLine(Localizer(language: .english))
+        let turkish = item.ruleLine(Localizer(language: .turkish))
+        XCTAssertEqual(english, RuleLocalization.text(forRule: "R1", language: .english)?.message)
+        XCTAssertEqual(turkish, RuleLocalization.text(forRule: "R1", language: .turkish)?.message)
+        XCTAssertNotEqual(english, turkish, "the two languages cannot render the same line")
+    }
+
+    func testAnUnknownRuleFallsBackToTheStoredMessage() {
+        let item = ActivityDigest.item(from: event(
+            command: "hand written rule",
+            risk: [RiskHit(ruleId: "R999", severity: .warn, message: "stored text")]))
+        XCTAssertNil(RuleLocalization.text(forRule: "R999", language: .english))
+        XCTAssertEqual(item.ruleLine(Localizer(language: .english)), "stored text")
+    }
+
+    func testARowWithoutARuleHasNoRuleLine() {
+        let item = ActivityDigest.item(from: event(command: "ls"))
+        XCTAssertNil(item.ruleLine(Localizer(language: .english)))
+    }
 }
