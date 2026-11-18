@@ -2,7 +2,7 @@
 
 # Trailwarden
 
-**English** · [Türkçe](README.tr.md)
+**English** · [Türkçe](README.tr.md) · [Deutsch](README.de.md) · [Español](README.es.md) · [Italiano](README.it.md) · [Français](README.fr.md)
 
 **The audit trail for your coding agents.** Claude Code, Codex, Gemini CLI,
 opencode, Cursor, GitHub Copilot and Hermes Agent already write down everything they do on your Mac. Trailwarden reads

@@ -2,7 +2,7 @@
 
 # Trailwarden
 
-[English](README.md) · **Türkçe**
+[English](README.md) · **Türkçe** · [Deutsch](README.de.md) · [Español](README.es.md) · [Italiano](README.it.md) · [Français](README.fr.md)
 
 **Kodlama ajanların için denetim kaydı.** Claude Code, Codex, Gemini CLI,
 opencode, Cursor, GitHub Copilot ve Hermes Agent yaptıkları her şeyi zaten Mac'inde
