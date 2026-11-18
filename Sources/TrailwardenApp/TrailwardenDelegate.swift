@@ -17,14 +17,37 @@ final class TrailwardenDelegate: NSObject, NSApplicationDelegate, UNUserNotifica
 
         // A menu bar app has no Dock tile and no ⌘-Tab entry, which is right until
         // it opens a real window — then a window you cannot reach with ⌘-Tab feels
-        // broken. The activation policy follows the windows instead.
-        for name in [NSWindow.didBecomeKeyNotification, NSWindow.willCloseNotification] {
-            NotificationCenter.default.addObserver(
-                self,
-                selector: #selector(windowVisibilityChanged),
-                name: name,
-                object: nil)
+        // broken. The activation policy follows the windows instead: a window on
+        // screen, minimised or in a hidden app keeps the Dock tile (that is how
+        // every Mac app behaves); closing the last one gives it back.
+        //
+        // `willClose` is posted while the closing window is still `isVisible`, so
+        // the check runs again one runloop turn later — without that the app kept
+        // its Dock tile forever with nothing on screen.
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(windowVisibilityChanged),
+            name: NSWindow.didBecomeKeyNotification,
+            object: nil)
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(windowClosed),
+            name: NSWindow.willCloseNotification,
+            object: nil)
+    }
+
+    /// A Dock click or ⌘-Tab on an app whose windows are all closed or minimised
+    /// has to bring the dashboard back; without this the tile does nothing and
+    /// the app reads as broken.
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+        if !flag {
+            NotificationCenter.default.post(name: .trailwardenShowDashboard, object: nil)
         }
+        for window in NSApp.windows where window.isMiniaturized {
+            window.deminiaturize(nil)
+        }
+        NSApp.activate(ignoringOtherApps: true)
+        return true
     }
 
     @objc private func windowVisibilityChanged() {
@@ -33,12 +56,19 @@ final class TrailwardenDelegate: NSObject, NSApplicationDelegate, UNUserNotifica
         MainActor.assumeIsolated { syncActivationPolicy() }
     }
 
-    /// `.regular` while a normal window is on screen, `.accessory` again once the
-    /// last one closes. The menu bar panel is a status-bar level window, so it is
-    /// deliberately not counted.
+    @objc private func windowClosed() {
+        MainActor.assumeIsolated { syncActivationPolicy() }
+        Task { @MainActor [weak self] in
+            self?.syncActivationPolicy()
+        }
+    }
+
+    /// `.regular` while a normal window exists (on screen, minimised or in a
+    /// hidden app), `.accessory` again once the last one closes. The menu bar
+    /// panel is a status-bar level window, so it is deliberately not counted.
     private func syncActivationPolicy() {
-        let hasWindow = NSApp.windows.contains { window in
-            window.isVisible && window.canBecomeMain && window.level == .normal
+        let hasWindow = !NSApp.isHidden && NSApp.windows.contains { window in
+            (window.isVisible || window.isMiniaturized) && window.canBecomeMain && window.level == .normal
         }
         let policy: NSApplication.ActivationPolicy = hasWindow ? .regular : .accessory
         guard NSApp.activationPolicy() != policy else { return }

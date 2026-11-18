@@ -19,7 +19,7 @@ struct TrailwardenApp: App {
         MenuBarExtra {
             MenuBarView(model: model, updates: updates)
         } label: {
-            MenuBarLabel(criticalToday: model.snapshot.criticalToday, model: model, updates: updates)
+            MenuBarLabel(model: model, updates: updates)
         }
         .menuBarExtraStyle(.window)
 
@@ -58,15 +58,16 @@ struct TrailwardenApp: App {
 /// The menu bar item: a shield, plus today's critical count when there is one.
 private struct MenuBarLabel: View {
     @Environment(\.openWindow) private var openWindow
-    let criticalToday: Int
-    let model: AppModel
-    let updates: UpdateChecker
+    /// Observed, not passed by value: the label owns `openWindow`, and a counter
+    /// it cannot see changing would never open anything.
+    @ObservedObject var model: AppModel
+    @ObservedObject var updates: UpdateChecker
 
     var body: some View {
         HStack(spacing: 3) {
             Image(systemName: "shield.lefthalf.filled")
-            if criticalToday > 0 {
-                Text("\(criticalToday)")
+            if model.snapshot.criticalToday > 0 {
+                Text("\(model.snapshot.criticalToday)")
             }
         }
         // The label exists for the whole life of the app, so it owns the update
