@@ -13,8 +13,8 @@ class TrailwardenCli < Formula
   sha256 "REPLACE_WITH_TARBALL_SHA256"
   license "Apache-2.0"
 
-  depends_on :macos
   depends_on xcode: ["16.0", :build]
+  depends_on :macos
 
   def install
     system "swift", "build", "-c", "release", "--disable-sandbox"

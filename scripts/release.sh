@@ -20,7 +20,7 @@ OUT="${OUT:-$HOME/dev/.trailwarden-release}"
 APP="$OUT/Build/Products/Release/Trailwarden.app"
 DMG="$OUT/Trailwarden-$VERSION.dmg"
 ZIP="$OUT/Trailwarden-$VERSION.zip"
-TARBALL="$OUT/trailwarden-$VERSION-macos-arm64.tar.gz"
+TARBALL="$OUT/trailwarden-$VERSION-macos-universal.tar.gz"
 
 if [[ -z "${DEVELOPER_ID:-}" ]]; then
   DEVELOPER_ID="$(security find-identity -v -p codesigning 2>/dev/null \
@@ -74,8 +74,15 @@ if [[ -n "$DEVELOPER_ID" ]]; then
 fi
 
 echo "== packing DMG =="
-rm -f "$DMG"
-hdiutil create -volname "Trailwarden $VERSION" -srcfolder "$APP" -ov -format UDZO "$DMG" > /dev/null
+# The app next to an /Applications link, so the window that opens says what to do:
+# drag one onto the other.
+STAGE="$OUT/dmg-stage"
+rm -rf "$STAGE" "$DMG"
+mkdir -p "$STAGE"
+ditto "$APP" "$STAGE/Trailwarden.app"
+ln -s /Applications "$STAGE/Applications"
+hdiutil create -volname "Trailwarden $VERSION" -srcfolder "$STAGE" -ov -format UDZO "$DMG" > /dev/null
+rm -rf "$STAGE"
 if [[ -n "$DEVELOPER_ID" ]]; then
   codesign --force --timestamp --sign "$DEVELOPER_ID" "$DMG"
   # The app inside is notarized, but the disk image that carries it is a separate
@@ -89,16 +96,34 @@ if [[ -n "$DEVELOPER_ID" ]]; then
   fi
 fi
 
-echo "== building CLI + MCP =="
-swift build -c release --product trailwarden > /dev/null
-swift build -c release --product trailwarden-mcp > /dev/null
-rm -f "$TARBALL"
-mkdir -p "$OUT/trailwarden-$VERSION-macos-arm64"
-cp .build/release/trailwarden .build/release/trailwarden-mcp "$OUT/trailwarden-$VERSION-macos-arm64/"
-cp LICENSE README.md "$OUT/trailwarden-$VERSION-macos-arm64/"
-cp Sources/TrailwardenApp/Resources/Acknowledgements.txt "$OUT/trailwarden-$VERSION-macos-arm64/"
-tar -czf "$TARBALL" -C "$OUT" "trailwarden-$VERSION-macos-arm64"
-rm -rf "$OUT/trailwarden-$VERSION-macos-arm64"
+echo "== building CLI + MCP (arm64 + x86_64) =="
+# One universal build serves the tarball and the npm package alike.
+UNIVERSAL=(-c release --arch arm64 --arch x86_64)
+swift build "${UNIVERSAL[@]}" --product trailwarden > /dev/null
+swift build "${UNIVERSAL[@]}" --product trailwarden-mcp > /dev/null
+BIN="$(swift build "${UNIVERSAL[@]}" --show-bin-path)"
+CLI_DIR="$OUT/trailwarden-$VERSION-macos-universal"
+rm -rf "$CLI_DIR" "$TARBALL"
+mkdir -p "$CLI_DIR"
+cp "$BIN/trailwarden" "$BIN/trailwarden-mcp" "$CLI_DIR/"
+if [[ -n "$DEVELOPER_ID" ]]; then
+  # A tarball opened from a browser is quarantined like any download; signed and
+  # notarized binaries pass Gatekeeper instead of being refused as unidentified.
+  codesign --force --options runtime --timestamp --sign "$DEVELOPER_ID" \
+    "$CLI_DIR/trailwarden" "$CLI_DIR/trailwarden-mcp"
+  if [[ -n "${NOTARY_PROFILE:-}" ]]; then
+    echo "== notarizing CLI + MCP =="
+    CLI_ZIP="$OUT/cli-notarize.zip"
+    rm -f "$CLI_ZIP"
+    ditto -c -k --keepParent "$CLI_DIR" "$CLI_ZIP"
+    xcrun notarytool submit "$CLI_ZIP" --keychain-profile "$NOTARY_PROFILE" --wait
+    rm -f "$CLI_ZIP"
+  fi
+fi
+cp LICENSE README.md "$CLI_DIR/"
+cp Sources/TrailwardenApp/Resources/Acknowledgements.txt "$CLI_DIR/"
+tar -czf "$TARBALL" -C "$OUT" "$(basename "$CLI_DIR")"
+rm -rf "$CLI_DIR"
 
 echo "== update feed =="
 # The app's "Check for updates" reads latest.json from the newest GitHub release

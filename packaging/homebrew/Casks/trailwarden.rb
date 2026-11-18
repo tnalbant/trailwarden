@@ -19,6 +19,9 @@ cask "trailwarden" do
 
   app "Trailwarden.app"
 
+  # It lives in the menu bar; quit it before an upgrade replaces the bundle.
+  uninstall quit: "app.trailwarden"
+
   zap trash: [
     "~/Library/Application Support/Trailwarden",
     "~/Library/Preferences/app.trailwarden.plist",

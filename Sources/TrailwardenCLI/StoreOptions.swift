@@ -11,13 +11,18 @@ extension RedactionLevel: ExpressibleByArgument {}
 /// Where the index lives. Every command takes the same `--db` override so the
 /// CLI can be pointed at a scratch database in tests and scripts.
 struct StoreOptions: ParsableArguments {
-    @Option(name: .long, help: "Index database path (default: Application Support/Trailwarden).")
+    @Option(
+        name: .long,
+        help: "Index database path (default: $TRAILWARDEN_DB, else Application Support/Trailwarden).")
     var db: String?
 
     var url: URL {
         get throws {
             if let db {
                 return URL(fileURLWithPath: db)
+            }
+            if let override = EventStore.environmentOverride {
+                return override
             }
             return try EventStore.defaultURL()
         }

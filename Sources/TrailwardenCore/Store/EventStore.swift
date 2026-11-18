@@ -35,6 +35,16 @@ public struct FileSignature: Sendable, Equatable {
 public final class EventStore {
     private let database: SQLiteDatabase
 
+    /// `TRAILWARDEN_DB=<path>` points the app, the CLI and the MCP server at
+    /// another index — a demo, or a copy for a bug report — so trying something
+    /// out never writes into the real one. An explicit `--db` still wins.
+    public static var environmentOverride: URL? {
+        guard let path = ProcessInfo.processInfo.environment["TRAILWARDEN_DB"], !path.isEmpty else {
+            return nil
+        }
+        return URL(fileURLWithPath: (path as NSString).expandingTildeInPath)
+    }
+
     /// Location of the real store: `~/Library/Application Support/Trailwarden/`.
     public static func defaultURL() throws -> URL {
         let support = try FileManager.default.url(

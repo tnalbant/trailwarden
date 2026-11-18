@@ -8,7 +8,7 @@ import TrailwardenCore
 // with four tools. Everything it answers comes from the local index, and there is
 // no network code in this binary either.
 
-var databasePath = try? EventStore.defaultURL().path
+var databasePath = EventStore.environmentOverride?.path ?? (try? EventStore.defaultURL().path)
 let arguments = CommandLine.arguments
 if let index = arguments.firstIndex(of: "--db"), index + 1 < arguments.count {
     databasePath = arguments[index + 1]

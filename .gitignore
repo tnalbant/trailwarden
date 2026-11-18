@@ -34,3 +34,5 @@ build/
 
 # Built at pack time by packaging/npm/scripts/prepack.js; never committed.
 packaging/npm/vendor/
+packaging/npm/LICENSE
+packaging/npm/Acknowledgements.txt

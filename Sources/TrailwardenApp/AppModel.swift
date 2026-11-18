@@ -71,8 +71,7 @@ final class AppModel: ObservableObject {
     init(databaseURL: URL? = nil) {
         // TRAILWARDEN_DB lets the app be opened against another index — the demo
         // database, or a copy taken for a screenshot — without touching the real one.
-        let override = ProcessInfo.processInfo.environment["TRAILWARDEN_DB"]
-            .map { URL(fileURLWithPath: $0) }
+        let override = EventStore.environmentOverride
         self.databaseURL = databaseURL
             ?? override
             ?? (try? EventStore.defaultURL())

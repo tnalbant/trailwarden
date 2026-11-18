@@ -15,7 +15,9 @@
   "files": [
     "bin/",
     "vendor/",
-    "README.md"
+    "README.md",
+    "LICENSE",
+    "Acknowledgements.txt"
   ],
   "scripts": {
     "prepack": "node scripts/prepack.js"
