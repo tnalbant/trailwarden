@@ -2,7 +2,7 @@
 # Copyright (c) 2026 Turgay Nalbant
 #
 # Cask for the menu-bar app. Lives in tnalbant/homebrew-trailwarden, so users run:
-#   brew install --cask tnalbant/trailwarden/trailwarden
+#   brew tap tnalbant/trailwarden && brew install --cask trailwarden
 #
 # `sha256` is filled in by scripts/publish.sh from the release's SHA256SUMS.
 
@@ -15,7 +15,7 @@ cask "trailwarden" do
   desc "Local audit trail for coding agents"
   homepage "https://github.com/tnalbant/trailwarden"
 
-  depends_on macos: ">= :sonoma"
+  depends_on macos: :sonoma
 
   app "Trailwarden.app"
 

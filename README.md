@@ -113,16 +113,20 @@ them, and does not modify their files. It reads `~/.claude`, `~/.codex`, `~/.gem
 
 ## Install
 
-| Method | Installs | |
-|---|---|---|
-| `brew install --cask tnalbant/trailwarden/trailwarden` | menu bar app | with each release |
-| `brew install tnalbant/trailwarden/trailwarden-cli` | CLI + MCP server | with each release |
-| DMG from [Releases](https://github.com/tnalbant/trailwarden/releases) | menu bar app | with each release |
-| `npm install -g trailwarden-mcp` | MCP server | with each release |
-| `git clone … && make install` | CLI + MCP server | works today |
+```bash
+brew trust tnalbant/trailwarden   # once: recent Homebrew asks before using a third-party tap
+brew tap tnalbant/trailwarden     # once
+```
 
-Recent Homebrew asks you to trust a third-party tap once:
-`brew trust tnalbant/trailwarden`. See [docs/INSTALL.md](docs/INSTALL.md) for each method, including how to wire
+| Method | Installs |
+|---|---|
+| `brew install --cask trailwarden` | menu bar app |
+| `brew install trailwarden-cli` | CLI + MCP server |
+| DMG from [Releases](https://github.com/tnalbant/trailwarden/releases) | menu bar app |
+| `npm install -g trailwarden-mcp` | MCP server |
+| `git clone … && make install` | CLI + MCP server |
+
+See [docs/INSTALL.md](docs/INSTALL.md) for each method, including how to wire
 the MCP server into a client.
 
 ## Requirements
