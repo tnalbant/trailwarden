@@ -1,4 +1,17 @@
 <!-- SPDX-License-Identifier: Apache-2.0 -->
+# Trailwarden 0.2.2
+
+The command line tool and the MCP server now run on Intel Macs too, the downloadable binaries are signed and notarized, and the disk image opens with an Applications shortcut.
+
+## Fixed
+
+- **Intel Macs.** The npm package said it supported Intel but carried an Apple Silicon binary only ("Bad CPU type in executable"). The CLI and the MCP server are now universal (arm64 + x86_64) in the release tarball and on npm. The tarball is renamed `trailwarden-<version>-macos-universal.tar.gz`.
+- **Signed command line binaries.** The tarball's `trailwarden` and `trailwarden-mcp` were ad-hoc signed, so a browser download was blocked by Gatekeeper. They are signed with the Developer ID and notarized.
+- **Licenses in the npm package.** It now carries `LICENSE` and `Acknowledgements.txt` (the Zstandard decoder's BSD notice).
+- **Disk image.** It opens with an `/Applications` link next to the app, so installing is one drag.
+- **Homebrew.** The cask quits the menu bar app before an upgrade or uninstall, so `brew upgrade` no longer replaces a running app. Install with `brew tap tnalbant/trailwarden`, then `brew install --cask trailwarden` or `brew install trailwarden-cli`.
+- **`TRAILWARDEN_DB`** now applies to the CLI and the MCP server as well as the app, so a trial run never writes into your real index.
+
 # Trailwarden 0.2.1
 
 The command line tool and the MCP server now carry their rules inside the binary, so the Homebrew, release-tarball, npm and `make install` builds work on their own.
