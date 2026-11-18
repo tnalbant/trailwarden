@@ -166,8 +166,8 @@ TRAILWARDEN_DB=/tmp/trailwarden-demo.sqlite \
 
 La CLI lee el mismo archivo: `trailwarden who --db /tmp/trailwarden-demo.sqlite src/router.ts`.
 
-`TRAILWARDEN_DB` apunta la app a otro índice: la demo, o una copia hecha
-para un informe de error. El vigía en vivo permanece desactivado con un índice así (escribiría tus
+`TRAILWARDEN_DB` apunta la app, la CLI y el servidor MCP a otro índice: la demo, o una
+copia hecha para un informe de error; en la línea de comandos, `--db` tiene prioridad. El vigía en vivo permanece desactivado con un índice así (escribiría tus
 transcripciones reales en él) salvo que se defina `TRAILWARDEN_LIVE=1`.
 
 ## Desarrollo

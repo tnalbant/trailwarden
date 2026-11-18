@@ -166,8 +166,8 @@ TRAILWARDEN_DB=/tmp/trailwarden-demo.sqlite \
 
 La CLI lit le même fichier : `trailwarden who --db /tmp/trailwarden-demo.sqlite src/router.ts`.
 
-`TRAILWARDEN_DB` pointe l'app vers un autre index : la démo, ou une copie faite
-pour un rapport de bug. La veille en direct reste désactivée pour un tel index (elle y écrirait tes
+`TRAILWARDEN_DB` pointe l'app, la CLI et le serveur MCP vers un autre index : la démo,
+ou une copie faite pour un rapport de bug ; en ligne de commande, `--db` l'emporte. La veille en direct reste désactivée pour un tel index (elle y écrirait tes
 vraies transcriptions) sauf si `TRAILWARDEN_LIVE=1` est défini.
 
 ## Développement

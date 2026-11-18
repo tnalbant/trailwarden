@@ -120,6 +120,11 @@ if [[ -n "$DEVELOPER_ID" ]]; then
     rm -f "$CLI_ZIP"
   fi
 fi
+# Keep the signed binaries: the npm package ships these exact files
+# (packaging/npm/scripts/prepack.js), not an ad-hoc signed build.
+rm -rf "$OUT/signed"
+mkdir -p "$OUT/signed"
+cp "$CLI_DIR/trailwarden" "$CLI_DIR/trailwarden-mcp" "$OUT/signed/"
 cp LICENSE README.md "$CLI_DIR/"
 cp Sources/TrailwardenApp/Resources/Acknowledgements.txt "$CLI_DIR/"
 tar -czf "$TARBALL" -C "$OUT" "$(basename "$CLI_DIR")"

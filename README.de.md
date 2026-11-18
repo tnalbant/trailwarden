@@ -166,8 +166,8 @@ TRAILWARDEN_DB=/tmp/trailwarden-demo.sqlite \
 
 Die CLI liest dieselbe Datei: `trailwarden who --db /tmp/trailwarden-demo.sqlite src/router.ts`.
 
-`TRAILWARDEN_DB` richtet die App auf einen anderen Index – die Demo oder eine für
-einen Fehlerbericht angefertigte Kopie. Der Live-Wächter bleibt bei einem solchen Index aus (er würde deine
+`TRAILWARDEN_DB` richtet die App, die CLI und den MCP-Server auf einen anderen Index –
+die Demo oder eine für einen Fehlerbericht angefertigte Kopie; auf der Kommandozeile hat `--db` Vorrang. Der Live-Wächter bleibt bei einem solchen Index aus (er würde deine
 echten Transkripte hineinschreiben), es sei denn, `TRAILWARDEN_LIVE=1` ist gesetzt.
 
 ## Entwicklung
