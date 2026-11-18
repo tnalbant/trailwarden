@@ -121,16 +121,20 @@ tutar.
 
 ## Kurulum
 
-| Yöntem | Ne kurar | |
-|---|---|---|
-| `brew install --cask tnalbant/trailwarden/trailwarden` | menü çubuğu uygulaması | her sürümle |
-| `brew install tnalbant/trailwarden/trailwarden-cli` | CLI + MCP sunucusu | her sürümle |
-| [Releases](https://github.com/tnalbant/trailwarden/releases) sayfasından DMG | menü çubuğu uygulaması | her sürümle |
-| `npm install -g trailwarden-mcp` | MCP sunucusu | her sürümle |
-| `git clone … && make install` | CLI + MCP sunucusu | bugün çalışır |
+```bash
+brew trust tnalbant/trailwarden   # once: recent Homebrew asks before using a third-party tap
+brew tap tnalbant/trailwarden     # once
+```
 
-Yeni Homebrew, üçüncü taraf bir tap'e bir kez güvenmeni ister:
-`brew trust tnalbant/trailwarden`. Her yöntemin ayrıntısı ve MCP sunucusunu bir istemciye bağlama için
+| Yöntem | Ne kurar |
+|---|---|
+| `brew install --cask trailwarden` | menü çubuğu uygulaması |
+| `brew install trailwarden-cli` | CLI + MCP sunucusu |
+| [Releases](https://github.com/tnalbant/trailwarden/releases) sayfasından DMG | menü çubuğu uygulaması |
+| `npm install -g trailwarden-mcp` | MCP sunucusu |
+| `git clone … && make install` | CLI + MCP sunucusu |
+
+Her yöntemin ayrıntısı ve MCP sunucusunu bir istemciye bağlama için
 [docs/INSTALL.tr.md](docs/INSTALL.tr.md) dosyasına bak.
 
 ## Gereksinimler

@@ -10,11 +10,11 @@ installing; the only network call is the optional update check (see
 
 | # | Method | Installs | Available |
 |---|---|---|---|
-| 1 | Homebrew cask (own tap) | App | with each release |
-| 2 | Homebrew formula (builds from source) | CLI + MCP | with each release |
-| 3 | DMG (GitHub Releases) | App | with each release |
-| 4 | npm (`-g`) | MCP server | with each release |
-| 5 | From source (`make install`) | CLI + MCP | **works today** |
+| 1 | Homebrew cask (own tap) | App | yes |
+| 2 | Homebrew formula (builds from source) | CLI + MCP | yes |
+| 3 | DMG (GitHub Releases) | App | yes |
+| 4 | npm (`-g`) | MCP server | yes |
+| 5 | From source (`make install`) | CLI + MCP | yes |
 | 6 | Official `homebrew-cask` | App | after the repository qualifies |
 
 Requirements: macOS 14 (Sonoma) or later. Building from source needs the Xcode
@@ -23,8 +23,9 @@ command line tools (Swift 6).
 ## 1. Homebrew cask (own tap)
 
 ```bash
-brew trust tnalbant/trailwarden          # once: recent Homebrew asks before loading a third-party tap
-brew install --cask tnalbant/trailwarden/trailwarden
+brew trust tnalbant/trailwarden   # once: recent Homebrew asks before using a third-party tap
+brew tap tnalbant/trailwarden     # once
+brew install --cask trailwarden
 ```
 
 Downloads the DMG of the newest release, checks its checksum and puts
@@ -33,7 +34,7 @@ Downloads the DMG of the newest release, checks its checksum and puts
 ## 2. Homebrew formula (CLI + MCP, from source)
 
 ```bash
-brew install tnalbant/trailwarden/trailwarden-cli
+brew install trailwarden-cli      # after the two "once" lines above
 ```
 
 Needs the Xcode command line tools; compiles with Swift (about a minute).

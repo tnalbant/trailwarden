@@ -10,11 +10,11 @@ hiçbir şey makineden çıkmaz; tek ağ çağrısı isteğe bağlı güncelleme
 
 | # | Yöntem | Ne kurar | Ne zaman |
 |---|---|---|---|
-| 1 | Homebrew cask (kendi tap'i) | Uygulama | her sürümle |
-| 2 | Homebrew formula (kaynaktan derler) | CLI + MCP | her sürümle |
-| 3 | DMG (GitHub Releases) | Uygulama | her sürümle |
-| 4 | npm (`-g`) | MCP sunucusu | her sürümle |
-| 5 | Kaynaktan (`make install`) | CLI + MCP | **bugün çalışır** |
+| 1 | Homebrew cask (kendi tap'i) | Uygulama | evet |
+| 2 | Homebrew formula (kaynaktan derler) | CLI + MCP | evet |
+| 3 | DMG (GitHub Releases) | Uygulama | evet |
+| 4 | npm (`-g`) | MCP sunucusu | evet |
+| 5 | Kaynaktan (`make install`) | CLI + MCP | evet |
 | 6 | Resmi `homebrew-cask` | Uygulama | repo koşulları sağladıktan sonra |
 
 Gereksinimler: macOS 14 (Sonoma) veya üstü. Kaynaktan derlemek için Xcode komut
@@ -23,8 +23,9 @@ satırı araçları (Swift 6) gerekir.
 ## 1. Homebrew cask (kendi tap'i)
 
 ```bash
-brew trust tnalbant/trailwarden          # bir kez: yeni Homebrew üçüncü taraf tap'leri yüklemeden önce onay ister
-brew install --cask tnalbant/trailwarden/trailwarden
+brew trust tnalbant/trailwarden   # bir kez: yeni Homebrew üçüncü taraf tap'leri kullanmadan önce onay ister
+brew tap tnalbant/trailwarden     # bir kez
+brew install --cask trailwarden
 ```
 
 En yeni sürümün DMG'sini indirir, sağlama toplamını denetler ve
@@ -33,7 +34,7 @@ En yeni sürümün DMG'sini indirir, sağlama toplamını denetler ve
 ## 2. Homebrew formula (CLI + MCP, kaynaktan)
 
 ```bash
-brew install tnalbant/trailwarden/trailwarden-cli
+brew install trailwarden-cli      # yukarıdaki iki "bir kez" satırından sonra
 ```
 
 Xcode komut satırı araçları gerekir; Swift ile derler (yaklaşık bir dakika).

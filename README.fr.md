@@ -113,16 +113,20 @@ pas et ne modifie pas leurs fichiers. Il lit `~/.claude`, `~/.codex`, `~/.gemini
 
 ## Installation
 
-| Méthode | Installe | |
-|---|---|---|
-| `brew install --cask tnalbant/trailwarden/trailwarden` | app de la barre des menus | à chaque version |
-| `brew install tnalbant/trailwarden/trailwarden-cli` | CLI + serveur MCP | à chaque version |
-| DMG depuis [Releases](https://github.com/tnalbant/trailwarden/releases) | app de la barre des menus | à chaque version |
-| `npm install -g trailwarden-mcp` | serveur MCP | à chaque version |
-| `git clone … && make install` | CLI + serveur MCP | fonctionne dès maintenant |
+```bash
+brew trust tnalbant/trailwarden   # once: recent Homebrew asks before using a third-party tap
+brew tap tnalbant/trailwarden     # once
+```
 
-Les versions récentes de Homebrew te demandent de faire confiance une fois à un tap tiers :
-`brew trust tnalbant/trailwarden`. Voir [docs/INSTALL.md](docs/INSTALL.md) (en anglais) pour chaque méthode, y compris pour brancher
+| Méthode | Installe |
+|---|---|
+| `brew install --cask trailwarden` | app de la barre des menus |
+| `brew install trailwarden-cli` | CLI + serveur MCP |
+| DMG depuis [Releases](https://github.com/tnalbant/trailwarden/releases) | app de la barre des menus |
+| `npm install -g trailwarden-mcp` | serveur MCP |
+| `git clone … && make install` | CLI + serveur MCP |
+
+Voir [docs/INSTALL.md](docs/INSTALL.md) (en anglais) pour chaque méthode, y compris pour brancher
 le serveur MCP dans un client.
 
 ## Prérequis

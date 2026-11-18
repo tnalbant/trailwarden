@@ -37,5 +37,5 @@ npm install -g trailwarden-mcp
 | `audit_summary` | "how many risky commands this month?" |
 
 The database is written by the Trailwarden app or by `trailwarden scan`
-(`brew install --cask tnalbant/trailwarden/trailwarden` or
-`brew install tnalbant/trailwarden/trailwarden-cli`).
+(`brew tap tnalbant/trailwarden`, then `brew install --cask trailwarden` or
+`brew install trailwarden-cli`).

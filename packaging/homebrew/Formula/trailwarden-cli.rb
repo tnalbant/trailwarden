@@ -2,7 +2,7 @@
 # Copyright (c) 2026 Turgay Nalbant
 #
 # Formula for the command line tool and the MCP server, built from source.
-#   brew install tnalbant/trailwarden/trailwarden-cli
+#   brew tap tnalbant/trailwarden && brew install trailwarden-cli
 #
 # `sha256` is filled in by scripts/publish.sh from the tag's tarball.
 

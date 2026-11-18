@@ -113,16 +113,20 @@ ab und verändert ihre Dateien nicht. Es liest `~/.claude`, `~/.codex`, `~/.gemi
 
 ## Installation
 
-| Methode | Installiert | |
-|---|---|---|
-| `brew install --cask tnalbant/trailwarden/trailwarden` | Menüleisten-App | mit jedem Release |
-| `brew install tnalbant/trailwarden/trailwarden-cli` | CLI + MCP-Server | mit jedem Release |
-| DMG von [Releases](https://github.com/tnalbant/trailwarden/releases) | Menüleisten-App | mit jedem Release |
-| `npm install -g trailwarden-mcp` | MCP-Server | mit jedem Release |
-| `git clone … && make install` | CLI + MCP-Server | funktioniert heute |
+```bash
+brew trust tnalbant/trailwarden   # once: recent Homebrew asks before using a third-party tap
+brew tap tnalbant/trailwarden     # once
+```
 
-Aktuelles Homebrew verlangt, dass du einen Tap von Drittanbietern einmalig als vertrauenswürdig einstufst:
-`brew trust tnalbant/trailwarden`. Siehe [docs/INSTALL.md](docs/INSTALL.md) (Englisch) für jede Methode, auch dafür, wie du
+| Methode | Installiert |
+|---|---|
+| `brew install --cask trailwarden` | Menüleisten-App |
+| `brew install trailwarden-cli` | CLI + MCP-Server |
+| DMG von [Releases](https://github.com/tnalbant/trailwarden/releases) | Menüleisten-App |
+| `npm install -g trailwarden-mcp` | MCP-Server |
+| `git clone … && make install` | CLI + MCP-Server |
+
+Siehe [docs/INSTALL.md](docs/INSTALL.md) (Englisch) für jede Methode, auch dafür, wie du
 den MCP-Server in einen Client einbindest.
 
 ## Voraussetzungen
