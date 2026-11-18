@@ -2,6 +2,8 @@
 
 **English** · [Türkçe](CONTRIBUTING.tr.md)
 
+Please follow the [code of conduct](CODE_OF_CONDUCT.md); security problems go through [private reporting](SECURITY.md), not a public issue.
+
 Thanks for looking. This is a small, opinionated tool, so the fastest way in is
 an issue that says what you were doing and what happened.
 

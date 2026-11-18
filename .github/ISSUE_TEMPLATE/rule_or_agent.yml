@@ -1,0 +1,24 @@
+name: New rule or agent
+description: A risky command Trailwarden should flag, a false alarm, or an agent it should read.
+labels: [rules]
+body:
+  - type: dropdown
+    id: kind
+    attributes:
+      label: What is it
+      options: [A command that should be flagged, A false alarm, An agent Trailwarden does not read yet]
+    validations:
+      required: true
+  - type: textarea
+    id: example
+    attributes:
+      label: Example
+      description: The command (or the agent and where it keeps its history). Replace real paths and names with made-up ones.
+      render: shell
+    validations:
+      required: true
+  - type: textarea
+    id: why
+    attributes:
+      label: Why it matters
+      description: What could go wrong, or why the alarm is wrong. A near-miss that must *not* match is just as useful.

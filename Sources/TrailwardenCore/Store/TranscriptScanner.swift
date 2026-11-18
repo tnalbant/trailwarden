@@ -66,6 +66,29 @@ public struct ScanReport: Sendable, Equatable {
     public init() {}
 }
 
+/// How far a scan has got. Measured in bytes as well as files: one long Codex
+/// session can outweigh a thousand short ones, and a bar that waits on it at
+/// 99 % says less than one that moves with the work.
+public struct ScanProgress: Sendable, Equatable {
+    public var filesDone = 0
+    public var filesTotal = 0
+    public var bytesDone: Int64 = 0
+    public var bytesTotal: Int64 = 0
+
+    public init(filesDone: Int = 0, filesTotal: Int = 0, bytesDone: Int64 = 0, bytesTotal: Int64 = 0) {
+        self.filesDone = filesDone
+        self.filesTotal = filesTotal
+        self.bytesDone = bytesDone
+        self.bytesTotal = bytesTotal
+    }
+
+    /// 0…1; an empty scan counts as finished.
+    public var fraction: Double {
+        guard bytesTotal > 0 else { return filesTotal == 0 ? 1 : Double(filesDone) / Double(filesTotal) }
+        return min(1, Double(bytesDone) / Double(bytesTotal))
+    }
+}
+
 /// Walks transcript directories and only re-parses files whose size or
 /// modification time changed since the last pass.
 public struct TranscriptScanner {
@@ -79,15 +102,52 @@ public struct TranscriptScanner {
         self.rules = rules
     }
 
-    public func scan(roots: [ScanRoot], databases: [DatabaseSource] = []) throws -> ScanReport {
+    public func scan(
+        roots: [ScanRoot],
+        databases: [DatabaseSource] = [],
+        progress: ((ScanProgress) -> Void)? = nil) throws -> ScanReport
+    {
         var report = ScanReport()
-        for root in roots {
-            scan(root: root, into: &report)
+        // List first, so progress has a total to count against. Unchanged files
+        // count too: they are skipped quickly, and leaving them out would make
+        // the total shrink as the scan runs.
+        let files = roots.flatMap { root in Self.transcripts(in: root).map { (root, $0.url, $0.size) } }
+        let sources = databases.filter { FileManager.default.fileExists(atPath: $0.database.path) }
+        var state = ScanProgress(
+            filesTotal: files.count + sources.count,
+            bytesTotal: files.reduce(0) { $0 + $1.2 } + sources.reduce(0) { $0 + Self.size(of: $1.database) })
+        progress?(state)
+
+        for (root, url, size) in files {
+            scan(file: url, root: root, into: &report)
+            state.filesDone += 1
+            state.bytesDone += size
+            progress?(state)
         }
-        for source in databases {
+        for source in sources {
             scan(database: source, into: &report)
+            state.filesDone += 1
+            state.bytesDone += Self.size(of: source.database)
+            progress?(state)
         }
         return report
+    }
+
+    private static func transcripts(in root: ScanRoot) -> [(url: URL, size: Int64)] {
+        guard let enumerator = FileManager.default.enumerator(
+            at: root.directory,
+            includingPropertiesForKeys: Array(fileKeys)) else { return [] }
+        var result: [(URL, Int64)] = []
+        for case let url as URL in enumerator where root.parser.accepts(url) {
+            let values = try? url.resourceValues(forKeys: fileKeys)
+            guard values?.isRegularFile == true else { continue }
+            result.append((url, Int64(values?.fileSize ?? 0)))
+        }
+        return result
+    }
+
+    private static func size(of url: URL) -> Int64 {
+        Int64((try? url.resourceValues(forKeys: [.fileSizeKey]))?.fileSize ?? 0)
     }
 
     /// Agents that keep history in SQLite are read incrementally: only rows newer
@@ -152,17 +212,6 @@ public struct TranscriptScanner {
         .fileSizeKey,
         .contentModificationDateKey
     ]
-
-    private func scan(root: ScanRoot, into report: inout ScanReport) {
-        guard let enumerator = FileManager.default.enumerator(
-            at: root.directory,
-            includingPropertiesForKeys: Array(Self.fileKeys)) else { return }
-
-        for case let url as URL in enumerator {
-            guard root.parser.accepts(url) else { continue }
-            scan(file: url, root: root, into: &report)
-        }
-    }
 
     private func scan(file url: URL, root: ScanRoot, into report: inout ScanReport) {
         let keys = Self.fileKeys

@@ -174,7 +174,7 @@ struct MainWindowView: View {
             }
             .buttonStyle(.plain)
             .disabled(model.isScanning)
-            .help(model.isScanning ? L(.scanning) : L(.rescan))
+            .help(model.isScanning ? model.scanLabel : L(.rescan))
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 10)

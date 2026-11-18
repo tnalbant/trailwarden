@@ -60,6 +60,8 @@ extension UITranslations {
         .loadMore: "Carica altri",
 
         .scanning: "Analisi in corso…",
+
+        .scanningProgress: "Analisi in corso… %d%%",
         .rescan: "Analizza di nuovo",
         .scan: "Analizza",
         .startScan: "Avvia l'analisi",

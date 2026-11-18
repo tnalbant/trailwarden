@@ -1,0 +1,16 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright (c) 2026 Turgay Nalbant
+#
+# Trailwarden has one Swift dependency (swift-argument-parser) and a handful of
+# GitHub Actions. Both are checked weekly; updates arrive as pull requests.
+
+version: 2
+updates:
+  - package-ecosystem: swift
+    directory: /
+    schedule:
+      interval: weekly
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly

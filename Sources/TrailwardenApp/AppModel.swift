@@ -44,6 +44,8 @@ final class AppModel: ObservableObject {
     /// it and switches to the timeline with the finding filter on.
     @Published var findingsRequested = 0
     @Published private(set) var isScanning = false
+    /// Byte-weighted progress of the running scan; nil when none is running.
+    @Published private(set) var scanProgress: ScanProgress?
     /// Sessions that wrote something in the last two minutes.
     @Published private(set) var liveSessions: Set<String> = []
     @Published private(set) var lastScanSummary: String?
@@ -153,18 +155,37 @@ final class AppModel: ObservableObject {
 
     // MARK: - Scanning
 
+    /// "Scanning… 42%" once the scan knows its size, "Scanning…" before that.
+    var scanLabel: String {
+        guard let scanProgress, scanProgress.filesTotal > 0 else { return L(.scanning) }
+        return Lf(.scanningProgress, [Int(scanProgress.fraction * 100)])
+    }
+
     func scan() async {
         guard !isScanning else { return }
         isScanning = true
-        defer { isScanning = false }
+        defer {
+            isScanning = false
+            scanProgress = nil
+        }
 
         let url = databaseURL
-        let outcome = await Task.detached(priority: .userInitiated) { () -> (events: Int, failure: String?) in
+        let outcome = await Task.detached(priority: .userInitiated) { [weak self] () -> (
+            events: Int,
+            failure: String?) in
             do {
                 let store = try EventStore(url: url)
                 let engine = try RuleEngine.builtIn(mutes: store.mutes())
+                // The first scan of a long history takes minutes; show it moving,
+                // but only when the whole percent changes.
+                var shown = -1
                 let report = try TranscriptScanner(store: store, rules: engine)
-                    .scan(roots: ScanRoot.standard(), databases: ScanRoot.standardDatabases())
+                    .scan(roots: ScanRoot.standard(), databases: ScanRoot.standardDatabases()) { progress in
+                        let percent = Int(progress.fraction * 100)
+                        guard percent != shown else { return }
+                        shown = percent
+                        Task { @MainActor in self?.scanProgress = progress }
+                    }
                 return (report.eventsStored, report.failures.first)
             } catch {
                 return (0, String(describing: error))
