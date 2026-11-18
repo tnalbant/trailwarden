@@ -47,9 +47,25 @@ struct ScanCommand: ParsableCommand {
         let engine = try RuleEngine.builtIn(mutes: database.mutes())
         let scanner = TranscriptScanner(store: database, rules: engine)
 
+        // A progress line on a terminal only: scripts and CI read stdout and a
+        // redirected stderr, and neither should fill with carriage returns.
+        let showProgress = isatty(STDERR_FILENO) == 1
+        var shown = -1
         let report = try scanner.scan(
             roots: ScanRoot.standard(agents: agents),
             databases: ScanRoot.standardDatabases(agents: agents))
+        { progress in
+            guard showProgress else { return }
+            let percent = Int(progress.fraction * 100)
+            guard percent != shown else { return }
+            shown = percent
+            Output.error(
+                "\rscanning \(percent)%  (\(progress.filesDone)/\(progress.filesTotal) files)",
+                newline: false)
+        }
+        if showProgress, shown >= 0 {
+            Output.error("\r\u{1B}[K", newline: false)
+        }
         let query = EventQuery(
             since: sinceDate,
             agents: agents,

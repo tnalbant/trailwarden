@@ -33,7 +33,7 @@ public enum UIString: String, CaseIterable, Sendable {
     case noDataYet, noSessionsFound, noSessionSelected, noEventsInRange, noEventsHint
     case pickEvent, pickEventHint, loadMore
     // Scanning
-    case scanning, rescan, scan, startScan, filesCount
+    case scanning, scanningProgress, rescan, scan, startScan, filesCount
     // Severity
     case severityCritical, severityWarning, severityInfo
     // Event detail
@@ -132,6 +132,7 @@ public enum UITranslations {
         .loadMore: "Load more",
 
         .scanning: "Scanning…",
+        .scanningProgress: "Scanning… %d%%",
         .rescan: "Scan again",
         .scan: "Scan",
         .startScan: "Start scanning",

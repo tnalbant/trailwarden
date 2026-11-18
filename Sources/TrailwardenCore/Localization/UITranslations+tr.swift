@@ -60,6 +60,8 @@ extension UITranslations {
         .loadMore: "Daha fazla",
 
         .scanning: "Taranıyor…",
+
+        .scanningProgress: "Taranıyor… %d%%",
         .rescan: "Yeniden tara",
         .scan: "Tara",
         .startScan: "Taramayı başlat",

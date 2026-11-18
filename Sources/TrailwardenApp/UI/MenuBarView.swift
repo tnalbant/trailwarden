@@ -142,7 +142,7 @@ struct MenuBarView: View {
                         .truncationMode(.middle)
                 }
             } else if model.snapshot.totalEvents == 0 {
-                Text(model.isScanning ? L(.scanning) : L(.noDataYet))
+                Text(model.isScanning ? model.scanLabel : L(.noDataYet))
                     .font(Tokens.Typography.text(10.5))
                     .foregroundStyle(Tokens.Palette.secondary)
             } else {
@@ -294,8 +294,14 @@ struct MenuBarView: View {
             }
 
             if model.isScanning {
-                ProgressView()
-                    .controlSize(.small)
+                if let progress = model.scanProgress, progress.filesTotal > 0 {
+                    ProgressView(value: progress.fraction)
+                        .frame(width: 60)
+                        .help(model.scanLabel)
+                } else {
+                    ProgressView()
+                        .controlSize(.small)
+                }
             } else if model.onboardingDone {
                 footerButton(L(.scan), weight: .medium) {
                     Task { await model.scan() }

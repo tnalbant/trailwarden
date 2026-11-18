@@ -2,6 +2,8 @@
 
 [English](CONTRIBUTING.md) · **Türkçe**
 
+Lütfen [davranış kurallarına](CODE_OF_CONDUCT.md) uy; güvenlik sorunlarını herkese açık bir issue yerine [özel bildirim](SECURITY.tr.md) yoluyla ilet.
+
 İlgilendiğin için teşekkürler. Bu küçük ve kendi görüşü olan bir araç; en hızlı
 yol, ne yaparken ne olduğunu anlatan bir issue açmak.
 

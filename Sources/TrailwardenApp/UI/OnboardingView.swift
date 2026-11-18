@@ -50,7 +50,7 @@ struct OnboardingView: View {
                     NSApp.activate(ignoringOtherApps: true)
                 }
             } label: {
-                Text(model.isScanning ? L(.scanning) : L(.startScan))
+                Text(model.isScanning ? model.scanLabel : L(.startScan))
                     .font(Tokens.Typography.text(11, weight: .semibold))
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 6)

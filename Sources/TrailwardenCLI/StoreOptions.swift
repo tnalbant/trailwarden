@@ -70,8 +70,8 @@ enum Output {
         }
     }
 
-    static func error(_ text: String) {
-        FileHandle.standardError.write(Data((text + "\n").utf8))
+    static func error(_ text: String, newline: Bool = true) {
+        FileHandle.standardError.write(Data((newline ? text + "\n" : text).utf8))
     }
 
     static func humanBytes(_ bytes: Int) -> String {
