@@ -41,12 +41,21 @@ targets:
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         PRODUCT_BUNDLE_IDENTIFIER: app.trailwarden
         PRODUCT_NAME: Trailwarden
-        GENERATE_INFOPLIST_FILE: YES
-        INFOPLIST_KEY_LSUIElement: YES
-        INFOPLIST_KEY_NSHumanReadableCopyright: "Copyright (c) 2026 Turgay Nalbant. Apache-2.0."
+        GENERATE_INFOPLIST_FILE: NO
         ENABLE_HARDENED_RUNTIME: YES
         ENABLE_APP_SANDBOX: NO
         CODE_SIGN_STYLE: Automatic
         COMBINE_HIDPI_IMAGES: YES
+    info:
+      path: Sources/TrailwardenApp/Info.plist
+      properties:
+        CFBundleLocalizations: [en, tr, de, es, fr, it]
+        CFBundleDevelopmentRegion: en
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        CFBundleIconName: AppIcon
+        NSPrincipalClass: NSApplication
+        LSUIElement: true
+        NSHumanReadableCopyright: "Copyright (c) 2026 Turgay Nalbant. Apache-2.0."
     scheme:
       gatherCoverageData: false
