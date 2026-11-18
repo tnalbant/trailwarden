@@ -16,7 +16,7 @@ kleine JSON-Datei im neuesten GitHub-Release, ausgelöst per Klick oder, wenn du
 in den Einstellungen einschaltest, höchstens wöchentlich oder monatlich (standardmäßig aus) – und die CI schlägt fehl,
 sobald irgendwo sonst in `Sources/` eine Netzwerk-API auftaucht.
 
-> Status: **v0.2.1** – Live-Wächter, 27 Regeln, Agent-Blame, Bericht, CI-Gate.
+> Status: **v0.2.2** – Live-Wächter, 27 Regeln, Agent-Blame, Bericht, CI-Gate.
 > Oberfläche auf Englisch (US), Türkisch, Deutsch, Spanisch, Italienisch und Französisch.
 
 ![Bericht](docs/screenshots/report-light.png)
