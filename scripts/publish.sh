@@ -130,7 +130,9 @@ fi
 
 if [[ $DO_NPM -eq 1 ]]; then
   echo "== npm =="
-  ( cd packaging/npm && npm publish --access public )
+  # prepack takes the signed binary from $OUT/signed and refuses anything that
+  # Gatekeeper would reject; it needs to know where release.sh wrote.
+  ( cd packaging/npm && TRAILWARDEN_RELEASE_OUT="$OUT" npm publish --access public )
 fi
 
 echo "done."

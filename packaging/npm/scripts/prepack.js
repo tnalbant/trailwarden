@@ -55,6 +55,17 @@ if (!archs.includes("arm64") || !archs.includes("x86_64")) fail(`${source} is ${
 const team = signingTeam(source);
 if (!team && !allowUnsigned) fail(`${source} is not signed with a Developer ID.`);
 
+// A Developer ID signature is not the whole story: Gatekeeper also wants a
+// notarization ticket, and release.sh only notarizes when NOTARY_PROFILE is
+// set. Without this check a signed-but-unnotarized binary would reach npm.
+if (!allowUnsigned) {
+  const gate = spawnSync("spctl", ["-a", "-t", "install", source], { encoding: "utf8" });
+  if (gate.status !== 0) {
+    const reason = `${gate.stderr || gate.stdout || ""}`.trim().split("\n")[0] || "rejected";
+    fail(`${source} is not notarized (spctl: ${reason}). Run NOTARY_PROFILE=… scripts/release.sh.`);
+  }
+}
+
 // The MCP server prints its version on stderr and exits when stdin closes.
 const run = spawnSync(source, ["--version"], { input: "", encoding: "utf8", timeout: 10000 });
 const reported = `${run.stdout || ""}${run.stderr || ""}`.trim();
