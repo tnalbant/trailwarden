@@ -174,8 +174,9 @@ TRAILWARDEN_DB=/tmp/trailwarden-demo.sqlite \
 
 CLI aynı dosyayı okur: `trailwarden who --db /tmp/trailwarden-demo.sqlite src/router.ts`.
 
-`TRAILWARDEN_DB`, uygulamayı başka bir indekse yönlendirir: demoya ya da hata
-bildirimi için alınmış bir kopyaya. Böyle bir indeks için canlı bekçi kapalı kalır
+`TRAILWARDEN_DB`, uygulamayı, komut satırı aracını ve MCP sunucusunu başka bir
+indekse yönlendirir: demoya ya da hata bildirimi için alınmış bir kopyaya. Komut
+satırında `--db` verilirse o geçerli olur. Böyle bir indeks için canlı bekçi kapalı kalır
 (yoksa gerçek transkriptlerini içine yazardı); `TRAILWARDEN_LIVE=1` verilirse açılır.
 
 ## Geliştirme

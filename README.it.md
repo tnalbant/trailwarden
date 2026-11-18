@@ -166,8 +166,8 @@ TRAILWARDEN_DB=/tmp/trailwarden-demo.sqlite \
 
 La CLI legge lo stesso file: `trailwarden who --db /tmp/trailwarden-demo.sqlite src/router.ts`.
 
-`TRAILWARDEN_DB` fa puntare l'app a un altro indice: quello demo, oppure una copia fatta
-per una segnalazione di bug. La guardia live resta disattivata con un indice del genere (ci scriverebbe dentro le
+`TRAILWARDEN_DB` fa puntare l'app, la CLI e il server MCP a un altro indice: quello demo,
+oppure una copia fatta per una segnalazione di bug; da riga di comando prevale `--db`. La guardia live resta disattivata con un indice del genere (ci scriverebbe dentro le
 tue trascrizioni reali) a meno che non sia impostato `TRAILWARDEN_LIVE=1`.
 
 ## Sviluppo

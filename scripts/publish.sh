@@ -61,6 +61,24 @@ for file in "$DMG" "$TARBALL" "$SUMS" "$FEED" docs/RELEASE_NOTES.md; do
   [[ -f "$file" ]] || { echo "ERROR: missing file: $file (run scripts/release.sh first)" >&2; exit 1; }
 done
 
+# release.sh skips notarization when NOTARY_PROFILE is unset and says so once;
+# that build must never reach users. The disk image has to carry its own
+# stapled ticket and pass Gatekeeper, and so do the binaries in the tarball.
+if [[ $DO_RELEASE -eq 1 || $DO_TAP -eq 1 ]]; then
+  xcrun stapler validate -q "$DMG" \
+    || { echo "ERROR: $DMG has no notarization ticket (NOTARY_PROFILE=… scripts/release.sh)" >&2; exit 1; }
+  spctl -a -t open --context context:primary-signature "$DMG" 2>/dev/null \
+    || { echo "ERROR: Gatekeeper rejects $DMG" >&2; exit 1; }
+  CHECK_DIR="$(mktemp -d)"
+  tar -xzf "$TARBALL" -C "$CHECK_DIR"
+  for binary in "$CHECK_DIR"/*/trailwarden "$CHECK_DIR"/*/trailwarden-mcp; do
+    spctl -a -t install "$binary" 2>/dev/null \
+      || { echo "ERROR: Gatekeeper rejects $(basename "$binary") in the tarball (not notarized)" >&2; rm -rf "$CHECK_DIR"; exit 1; }
+  done
+  rm -rf "$CHECK_DIR"
+  echo "   notarized: DMG and CLI binaries"
+fi
+
 if [[ $CONFIRMED -eq 0 ]]; then
   echo
   echo "dry run — would do:"
@@ -96,6 +114,17 @@ if [[ $DO_TAP -eq 1 ]]; then
     "$TAP_DIR/Casks/trailwarden.rb"
   sed -i '' "s|/v[0-9.]*\\.tar\\.gz|/v$VERSION.tar.gz|; s/^  sha256 .*/  sha256 \"$TAR_SHA\"/" \
     "$TAP_DIR/Formula/trailwarden-cli.rb"
+  # sed changes nothing when a line it looks for is gone; check the result
+  # instead of trusting it.
+  grep -q "^  version \"$VERSION\"$" "$TAP_DIR/Casks/trailwarden.rb" \
+    && grep -q "^  sha256 \"$DMG_SHA\"$" "$TAP_DIR/Casks/trailwarden.rb" \
+    && grep -q "/v$VERSION.tar.gz\"$" "$TAP_DIR/Formula/trailwarden-cli.rb" \
+    && grep -q "^  sha256 \"$TAR_SHA\"$" "$TAP_DIR/Formula/trailwarden-cli.rb" \
+    || { echo "ERROR: the tap files did not take version $VERSION and its checksums" >&2; exit 1; }
+  if grep -q "REPLACE_WITH_" "$TAP_DIR/Casks/trailwarden.rb" "$TAP_DIR/Formula/trailwarden-cli.rb"; then
+    echo "ERROR: a placeholder is left in the tap files" >&2
+    exit 1
+  fi
   ( cd "$TAP_DIR" && git add -A && git commit -m "trailwarden $VERSION" && git push )
 fi
 
