@@ -92,6 +92,17 @@ final class AppModel: ObservableObject {
                 self?.openEvent(event, in: session)
             }
         }
+        // A Dock click or ⌘-Tab on a windowless app asks for the dashboard; the
+        // menu bar label owns `openWindow`, so it reacts to this counter.
+        NotificationCenter.default.addObserver(
+            forName: .trailwardenShowDashboard,
+            object: nil,
+            queue: .main)
+        { [weak self] _ in
+            MainActor.assumeIsolated {
+                self?.windowRequested += 1
+            }
+        }
         // An index opened with TRAILWARDEN_DB is someone else's — the demo, or a
         // copy for a bug report — so live transcripts are not written into it
         // unless TRAILWARDEN_LIVE=1 asks for that.
@@ -422,4 +433,7 @@ final class AppModel: ObservableObject {
 extension Notification.Name {
     /// Posted by the notification delegate with `session` and `event` in userInfo.
     static let trailwardenOpenEvent = Notification.Name("app.trailwarden.openEvent")
+    /// Posted when the Dock tile or ⌘-Tab asks for the window: the app is open,
+    /// but nothing of it is on screen.
+    static let trailwardenShowDashboard = Notification.Name("app.trailwarden.showDashboard")
 }
