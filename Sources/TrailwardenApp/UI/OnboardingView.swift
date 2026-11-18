@@ -41,6 +41,8 @@ struct OnboardingView: View {
                 .foregroundStyle(Tokens.Palette.secondary)
                 .fixedSize(horizontal: false, vertical: true)
 
+            NotificationPermissionRow(live: model.live)
+
             Button {
                 Task {
                     await model.scan()
@@ -67,5 +69,41 @@ struct OnboardingView: View {
 
     private func shortPath(_ path: String) -> String {
         Redactor().shortenHome(path)
+    }
+}
+
+/// The first run is the only moment where asking for notification permission is
+/// not an interruption: the reader is already reading what the app does.
+private struct NotificationPermissionRow: View {
+    @ObservedObject var live: LiveMonitor
+
+    var body: some View {
+        HStack(alignment: .firstTextBaseline, spacing: 8) {
+            Text(L(.onboardingNotifications))
+                .font(Tokens.Typography.text(9.5))
+                .foregroundStyle(Tokens.Palette.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+            Spacer(minLength: 0)
+            switch live.permission {
+            case .allowed:
+                Text(L(.liveNotificationsAllowed))
+                    .font(Tokens.Typography.text(9.5, weight: .medium))
+                    .foregroundStyle(Tokens.Palette.accent)
+            case .unknown:
+                Button(L(.liveAllowNotifications)) { live.requestNotifications() }
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+            case .denied:
+                Button(L(.liveOpenNotificationSettings)) {
+                    if let url =
+                        URL(string: "x-apple.systempreferences:com.apple.Notifications-Settings.extension")
+                    {
+                        NSWorkspace.shared.open(url)
+                    }
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+            }
+        }
     }
 }
