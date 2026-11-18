@@ -142,6 +142,8 @@ extension UITranslations {
         .statusExport: "%@ · %d eventi, %d segnalazioni · %.2f s",
         .statusExportFailed: "Esportazione non riuscita: %@",
 
+        .onboardingNotifications: "Gli avvisi live richiedono il permesso per le notifiche.",
+
         .onboardingTitle: "Che cosa sto leggendo?",
         .onboardingPrivacy: "Niente esce da questo Mac: nessun accesso alla rete, tutto resta in locale. I transcript restano dove sono: vengono solo letti.",
 
@@ -157,6 +159,9 @@ extension UITranslations {
         .liveCriticalOnly: "Solo critici",
         .liveWarnAndCritical: "Anche avvisi",
         .liveNotificationsDenied: "Le notifiche di Trailwarden sono disattivate nelle Impostazioni di Sistema.",
+        .liveAllowNotifications: "Consenti notifiche",
+        .liveNotificationsAllowed: "Le notifiche sono attive",
+        .liveOpenNotificationSettings: "Apri Impostazioni notifiche",
         .liveMoreFindings: "Altri %d rilevamenti: apri Trailwarden per vederli",
         .windowReport: "Rapporto",
         .reportTitle: "I tuoi agenti, ultimi %d giorni",

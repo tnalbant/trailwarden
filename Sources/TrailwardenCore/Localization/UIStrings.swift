@@ -57,12 +57,13 @@ public enum UIString: String, CaseIterable, Sendable {
     case statusScan, statusError, statusPrune, statusPruneFailed
     case statusExport, statusExportFailed
     // Onboarding
-    case onboardingTitle, onboardingPrivacy
+    case onboardingTitle, onboardingPrivacy, onboardingNotifications
     // Small words
     case axisDay, quit, missingFolder
     // Live guard
     case liveGuard, liveGuardHint, liveOn, liveOff, liveNotifyFor, liveCriticalOnly, liveWarnAndCritical
-    case liveNotificationsDenied, liveMoreFindings
+    case liveNotificationsDenied, liveMoreFindings, liveAllowNotifications, liveOpenNotificationSettings
+    case liveNotificationsAllowed
     // Report card
     case windowReport, reportTitle, reportWork, reportCommands, reportEdits, reportReads, reportFilesChanged
     case reportWorthALook, reportNoFindings, reportByAgent, reportHotFiles, reportRules, reportCopySummary
@@ -213,6 +214,7 @@ public enum UITranslations {
         .statusExport: "%@ · %d events, %d findings · %.2f s",
         .statusExportFailed: "Export failed: %@",
 
+        .onboardingNotifications: "Live alerts need notification permission.",
         .onboardingTitle: "What am I reading?",
         .onboardingPrivacy: "Nothing leaves this Mac: there is no network access, everything stays local. Your transcripts stay where they are — they are only ever read.",
 
@@ -228,6 +230,9 @@ public enum UITranslations {
         .liveCriticalOnly: "Critical only",
         .liveWarnAndCritical: "Warnings too",
         .liveNotificationsDenied: "Notifications are turned off for Trailwarden in System Settings.",
+        .liveAllowNotifications: "Allow notifications",
+        .liveNotificationsAllowed: "Notifications are on",
+        .liveOpenNotificationSettings: "Open Notification Settings",
         .liveMoreFindings: "%d more findings — open Trailwarden to see them",
         .windowReport: "Report",
         .reportTitle: "Your agents, last %d days",

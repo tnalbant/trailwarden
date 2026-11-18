@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright (c) 2026 Turgay Nalbant
 
+import AppKit
 import Foundation
 import TrailwardenCore
 import UserNotifications
@@ -17,9 +18,19 @@ final class LiveMonitor: ObservableObject {
     static let enabledKey = "trailwarden.live.enabled"
     static let thresholdKey = "trailwarden.live.threshold"
 
+    /// What the system says about banners. The app can ask, and it can read the
+    /// answer back after the reader changes it in System Settings.
+    enum NotificationPermission: Sendable {
+        case unknown, allowed, denied
+    }
+
     @Published private(set) var isRunning = false
     @Published private(set) var lastPass: Date?
-    @Published private(set) var notificationsAllowed = true
+    @Published private(set) var permission: NotificationPermission = .unknown
+
+    var notificationsAllowed: Bool {
+        permission == .allowed
+    }
 
     private var worker: LiveWorker?
     private let databaseURL: URL
@@ -29,6 +40,15 @@ final class LiveMonitor: ObservableObject {
         self.databaseURL = databaseURL
         self.onPass = onPass
         UserDefaults.standard.register(defaults: [Self.enabledKey: true, Self.thresholdKey: "critical"])
+        readNotificationSettings()
+        // A grant made in System Settings has to show up without a restart.
+        NotificationCenter.default.addObserver(
+            forName: NSApplication.didBecomeActiveNotification,
+            object: nil,
+            queue: .main)
+        { [weak self] _ in
+            Task { @MainActor in self?.readNotificationSettings() }
+        }
     }
 
     static var isEnabled: Bool {
@@ -58,7 +78,7 @@ final class LiveMonitor: ObservableObject {
         }
         self.worker = worker
         isRunning = true
-        requestPermission()
+        requestNotifications()
         Task.detached(priority: .utility) {
             let started = worker.start()
             await MainActor.run { [weak self] in
@@ -84,15 +104,28 @@ final class LiveMonitor: ObservableObject {
         sync()
     }
 
-    private func requestPermission() {
+    /// Asks once. When the answer is already on record the system does not show a
+    /// prompt again, so the settings are read back instead of leaving the reader
+    /// with a switch and no explanation.
+    func requestNotifications() {
         UNUserNotificationCenter.current().requestAuthorization(options: [
             .alert,
             .sound,
             .badge
-        ]) { granted, _ in
-            Task { @MainActor [weak self] in
-                self?.notificationsAllowed = granted
+        ]) { [weak self] _, _ in
+            Task { @MainActor in self?.readNotificationSettings() }
+        }
+    }
+
+    /// The current answer, without asking for anything.
+    func readNotificationSettings() {
+        UNUserNotificationCenter.current().getNotificationSettings { settings in
+            let state: NotificationPermission = switch settings.authorizationStatus {
+            case .authorized, .provisional, .ephemeral: .allowed
+            case .denied: .denied
+            default: .unknown
             }
+            Task { @MainActor [weak self] in self?.permission = state }
         }
     }
 }

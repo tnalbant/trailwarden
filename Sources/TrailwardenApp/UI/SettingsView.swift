@@ -242,9 +242,32 @@ private struct LiveSection: View {
                 .foregroundStyle(Tokens.Palette.secondary)
                 .fixedSize(horizontal: false, vertical: true)
             if enabled, !live.notificationsAllowed {
-                Text(L(.liveNotificationsDenied))
-                    .font(Tokens.Typography.text(9.5, weight: .medium))
-                    .foregroundStyle(Tokens.Palette.accent)
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(L(.liveNotificationsDenied))
+                        .font(Tokens.Typography.text(9.5, weight: .medium))
+                        .foregroundStyle(Tokens.Palette.accent)
+                        .fixedSize(horizontal: false, vertical: true)
+                    HStack(spacing: 10) {
+                        // Once the answer is "no" the system will not prompt again;
+                        // only System Settings can change it.
+                        if live.permission != .denied {
+                            Button(L(.liveAllowNotifications)) {
+                                live.requestNotifications()
+                            }
+                        }
+                        Button(L(.liveOpenNotificationSettings)) {
+                            // The modern pane; the old identifier is gone on 14+.
+                            if let url =
+                                URL(
+                                    string: "x-apple.systempreferences:com.apple.Notifications-Settings.extension")
+                            {
+                                NSWorkspace.shared.open(url)
+                            }
+                        }
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+                }
             }
         }
     }

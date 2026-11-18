@@ -142,6 +142,8 @@ extension UITranslations {
         .statusExport: "%@ · %d olay, %d bulgu · %.2f sn",
         .statusExportFailed: "Dışa aktarma başarısız: %@",
 
+        .onboardingNotifications: "Canlı uyarılar için bildirim izni gerekir.",
+
         .onboardingTitle: "Ne okuyorum?",
         .onboardingPrivacy: "Hiçbir veri cihazdan çıkmaz: ağ erişimi yok, her şey bu Mac'te kalır. Dosyaların yerinde kalır, yalnız okunur.",
 
@@ -157,6 +159,9 @@ extension UITranslations {
         .liveCriticalOnly: "Yalnız kritik",
         .liveWarnAndCritical: "Uyarılar da",
         .liveNotificationsDenied: "Sistem Ayarları'nda Trailwarden bildirimleri kapalı.",
+        .liveAllowNotifications: "Bildirimlere izin ver",
+        .liveNotificationsAllowed: "Bildirimler açık",
+        .liveOpenNotificationSettings: "Bildirim Ayarları'nı aç",
         .liveMoreFindings: "%d bulgu daha — görmek için Trailwarden'ı aç",
         .windowReport: "Karne",
         .reportTitle: "Ajanların, son %d gün",
