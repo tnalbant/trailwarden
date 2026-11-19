@@ -18,7 +18,7 @@ small JSON file on the newest GitHub release, made when you click it or, if you
 turn it on in Settings, at most weekly or monthly (off by default) — and CI fails
 if a network API shows up anywhere else in `Sources/`.
 
-> Status: **v0.2.2** — live guard, 27 rules, agent blame, report card, CI gate.
+> Status: **v0.2.3** — live guard, 27 rules, agent blame, report card, CI gate.
 > Interface in English (US), Turkish, German, Spanish, Italian and French.
 
 ![Report card](docs/screenshots/report-light.png)
