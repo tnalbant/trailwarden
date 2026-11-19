@@ -38,6 +38,7 @@ struct MenuBarView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             header
+            updateBar
             Hairline()
             if model.onboardingDone {
                 status
@@ -47,29 +48,6 @@ struct MenuBarView: View {
                 OnboardingView(model: model)
             }
             Hairline()
-            if let line = updateLine {
-                HStack(spacing: 6) {
-                    Image(systemName: line.icon)
-                        .font(.system(size: 10))
-                        .foregroundStyle(line.tint)
-                    Text(line.text)
-                        .font(Tokens.Typography.text(10.5, weight: line.weight))
-                        .foregroundStyle(line.tint)
-                        .lineLimit(2)
-                    Spacer(minLength: 0)
-                    if let link = line.link {
-                        Button(L(.releaseNotes)) {
-                            NSWorkspace.shared.open(link)
-                        }
-                        .buttonStyle(.plain)
-                        .font(Tokens.Typography.text(10.5, weight: .medium))
-                        .foregroundStyle(Tokens.Palette.accent)
-                    }
-                }
-                .padding(.horizontal, Tokens.Metrics.gutter)
-                .padding(.vertical, 7)
-                Hairline()
-            }
             if showsDestinations {
                 destinations
                 Hairline()
@@ -103,12 +81,52 @@ struct MenuBarView: View {
                 .buttonStyle(.plain)
                 .help(L(.liveGuardHint))
             }
-            Text("v\(TrailwardenVersion.current)")
-                .font(Tokens.Typography.mono(9))
-                .foregroundStyle(Tokens.Palette.secondary)
         }
         .padding(.horizontal, Tokens.Metrics.gutter)
-        .padding(.vertical, 11)
+        .padding(.top, 11)
+        .padding(.bottom, 5)
+    }
+
+    /// The version and the one network call the reader can start, on the row
+    /// under the title. A version number that hides in Settings is a version
+    /// number nobody reads, and the check belongs next to it.
+    private var updateBar: some View {
+        HStack(spacing: 6) {
+            Text("v\(TrailwardenVersion.installed)")
+                .font(Tokens.Typography.mono(9))
+                .foregroundStyle(Tokens.Palette.tertiary)
+            if let line = updateLine {
+                Image(systemName: line.icon)
+                    .font(.system(size: 9))
+                    .foregroundStyle(line.tint)
+                Text(line.text)
+                    .font(Tokens.Typography.text(9.5, weight: line.weight))
+                    .foregroundStyle(line.tint)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+                if let link = line.link {
+                    Button(L(.releaseNotes)) {
+                        NSWorkspace.shared.open(link)
+                    }
+                    .buttonStyle(.plain)
+                    .font(Tokens.Typography.text(9.5, weight: .medium))
+                    .foregroundStyle(Tokens.Palette.accent)
+                }
+            }
+            Spacer(minLength: 2)
+            Button {
+                Task { await updates.check() }
+            } label: {
+                Text(L(.checkUpdates))
+                    .font(Tokens.Typography.text(9.5, weight: .medium))
+                    .foregroundStyle(updates.state == .checking ? Tokens.Palette.tertiary : Tokens.Palette
+                        .accent)
+            }
+            .buttonStyle(.plain)
+            .disabled(updates.state == .checking)
+        }
+        .padding(.horizontal, Tokens.Metrics.gutter)
+        .padding(.bottom, 9)
     }
 
     // MARK: - Status

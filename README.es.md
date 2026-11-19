@@ -18,7 +18,7 @@ pequeño archivo JSON de la última versión en GitHub, que se hace cuando pulsa
 activas en Ajustes, como mucho una vez por semana o por mes (desactivado por defecto). Además, la CI falla si aparece
 una API de red en cualquier otro punto de `Sources/`.
 
-> Estado: **v0.2.2** — vigía en vivo, 27 reglas, agent blame, informe, control en CI.
+> Estado: **v0.2.3** — vigía en vivo, 27 reglas, agent blame, informe, control en CI.
 > Interfaz en inglés (EE. UU.), turco, alemán, español, italiano y francés.
 
 ![Informe](docs/screenshots/report-light.png)

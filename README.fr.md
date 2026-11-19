@@ -18,7 +18,7 @@ petit fichier JSON sur la dernière version GitHub, déclenché quand tu cliques
 l'actives dans les Réglages, au plus une fois par semaine ou par mois (désactivé par défaut). La CI échoue
 si une API réseau apparaît ailleurs dans `Sources/`.
 
-> État : **v0.2.2** — veille en direct, 27 règles, agent blame, rapport, garde-fou CI.
+> État : **v0.2.3** — veille en direct, 27 règles, agent blame, rapport, garde-fou CI.
 > Interface en anglais (US), turc, allemand, espagnol, italien et français.
 
 ![Rapport](docs/screenshots/report-light.png)

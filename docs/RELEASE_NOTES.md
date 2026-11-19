@@ -1,4 +1,20 @@
 <!-- SPDX-License-Identifier: Apache-2.0 -->
+# Trailwarden 0.2.3
+
+One window instead of six, one panel row instead of nine controls, and the interface finally speaks the language of the Mac it runs on.
+
+## New
+
+- **One window, tabs.** Today, Timeline, Report, Usage and Rules are tabs of the dashboard, with Settings behind a divider. ⌘1…⌘5 jump between them, ⌘, still opens Settings, ⌘R scans. The Window menu no longer lists a window per screen.
+- **A shorter panel.** The row of nine controls under the menu bar panel became two buttons and a menu that unfolds inside the panel: Report, Usage, Rules, Settings, check for updates, quit.
+
+## Fixed
+
+- **Mixed languages.** Rule sentences came from `rules.json` in Turkish and were shown as stored, so an English window carried Turkish rules. They are resolved in the interface language when drawn; the stored text is only the fallback for a hand-written rule.
+- **System menus.** The app declared no supported languages, so Window and Help stayed English on a Turkish Mac. It now lists all six, and Düzen/Görüntü/Pencere/Yardım appear where they should.
+- **Notification permission.** The live guard could only ask on the first alert, and Settings could only report that notifications were off. Both ask now, Settings offers the System Settings link when the answer was no, and a grant made there is picked up without a restart.
+- **The Dock tile.** Closing the last window left the app in the Dock with nothing to show for it, because the policy was computed while the closing window still counted as visible. A Dock click now brings the dashboard back, and the tile goes away with the last window.
+
 # Trailwarden 0.2.2
 
 The command line tool and the MCP server now run on Intel Macs too, the downloadable binaries are signed and notarized, and the disk image opens with an Applications shortcut.
