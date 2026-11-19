@@ -16,11 +16,16 @@ struct MenuBarView: View {
     @ObservedObject var model: AppModel
     @ObservedObject var updates: UpdateChecker
     @ObservedObject var live: LiveMonitor
+    @ObservedObject var router: DashboardRouter
     @Environment(\.openWindow) private var openWindow
+    /// The places menu unfolds inside the panel: a `Menu` renders as an
+    /// unsupported control inside a menu bar window.
+    @State private var showsDestinations = false
 
-    init(model: AppModel, updates: UpdateChecker) {
+    init(model: AppModel, updates: UpdateChecker, router: DashboardRouter) {
         self.model = model
         self.updates = updates
+        self.router = router
         live = model.live
     }
 
@@ -74,8 +79,7 @@ struct MenuBarView: View {
             if model.onboardingDone {
                 // Is anyone watching right now? Click to open the switch.
                 Button {
-                    openWindow(id: "settings")
-                    NSApp.activate(ignoringOtherApps: true)
+                    openMain(.settings)
                 } label: {
                     HStack(spacing: 4) {
                         Circle()
@@ -257,40 +261,9 @@ struct MenuBarView: View {
     // MARK: - Footer
 
     private var footer: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: 10) {
             footerButton(L(.openDashboard), tint: Tokens.Palette.accent, weight: .medium) {
-                openWindow(id: "main")
-            }
-            footerButton(L(.windowReport)) {
-                openWindow(id: "report")
-            }
-            footerButton(L(.windowUsage)) {
-                openWindow(id: "usage")
-            }
-            footerButton(L(.windowSettings)) {
-                openWindow(id: "settings")
-            }
-            footerButton(L(.windowRules), weight: .medium) {
-                openWindow(id: "rules")
-            }
-
-            Button {
-                Task { await updates.check() }
-            } label: {
-                Image(systemName: "arrow.triangle.2.circlepath")
-                    .font(.system(size: 10, weight: .medium))
-                    .foregroundStyle(Tokens.Palette.secondary)
-            }
-            .buttonStyle(.plain)
-            .disabled(updates.state == .checking)
-            .help(L(.checkUpdates))
-
-            Spacer(minLength: 4)
-
-            if !model.liveSessions.isEmpty {
-                Text(Lf(.liveCount, [model.liveSessions.count]))
-                    .font(Tokens.Typography.mono(9, weight: .medium))
-                    .foregroundStyle(Tokens.Palette.accent)
+                openMain(nil)
             }
 
             if model.isScanning {
@@ -308,12 +281,98 @@ struct MenuBarView: View {
                 }
             }
 
-            footerButton(L(.quit), tint: Tokens.Palette.secondary) {
-                NSApp.terminate(nil)
+            Spacer(minLength: 4)
+
+            if !model.liveSessions.isEmpty {
+                Text(Lf(.liveCount, [model.liveSessions.count]))
+                    .font(Tokens.Typography.mono(9, weight: .medium))
+                    .foregroundStyle(Tokens.Palette.accent)
             }
+
+            overflowButton
         }
         .padding(.horizontal, Tokens.Metrics.gutter)
         .padding(.vertical, 10)
+    }
+
+    /// The places rather than the actions: the panel keeps two buttons and one
+    /// toggle, instead of a row of nine controls that each squeezed the next.
+    private var overflowButton: some View {
+        Button {
+            showsDestinations.toggle()
+        } label: {
+            Image(systemName: showsDestinations ? "xmark" : "ellipsis")
+                .font(.system(size: 10, weight: .semibold))
+                .foregroundStyle(Tokens.Palette.secondary)
+                .frame(width: 22, height: 18)
+                .background {
+                    RoundedRectangle(cornerRadius: 4)
+                        .stroke(Tokens.Palette.hairline)
+                }
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .help(L(.sections))
+    }
+
+    /// Drawn inside the panel rather than as a pop-up menu: a `Menu` has no
+    /// supported style in a menu bar window and came out as a "no entry" glyph.
+    private var destinations: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            destinationRow(L(.windowReport), tab: .report)
+            destinationRow(L(.windowUsage), tab: .usage)
+            destinationRow(L(.windowRules), tab: .rules)
+            destinationRow(L(.windowSettings), tab: .settings)
+            Divider()
+                .padding(.vertical, 4)
+            Button {
+                showsDestinations = false
+                Task { await updates.check() }
+            } label: {
+                destinationLabel(L(.checkUpdates))
+            }
+            .buttonStyle(.plain)
+            .disabled(updates.state == .checking)
+            Button {
+                NSApp.terminate(nil)
+            } label: {
+                destinationLabel(L(.quit))
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(.horizontal, Tokens.Metrics.gutter)
+        .padding(.vertical, 6)
+    }
+
+    private func destinationRow(_ title: String, tab: DashboardTab) -> some View {
+        Button {
+            showsDestinations = false
+            openMain(tab)
+        } label: {
+            destinationLabel(title)
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func destinationLabel(_ title: String) -> some View {
+        HStack {
+            Text(title)
+                .font(Tokens.Typography.text(11))
+                .foregroundStyle(Tokens.Palette.ink)
+            Spacer(minLength: 0)
+        }
+        .padding(.vertical, 4)
+        .contentShape(Rectangle())
+    }
+
+    /// Every "open a place" goes through here: the window is one, the tab is the
+    /// page, and the panel never has to know which window ids exist.
+    private func openMain(_ tab: DashboardTab?) {
+        if let tab {
+            router.show(tab)
+        }
+        openWindow(id: "main")
+        NSApp.activate(ignoringOtherApps: true)
     }
 
     private func footerButton(

@@ -11,6 +11,7 @@ struct OnboardingView: View {
     @AppStorage(LocalizationStore.defaultsKey) private var language = AppLanguage.system.rawValue
     @ObservedObject var model: AppModel
     @Environment(\.openWindow) private var openWindow
+    @EnvironmentObject private var router: DashboardRouter
     @State private var roots: [TranscriptRoot] = AppModel.transcriptRoots()
 
     var body: some View {
@@ -48,7 +49,8 @@ struct OnboardingView: View {
                     await model.scan()
                     model.finishOnboarding()
                     // The first thing after the first scan: what the agents did.
-                    openWindow(id: "report")
+                    router.show(.report)
+                    openWindow(id: "main")
                     NSApp.activate(ignoringOtherApps: true)
                 }
             } label: {

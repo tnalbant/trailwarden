@@ -4,52 +4,34 @@
 import SwiftUI
 import TrailwardenCore
 
-/// The window the menu bar opens: what happened today, with the full timeline
-/// one click away.
+/// The one window. Every answer lives here as a tab: the day's digest, the
+/// timeline that explains it, the report card, usage, the rules, the settings.
+///
+/// It used to be five `Window` scenes, so Settings and Rules sat in the Window
+/// menu next to the dashboard and a reader had to keep track of six things.
 struct MainWindowView: View {
-    /// Two answers to the same question at different zoom levels: the feed says
-    /// what happened, the timeline lets you dig into one session.
-    private enum Mode: String, CaseIterable, Identifiable {
-        case feed
-        case timeline
-
-        var id: String {
-            rawValue
-        }
-    }
-
     @AppStorage(LocalizationStore.defaultsKey) private var language = AppLanguage.system.rawValue
     @ObservedObject var model: AppModel
+    @ObservedObject var updates: UpdateChecker
+    @ObservedObject var router: DashboardRouter
+
     @StateObject private var timeline: TimelineModel
     @StateObject private var feed: FeedModel
-    @State private var mode: Mode = .feed
     @FocusState private var searchFocused: Bool
 
-    init(model: AppModel) {
+    init(model: AppModel, updates: UpdateChecker, router: DashboardRouter) {
         self.model = model
+        self.updates = updates
+        self.router = router
         _timeline = StateObject(wrappedValue: TimelineModel(databaseURL: model.databaseURL))
         _feed = StateObject(wrappedValue: FeedModel(databaseURL: model.databaseURL))
-        #if DEBUG
-            // UI checks need to land on a given screen without a hand on the mouse.
-            // Release builds never see this.
-            if ProcessInfo.processInfo.environment["TRAILWARDEN_OPEN_MODE"] == "timeline" {
-                _mode = State(initialValue: .timeline)
-            }
-        #endif
     }
 
     var body: some View {
         VStack(spacing: 0) {
-            chrome
+            header
             Hairline()
-            switch mode {
-            case .feed:
-                FeedView(model: feed) { sessionID in
-                    open(sessionID)
-                }
-            case .timeline:
-                timelineView
-            }
+            content
         }
         // Three columns need 200 + 400 + 340 plus two dividers. Below that the
         // split view squeezed them and the panes clipped their own content — the
@@ -59,7 +41,12 @@ struct MainWindowView: View {
         .foregroundStyle(Tokens.Palette.ink)
         .task {
             #if DEBUG
+                // UI checks need to land on a given screen without a hand on the mouse.
+                // Release builds never see this.
                 let environment = ProcessInfo.processInfo.environment
+                if environment["TRAILWARDEN_OPEN_MODE"] == "timeline" {
+                    router.tab = .timeline
+                }
                 if let term = environment["TRAILWARDEN_SEARCH"], !term.isEmpty {
                     try? await Task.sleep(for: .seconds(1))
                     timeline.search = term
@@ -110,36 +97,18 @@ struct MainWindowView: View {
         }
     }
 
-    /// One header for both modes, so the feed and the timeline read as the same
-    /// application rather than two screens that happen to share a window.
-    private var chrome: some View {
-        HStack(alignment: .firstTextBaseline, spacing: 12) {
-            Picker("", selection: $mode) {
-                Text(L(.todayFeed)).tag(Mode.feed)
-                Text(L(.timelineTab)).tag(Mode.timeline)
-            }
-            .pickerStyle(.segmented)
-            .labelsHidden()
-            .frame(width: 220)
+    // MARK: - Header
 
-            if mode == .timeline {
-                HStack(spacing: 5) {
-                    Image(systemName: timeline.selectionIcon)
-                        .font(.system(size: 10))
-                        .foregroundStyle(Tokens.Palette.tertiary)
-                    Text(timeline.selectionLabel)
-                        .font(Tokens.Typography.text(11, weight: .medium))
-                        .foregroundStyle(Tokens.Palette.secondary)
-                        .lineLimit(1)
-                }
-                .help(selectionHelp)
-            }
+    private var header: some View {
+        HStack(spacing: 12) {
+            tabBar
 
-            if mode == .timeline {
+            if router.tab == .timeline {
+                selectionLabel
                 searchField
             }
 
-            Spacer()
+            Spacer(minLength: 8)
 
             if model.snapshot.criticalToday > 0 {
                 Button {
@@ -177,7 +146,55 @@ struct MainWindowView: View {
             .help(model.isScanning ? model.scanLabel : L(.rescan))
         }
         .padding(.horizontal, 16)
-        .padding(.vertical, 10)
+        .padding(.vertical, 9)
+    }
+
+    /// Text tabs rather than a segmented control: six segments in a fixed-width
+    /// control squeezed the longer names, and Settings has no business being the
+    /// sixth segment — it is a place you visit, not a way to read the day.
+    private var tabBar: some View {
+        HStack(spacing: 2) {
+            ForEach(DashboardTab.menuTabs) { tab in
+                tabButton(tab)
+            }
+            Rectangle()
+                .fill(Tokens.Palette.hairline)
+                .frame(width: 1, height: 14)
+                .padding(.horizontal, 4)
+            tabButton(.settings)
+        }
+    }
+
+    private func tabButton(_ tab: DashboardTab) -> some View {
+        Button {
+            router.tab = tab
+        } label: {
+            Text(tab.title)
+                .font(Tokens.Typography.text(11.5, weight: router.tab == tab ? .semibold : .regular))
+                .foregroundStyle(router.tab == tab ? Tokens.Palette.ink : Tokens.Palette.secondary)
+                .padding(.horizontal, 9)
+                .padding(.vertical, 5)
+                .background {
+                    RoundedRectangle(cornerRadius: 5)
+                        .fill(router.tab == tab ? Tokens.Palette.surface : Color.clear)
+                }
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .help(tab.title)
+    }
+
+    private var selectionLabel: some View {
+        HStack(spacing: 5) {
+            Image(systemName: timeline.selectionIcon)
+                .font(.system(size: 10))
+                .foregroundStyle(Tokens.Palette.tertiary)
+            Text(timeline.selectionLabel)
+                .font(Tokens.Typography.text(11, weight: .medium))
+                .foregroundStyle(Tokens.Palette.secondary)
+                .lineLimit(1)
+        }
+        .help(selectionHelp)
     }
 
     /// The search belongs to the timeline, but it reads better in the window row
@@ -213,6 +230,28 @@ struct MainWindowView: View {
         return timeline.selectionLabel
     }
 
+    // MARK: - Content
+
+    @ViewBuilder
+    private var content: some View {
+        switch router.tab {
+        case .today:
+            FeedView(model: feed) { sessionID in
+                open(sessionID)
+            }
+        case .timeline:
+            timelineView
+        case .report:
+            ReportView(model: model)
+        case .usage:
+            UsageView(model: model)
+        case .rules:
+            RulesView(model: model)
+        case .settings:
+            SettingsView(model: model, updates: updates)
+        }
+    }
+
     private var timelineView: some View {
         TimelineView(model: timeline, onMute: { hit, event in
             let target = RuleEngine.target(for: event)
@@ -234,7 +273,7 @@ struct MainWindowView: View {
         timeline.search = ""
         timeline.window = .day
         timeline.findingsOnly = true
-        mode = .timeline
+        router.tab = .timeline
     }
 
     /// Jumping to a session always means the timeline: the feed is a digest, the
@@ -248,6 +287,6 @@ struct MainWindowView: View {
         timeline.search = ""
         timeline.window = .everything
         timeline.selection = .session(sessionID)
-        mode = .timeline
+        router.tab = .timeline
     }
 }

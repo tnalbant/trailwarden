@@ -151,6 +151,8 @@ extension UITranslations {
         .quit: "Çık",
         .missingFolder: "yok",
 
+        .sections: "Bölümler",
+
         .liveGuard: "Canlı bekçi",
         .liveGuardHint: "Bir ajan transkriptine yazdığı anda dosyayı yeniden okur ve riskli komutları bildirir. Hiçbir şey Mac'ten çıkmaz.",
         .liveOn: "Canlı",
