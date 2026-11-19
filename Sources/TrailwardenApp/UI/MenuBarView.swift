@@ -27,6 +27,12 @@ struct MenuBarView: View {
         self.updates = updates
         self.router = router
         live = model.live
+        #if DEBUG
+            // Screenshots need the unfolded list without a hand on the mouse.
+            if ProcessInfo.processInfo.environment["TRAILWARDEN_PANEL_MORE"] == "1" {
+                _showsDestinations = State(initialValue: true)
+            }
+        #endif
     }
 
     var body: some View {
@@ -62,6 +68,10 @@ struct MenuBarView: View {
                 }
                 .padding(.horizontal, Tokens.Metrics.gutter)
                 .padding(.vertical, 7)
+                Hairline()
+            }
+            if showsDestinations {
+                destinations
                 Hairline()
             }
             footer
