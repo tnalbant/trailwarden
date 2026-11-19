@@ -1,7 +1,7 @@
 # trailwarden-mcp
 
-Local audit trail for coding agents, exposed as an MCP server (macOS, Apple
-Silicon).
+Local audit trail for coding agents, exposed as an MCP server (macOS 14+, Apple
+Silicon and Intel).
 
 Answers questions about what Claude Code, Codex, Gemini CLI, opencode, Cursor,
 GitHub Copilot and Hermes did on your Mac, from the index the Trailwarden app or
