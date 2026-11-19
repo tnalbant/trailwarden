@@ -151,6 +151,8 @@ extension UITranslations {
         .quit: "Esci",
         .missingFolder: "assente",
 
+        .sections: "Sezioni",
+
         .liveGuard: "Guardia live",
         .liveGuardHint: "Rilegge subito le trascrizioni e segnala i comandi rischiosi. Niente esce dal Mac.",
         .liveOn: "Live",

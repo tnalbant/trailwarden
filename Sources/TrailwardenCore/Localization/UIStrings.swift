@@ -61,6 +61,7 @@ public enum UIString: String, CaseIterable, Sendable {
     // Small words
     case axisDay, quit, missingFolder
     // Live guard
+    case sections
     case liveGuard, liveGuardHint, liveOn, liveOff, liveNotifyFor, liveCriticalOnly, liveWarnAndCritical
     case liveNotificationsDenied, liveMoreFindings, liveAllowNotifications, liveOpenNotificationSettings
     case liveNotificationsAllowed
@@ -222,6 +223,7 @@ public enum UITranslations {
         .quit: "Quit",
         .missingFolder: "missing",
 
+        .sections: "Sections",
         .liveGuard: "Live guard",
         .liveGuardHint: "Re-reads a transcript the moment an agent writes to it and notifies you about risky commands. Nothing leaves the Mac.",
         .liveOn: "Live",

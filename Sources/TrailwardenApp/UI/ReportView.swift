@@ -12,6 +12,7 @@ struct ReportView: View {
     @AppStorage(LocalizationStore.defaultsKey) private var language = AppLanguage.system.rawValue
     @ObservedObject var model: AppModel
     @Environment(\.openWindow) private var openWindow
+    @EnvironmentObject private var router: DashboardRouter
     @State private var days = 30
     @State private var card: ReportCard?
     @State private var copied = false
@@ -220,6 +221,7 @@ struct ReportView: View {
             ForEach(card.worthALook) { event in
                 Button {
                     model.openEvent(event.id, in: event.sessionId)
+                    router.show(.timeline)
                     openWindow(id: "main")
                 } label: {
                     findingRow(event)

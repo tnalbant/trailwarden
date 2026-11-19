@@ -12,52 +12,68 @@ struct TrailwardenApp: App {
     /// One checker for the whole app, so a check started at launch and a check
     /// started from the panel are the same result.
     @StateObject private var updates = UpdateChecker()
+    /// Which tab the single window shows; shared with the menu bar panel and the
+    /// menu commands so every entry point lands on the same place.
+    @StateObject private var router = DashboardRouter()
+    @Environment(\.openWindow) private var openWindow
 
     @NSApplicationDelegateAdaptor(TrailwardenDelegate.self) private var delegate
 
     var body: some Scene {
         MenuBarExtra {
-            MenuBarView(model: model, updates: updates)
+            MenuBarView(model: model, updates: updates, router: router)
+                .environmentObject(router)
         } label: {
             MenuBarLabel(model: model, updates: updates)
+                .environmentObject(router)
         }
         .menuBarExtraStyle(.window)
 
         Window("Trailwarden", id: "main") {
-            MainWindowView(model: model)
+            MainWindowView(model: model, updates: updates, router: router)
+                .environmentObject(router)
         }
         .defaultSize(width: 1180, height: 720)
         .windowResizability(.contentMinSize)
-
-        Window(L(.windowReport), id: "report") {
-            ReportView(model: model)
+        .commands {
+            // Settings and the sections are tabs now, so the Window menu no
+            // longer grows a row per screen and ⌘, still means "settings".
+            CommandGroup(replacing: .appSettings) {
+                Button(L(.windowSettings) + "…") {
+                    show(.settings)
+                }
+                .keyboardShortcut(",", modifiers: .command)
+            }
+            CommandGroup(replacing: .newItem) {
+                Button(L(.scan)) {
+                    Task { await model.scan() }
+                }
+                .keyboardShortcut("r", modifiers: .command)
+                .disabled(model.isScanning)
+            }
+            CommandMenu(L(.sections)) {
+                ForEach(Array(DashboardTab.menuTabs.enumerated()), id: \.element.id) { index, tab in
+                    Button(tab.title) {
+                        show(tab)
+                    }
+                    .keyboardShortcut(KeyEquivalent(Character("\(index + 1)")), modifiers: .command)
+                }
+            }
         }
-        .defaultSize(width: 860, height: 760)
-        .windowResizability(.contentMinSize)
+    }
 
-        Window(L(.windowRules), id: "rules") {
-            RulesView(model: model)
-        }
-        .defaultSize(width: 820, height: 620)
-        .windowResizability(.contentMinSize)
-
-        Window(L(.windowUsage), id: "usage") {
-            UsageView(model: model)
-        }
-        .defaultSize(width: 700, height: 560)
-        .windowResizability(.contentMinSize)
-
-        Window(L(.windowSettings), id: "settings") {
-            SettingsView(model: model, updates: updates)
-        }
-        .defaultSize(width: 640, height: 560)
-        .windowResizability(.contentMinSize)
+    /// Opens the window on a section, from anywhere in the app.
+    private func show(_ tab: DashboardTab) {
+        router.show(tab)
+        openWindow(id: "main")
+        NSApp.activate(ignoringOtherApps: true)
     }
 }
 
 /// The menu bar item: a shield, plus today's critical count when there is one.
 private struct MenuBarLabel: View {
     @Environment(\.openWindow) private var openWindow
+    @EnvironmentObject private var router: DashboardRouter
     /// Observed, not passed by value: the label owns `openWindow`, and a counter
     /// it cannot see changing would never open anything.
     @ObservedObject var model: AppModel
@@ -89,10 +105,12 @@ private struct MenuBarLabel: View {
                 openWindow(id: "main")
             }
             if ProcessInfo.processInfo.environment["TRAILWARDEN_OPEN_REPORT"] == "1" {
-                openWindow(id: "report")
+                router.tab = .report
+                openWindow(id: "main")
             }
             if ProcessInfo.processInfo.environment["TRAILWARDEN_OPEN_USAGE"] == "1" {
-                openWindow(id: "usage")
+                router.tab = .usage
+                openWindow(id: "main")
             }
             if ProcessInfo.processInfo.environment["TRAILWARDEN_CHECK_UPDATES"] == "1" {
                 await updates.check()
@@ -123,7 +141,8 @@ private struct MenuBarLabel: View {
                 // after the check so the line it produces is in the picture.
                 try? await Task.sleep(for: .seconds(1))
                 let renderer = ImageRenderer(
-                    content: MenuBarView(model: model, updates: updates)
+                    content: MenuBarView(model: model, updates: updates, router: router)
+                        .environmentObject(router)
                         .frame(width: Tokens.Metrics.panelWidth)
                         .background(Tokens.Palette.paper))
                 renderer.scale = 2
