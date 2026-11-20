@@ -24,7 +24,7 @@ public enum RuleCatalog {
     /// A user file replaces built-ins with the same id (so a rule can be turned
     /// off or re-graded) and appends rules the built-ins do not know.
     public static func merge(builtIn: [Rule], overrides: [Rule]) -> [Rule] {
-        var byId = Dictionary(uniqueKeysWithValues: overrides.map { ($0.id, $0) })
+        var byId = Dictionary(overrides.map { ($0.id, $0) }, uniquingKeysWith: { _, last in last })
         var merged: [Rule] = []
         for rule in builtIn {
             if let override = byId.removeValue(forKey: rule.id) {

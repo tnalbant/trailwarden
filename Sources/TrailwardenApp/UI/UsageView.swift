@@ -5,9 +5,9 @@ import Charts
 import SwiftUI
 import TrailwardenCore
 
-/// Where the tokens went, per day and per agent. The numbers come from the
-/// transcripts; no price is shown because a token's price depends on the plan,
-/// the model and the day, and a wrong number is worse than none.
+/// Where the tokens went, per day, per agent and per model. The counts come
+/// from the transcripts; the dollars are an estimate at bundled pay-as-you-go
+/// API prices, labelled as such, and a model without a price shows none.
 struct UsageView: View {
     @AppStorage(LocalizationStore.defaultsKey) private var language = AppLanguage.system.rawValue
     @ObservedObject var model: AppModel
@@ -27,6 +27,8 @@ struct UsageView: View {
                 Hairline()
                 agents
                 Hairline()
+                models
+                Hairline()
                 footnote
             }
             .padding(20)
@@ -45,6 +47,11 @@ struct UsageView: View {
             Text(Lf(.usageSummary, [days, Self.tokens(total), model.dailyUsage.count]))
                 .font(Tokens.Typography.mono(10))
                 .foregroundStyle(Tokens.Palette.secondary)
+            if model.costEstimate.pricedTokens > 0 {
+                Text(Lf(.estimatedCost, [Self.dollars(model.costEstimate.dollars)]))
+                    .font(Tokens.Typography.mono(10, weight: .semibold))
+                    .foregroundStyle(Tokens.Palette.accent)
+            }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .overlay(alignment: .topTrailing) {
@@ -137,13 +144,104 @@ struct UsageView: View {
         }
     }
 
+    private var models: some View {
+        VStack(alignment: .leading, spacing: 7) {
+            SectionLabel(text: L(.byModel), trailing: L(.apiEquivalent))
+            if model.modelUsage.isEmpty {
+                Text(L(.noCounterData))
+                    .font(Tokens.Typography.text(10.5))
+                    .foregroundStyle(Tokens.Palette.secondary)
+            }
+            ForEach(model.modelUsage) { row in
+                HStack(spacing: 10) {
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text(row.model)
+                            .font(Tokens.Typography.mono(10.5, weight: .medium))
+                            .lineLimit(1)
+                            .truncationMode(.middle)
+                        Text(EventFormatting.agentLabel(row.agent))
+                            .font(Tokens.Typography.text(9))
+                            .foregroundStyle(Tokens.Palette.secondary)
+                    }
+                    Spacer(minLength: 8)
+                    Text(Self.tokens(row.tokens.processed))
+                        .font(Tokens.Typography.mono(10))
+                        .frame(width: 80, alignment: .trailing)
+                    Text(priceLabel(row))
+                        .font(Tokens.Typography.mono(10, weight: .semibold))
+                        .foregroundStyle(model.prices.price(for: row.model) == nil
+                            ? Tokens.Palette.secondary : Tokens.Palette.ink)
+                        .frame(width: 88, alignment: .trailing)
+                }
+                .help(breakdown(row.tokens))
+            }
+            if model.costEstimate.unpricedTokens > 0 {
+                Text(Lf(.unpricedNote, [
+                    Self.tokens(model.costEstimate.unpricedTokens),
+                    model.costEstimate.unpricedModels.count
+                ]))
+                .font(Tokens.Typography.text(9.5))
+                .foregroundStyle(Tokens.Palette.secondary)
+            }
+        }
+    }
+
+    private func priceLabel(_ row: ModelUsage) -> String {
+        guard let price = model.prices.price(for: row.model) else { return L(.priceUnknown) }
+        if price.isFree {
+            return L(.priceFree)
+        }
+        return Self.dollars(price.cost(of: row.tokens))
+    }
+
+    /// The split behind a row, on hover: where the tokens (and the money) went.
+    private func breakdown(_ tokens: TokenCount) -> String {
+        [
+            "input \(Self.tokens(tokens.input))",
+            "cache read \(Self.tokens(tokens.cacheRead))",
+            "cache write \(Self.tokens(tokens.cacheWrite))",
+            "output \(Self.tokens(tokens.output))",
+            tokens.reasoning > 0 ? "reasoning \(Self.tokens(tokens.reasoning))" : nil
+        ].compactMap(\.self).joined(separator: " · ")
+    }
+
     private var footnote: some View {
         VStack(alignment: .leading, spacing: 4) {
-            SectionLabel(text: "Not")
+            SectionLabel(text: L(.noteTitle))
             Text(L(.usageNote))
                 .font(Tokens.Typography.text(10))
                 .foregroundStyle(Tokens.Palette.secondary)
                 .fixedSize(horizontal: false, vertical: true)
+            Text(Lf(.priceNote, [model.prices.asOf]))
+                .font(Tokens.Typography.text(10))
+                .foregroundStyle(Tokens.Palette.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+            if model.prices.isStale() {
+                Text(L(.pricesStale))
+                    .font(Tokens.Typography.text(10))
+                    .foregroundStyle(Tokens.Palette.accent)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            if let error = model.priceFileError {
+                Text(Lf(.priceFileError, [error]))
+                    .font(Tokens.Typography.text(10))
+                    .foregroundStyle(Tokens.Palette.accent)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+    }
+
+    /// $1,234 above a hundred dollars, cents below, and "< $0.01" for crumbs.
+    static func dollars(_ value: Double) -> String {
+        switch value {
+        case 100...:
+            "$" + value.formatted(.number.precision(.fractionLength(0)).locale(Locale(identifier: "en_US")))
+        case 0.01...:
+            "$" + value.formatted(.number.precision(.fractionLength(2)).locale(Locale(identifier: "en_US")))
+        case 0:
+            "$0"
+        default:
+            "< $0.01"
         }
     }
 

@@ -46,18 +46,20 @@ public enum RulePreferences {
     public static func save(_ preferences: [RulePreference], to url: URL) throws {
         try FileManager.default.createDirectory(
             at: url.deletingLastPathComponent(),
-            withIntermediateDirectories: true)
+            withIntermediateDirectories: true,
+            attributes: [.posixPermissions: 0o700])
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
         let data = try encoder.encode(preferences.sorted { $0.id < $1.id })
-        try data.write(to: url, options: .atomic)
-        try FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: url.path)
+        try PrivateFile.write(data, to: url)
     }
 
     /// Built-in rules with the stored preferences applied. Rules the file does not
     /// mention keep their shipped values, and unknown ids in the file are ignored.
     public static func apply(_ preferences: [RulePreference], to rules: [Rule]) -> [Rule] {
-        let byId = Dictionary(uniqueKeysWithValues: preferences.map { ($0.id, $0) })
+        // A hand-edited file may list a rule twice; the last entry wins instead of
+        // crashing every launch.
+        let byId = Dictionary(preferences.map { ($0.id, $0) }, uniquingKeysWith: { _, last in last })
         return rules.map { rule in
             guard let preference = byId[rule.id] else { return rule }
             return rule.with(enabled: preference.enabled, severity: preference.severity)

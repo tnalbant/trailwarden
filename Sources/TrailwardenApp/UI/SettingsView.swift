@@ -24,31 +24,48 @@ struct SettingsView: View {
     }
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 18) {
-                header
-                Hairline()
-                LiveSection(live: model.live, enabled: $liveEnabled, threshold: $liveThreshold)
-                Hairline()
-                appearanceSection
-                Hairline()
-                languageSection
-                Hairline()
-                rootsSection
-                Hairline()
-                retentionSection
-                Hairline()
-                exportSection
-                Hairline()
-                UpdateSection(updates: updates)
-                Hairline()
-                privacySection
+        ScrollViewReader { proxy in
+            ScrollView {
+                content
+                    .padding(20)
             }
-            .padding(20)
+            #if DEBUG
+            .task {
+                if ProcessInfo.processInfo.environment["TRAILWARDEN_OPEN_MODE"] == "prices" {
+                    try? await Task.sleep(for: .seconds(1))
+                    proxy.scrollTo("prices", anchor: .top)
+                }
+            }
+            #endif
         }
         .background(Tokens.Palette.paper)
         .foregroundStyle(Tokens.Palette.ink)
         .tint(Tokens.Palette.accent)
+    }
+
+    private var content: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            header
+            Hairline()
+            LiveSection(live: model.live, enabled: $liveEnabled, threshold: $liveThreshold)
+            Hairline()
+            appearanceSection
+            Hairline()
+            languageSection
+            Hairline()
+            rootsSection
+            Hairline()
+            retentionSection
+            Hairline()
+            exportSection
+            Hairline()
+            UpdateSection(updates: updates)
+            Hairline()
+            PricesSection(book: model.priceBook, updates: updates)
+                .id("prices")
+            Hairline()
+            privacySection
+        }
     }
 
     private var header: some View {
@@ -243,7 +260,10 @@ private struct LiveSection: View {
                 .fixedSize(horizontal: false, vertical: true)
             if enabled, !live.notificationsAllowed {
                 VStack(alignment: .leading, spacing: 6) {
-                    Text(L(.liveNotificationsDenied))
+                    // "Turned off" only when the answer was no; before anyone has
+                    // been asked, say what the permission is for.
+                    Text(live
+                        .permission == .denied ? L(.liveNotificationsDenied) : L(.onboardingNotifications))
                         .font(Tokens.Typography.text(9.5, weight: .medium))
                         .foregroundStyle(Tokens.Palette.accent)
                         .fixedSize(horizontal: false, vertical: true)

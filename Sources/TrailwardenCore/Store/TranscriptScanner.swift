@@ -160,12 +160,14 @@ public struct TranscriptScanner {
             let since = try store.latestTimestamp(agent: source.agent)
             let result = try source.parser.parse(database: source.database, since: since)
             guard !result.events.isEmpty else {
+                try store.markReread(agent: source.agent)
                 report.filesParsed += 1
                 return
             }
             let annotated = rules?.annotate(result.events) ?? result.events
             let events = annotated.map { redactor.redact($0) }
             let stored = try store.insert(events: events)
+            try store.markReread(agent: source.agent)
             report.filesParsed += 1
             report.eventsStored += stored
             report.skippedLines += result.skippedLines

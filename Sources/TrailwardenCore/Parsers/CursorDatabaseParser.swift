@@ -110,7 +110,11 @@ public struct CursorDatabaseParser: DatabaseAgentParser {
 
         var cwd: String?
         var result: [Event] = []
-        var input = 0, output = 0
+        var inputTotal = 0.0, outputTotal = 0.0
+        // Cursor names the model per reply, and only sometimes; the composer's
+        // setting ("default" means Cursor picked) is the fallback.
+        var lastModel = ((composer["modelConfig"] as? [String: Any])?["modelName"] as? String)
+            .flatMap { $0 == "default" ? nil : $0 }
 
         func make(
             _ key: String,
@@ -121,7 +125,8 @@ public struct CursorDatabaseParser: DatabaseAgentParser {
             command: String? = nil,
             paths: [String] = [],
             preview: String?,
-            raw: [String: Any]? = nil) -> Event
+            raw: [String: Any]? = nil,
+            usage: TokenCount? = nil) -> Event
         {
             Event(
                 id: "cursor:\(composerID):\(key):\(index)",
@@ -134,7 +139,8 @@ public struct CursorDatabaseParser: DatabaseAgentParser {
                 command: command,
                 paths: paths,
                 preview: preview.map(CodexParser.cap),
-                rawJSON: raw.flatMap(compactJSON))
+                rawJSON: raw.flatMap(compactJSON),
+                usage: usage)
         }
 
         if let created = number(composer["createdAt"]), created >= cutoffMillis {
@@ -152,9 +158,12 @@ public struct CursorDatabaseParser: DatabaseAgentParser {
             {
                 cwd = path
             }
+            if let name = (data["modelInfo"] as? [String: Any])?["modelName"] as? String, !name.isEmpty {
+                lastModel = name
+            }
             if let tokens = data["tokenCount"] as? [String: Any] {
-                input += Int(number(tokens["inputTokens"]) ?? 0)
-                output += Int(number(tokens["outputTokens"]) ?? 0)
+                inputTotal += number(tokens["inputTokens"]) ?? 0
+                outputTotal += number(tokens["outputTokens"]) ?? 0
             }
             guard bubble.millis >= cutoffMillis else { continue }
 
@@ -180,17 +189,22 @@ public struct CursorDatabaseParser: DatabaseAgentParser {
                 continue
             }
             guard let text = data["text"] as? String, !text.isEmpty else { continue }
-            let type = Int(number(data["type"]) ?? 0)
+            let type = Int(saturating: number(data["type"]) ?? 0)
             guard type == 1 || type == 2 else { continue }
             result.append(make(
                 bubble.key, 0, .message, millis: bubble.millis, preview: text,
                 raw: ["type": type, "text": text]))
         }
 
-        if input > 0 || output > 0, let last = ordered.last, last.millis >= cutoffMillis {
+        // Cursor reports no cache split, so its input is all fresh input.
+        let usage = TokenCount(
+            model: lastModel,
+            input: Int(saturating: inputTotal),
+            output: Int(saturating: outputTotal))
+        if !usage.isEmpty, let last = ordered.last, last.millis >= cutoffMillis {
             result.append(make(
                 "tokens", 0, .tokenUsage, millis: last.millis,
-                preview: "tokens: \(input) in / \(output) out"))
+                preview: usage.preview, usage: usage))
         }
         return result
     }
@@ -347,8 +361,14 @@ public struct CursorDatabaseParser: DatabaseAgentParser {
         for (index, value) in bindings.enumerated() {
             sqlite3_bind_text(statement, Int32(index + 1), value, -1, transient)
         }
-        while sqlite3_step(statement) == SQLITE_ROW {
+        var status = sqlite3_step(statement)
+        while status == SQLITE_ROW {
             row(statement)
+            status = sqlite3_step(statement)
+        }
+        // A busy database also ends the loop; half a result is not a result.
+        guard status == SQLITE_DONE else {
+            throw TranscriptError.unreadable(sqlite3_errmsg(handle).map { String(cString: $0) } ?? "step")
         }
     }
 }

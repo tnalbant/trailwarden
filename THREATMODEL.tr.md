@@ -28,7 +28,11 @@ maskelenmiş bir kaydı dışa aktarmana izin verir.
   Küçük bir JSON belgesi (`version`, `notes`, `url`) için bir GET isteğidir; çerez
   yok, tanımlayıcı yok, sorgu dizesi yok. Okuyucu "Güncellemeleri denetle"ye
   tıkladığında çalışır. Ayrıca, yalnızca okuyucu Ayarlar'dan bir takvim seçerse
-  (varsayılan olarak kapalı) en fazla haftada ya da ayda bir çalışır. Geri kalan
+  (varsayılan olarak kapalı) en fazla haftada ya da ayda bir çalışır. Aynı dosya
+  yalnızca okuyucu "Fiyatları güncelle"ye tıkladığında bir GET daha yapar: projenin
+  deposundaki herkese açık `prices.json`, API maliyet tahmini için. Takvimi yoktur;
+  indirilen liste ayrıştırılabilmeli, tarih taşımalı ve makul fiyatlar içermelidir,
+  yoksa saklanmaz. Okuyucunun girdiği bir fiyatı asla değiştirmez. Geri kalan
   her şey yerelde kalır; `Sources/` altındaki başka bir dosyada ağ API'si
   görünürse CI derlemeyi bozar.
 - **Dışa aktarımlardaki gizli bilgiler.** Bilinen jeton biçimleri saklanmadan önce
@@ -37,9 +41,11 @@ maskelenmiş bir kaydı dışa aktarmana izin verir.
   testi de bir jetonun dosyaya asla ulaşmadığını doğrular.
 - **Paylaşılan dosyada kazara ifşa.** Ev dizini yolları `~` olur, dışa
   aktarımlar 0600'dür ve JSON sözleşmesi ham transkript satırı taşımaz.
-- **Kanıt kurcalama.** İndeks, uygulamanın bakış açısından yalnızca eklemelidir:
-  dosyalar yalnızca boyut ya da değişiklik zamanı (mtime) değiştiğinde yeniden
-  okunur ve her olay oturum kimliğini ve zaman damgasını korur.
+- **Kaydın sessizce değiştirilmesi.** Olayların kimlikleri transkriptten
+  türetilir; bir dosya yeniden okunduğunda aynı satırlar yerine yazılır, satır
+  eklenmez ya da kaybolmaz. Satırlar yalnızca açıkça `prune` ile silinir, kural
+  sonuçları da yalnızca kurallar değiştiğinde yeniden yazılır. Trailwarden
+  indeksi değiştirilemez kılmaz: hesabın sahibi onu her dosya gibi düzenleyebilir.
 
 ## Neye karşı korumaz
 
@@ -60,6 +66,6 @@ maskelenmiş bir kaydı dışa aktarmana izin verir.
 | `.zst` arşivi → çözücü | bozuk ya da kötü niyetli sıkıştırılmış veri | resmi Zstandard çözücüsü (kaynağında fuzz testinden geçmiş), sınırlı parçalar halinde akıtılır; 128 MB üzerinde pencere isteyen bir çerçeve reddedilir; bozuk ya da kesik bir dosya yalnızca kendisini başarısız kılar |
 | ayrıştırıcı → veritabanı | maskeleme kaçırma | kurallar ham metin üzerinde çalışır, depo yalnızca maskelenmiş metni görür |
 | veritabanı → dışa aktarım | yol veya jeton sızması | ikinci maskeleme geçişi, `~` kısaltması, 0600 |
-| kural dosyası → regex motoru | yıkıcı geri izleme (catastrophic backtracking) | desenler çapalı ve sınırlıdır; kullanıcı kuralları yüklenirken doğrulanır |
+| kural dosyası → regex motoru | yıkıcı geri izleme (catastrophic backtracking) | gelen desenler çapalı ve sınırlıdır, her biri eşleşmesi ve eşleşmemesi gereken komutlardan oluşan bir tabloyla denenir; kullanıcılar kuralları kapatabilir ya da derecesini değiştirebilir, yeni regex ekleyemez |
 | indeks → bildirim | kilit ekranında görünen komut | bildirim zaten maskelenmiş komutu taşır; macOS kilit ekranında bildirim önizlemelerini varsayılan olarak gizler |
 | indeks → paylaşılabilir özet | iş ayrıntılarının sızması | karnenin özeti yalnızca sayılardan, ajan adlarından ve kural başlıklarından oluşur; bir test hiçbir komutun, yolun ya da proje adının buna ulaşmadığını doğrular |

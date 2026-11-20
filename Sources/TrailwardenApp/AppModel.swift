@@ -313,25 +313,61 @@ final class AppModel: ObservableObject {
     @Published private(set) var maintenanceStatus: String?
     @Published private(set) var usage: [Agent: TokenTotals] = [:]
     @Published private(set) var dailyUsage: [DailyTokens] = []
+    @Published private(set) var modelUsage: [ModelUsage] = []
+    @Published private(set) var costEstimate = CostEstimate()
+    @Published private(set) var prices = PriceTable.builtIn
+    @Published private(set) var priceFileError: String?
     @Published private(set) var usageUpdatedAt: Date?
+    /// The period the usage screen last asked for, so a price change can redo
+    /// the same estimate.
+    private var usageDays = 30
 
-    /// Tokens come from the transcript; a price would not, so none is printed.
+    /// One price book for Settings and the price window, so both show the same
+    /// state and a change in one is seen in the other.
+    lazy var priceBook: PriceBook = {
+        let book = PriceBook(databaseURL: databaseURL)
+        book.onChange = { [weak self] in
+            guard let self else { return }
+            Task { await self.loadUsage(days: self.usageDays) }
+        }
+        return book
+    }()
+
+    private struct LoadedUsage {
+        var byAgent: [Agent: TokenTotals] = [:]
+        var daily: [DailyTokens] = []
+        var byModel: [ModelUsage] = []
+        var prices = PriceTable.builtIn
+        var priceFileError: String?
+    }
+
+    /// Tokens come from the transcripts; the dollars are an estimate at the
+    /// API prices in use (built in, downloaded, or the reader's own), never a bill.
     func loadUsage(days: Int = 30) async {
+        usageDays = days
         let database = databaseURL
         let since = Date().addingTimeInterval(-Double(days) * 86400)
-        let loaded = await Task.detached(priority: .utility) { () -> ([Agent: TokenTotals], [DailyTokens]) in
+        let loaded = await Task.detached(priority: .utility) { () -> LoadedUsage in
+            var result = LoadedUsage()
+            let prices = PriceTable.load()
+            result.prices = prices.table
+            result.priceFileError = prices.problem
             do {
                 let store = try EventStore(url: database)
-                return try (
-                    store.tokenTotalsByAgent(since: since),
-                    store.dailyTokens(since: since))
+                result.byAgent = try store.tokenTotalsByAgent(since: since)
+                result.daily = try store.dailyTokens(since: since)
+                result.byModel = try store.tokenCountsByModel(since: since)
             } catch {
                 NSLog("loadUsage failed: %@", String(describing: error))
-                return ([:], [])
             }
+            return result
         }.value
-        usage = loaded.0
-        dailyUsage = loaded.1
+        usage = loaded.byAgent
+        dailyUsage = loaded.daily
+        modelUsage = loaded.byModel
+        prices = loaded.prices
+        priceFileError = loaded.priceFileError
+        costEstimate = loaded.prices.estimate(loaded.byModel)
         usageUpdatedAt = Date()
     }
 

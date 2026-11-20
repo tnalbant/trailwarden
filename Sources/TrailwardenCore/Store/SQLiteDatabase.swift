@@ -132,6 +132,10 @@ final class SQLiteStatement {
         }
     }
 
+    var columnCount: Int32 {
+        sqlite3_column_count(statement)
+    }
+
     func text(_ index: Int32) -> String? {
         guard let pointer = sqlite3_column_text(statement, index) else { return nil }
         return String(cString: pointer)

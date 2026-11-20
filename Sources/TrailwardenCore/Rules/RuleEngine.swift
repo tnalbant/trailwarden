@@ -253,8 +253,16 @@ public struct RuleEngine: Sendable {
     /// fed to a shell (`bash <<EOF`, `ssh host <<EOF`) is a script and stays.
     private static let heredoc = try? NSRegularExpression(
         pattern: #"<<-?[ \t]*(['"]?)(\w+)\1[^\n]*\n[\s\S]*?\n[ \t]*\2[ \t]*(?=\n|$)"#)
+    /// A heredoc whose body is run, not stored: fed to a shell or an interpreter
+    /// before the `<<` (`bash <<EOF`, `python3 - <<EOF`) …
     private static let shellBeforeHeredoc = try? NSRegularExpression(
-        pattern: #"\b(?:(?:ba|z|da|k)?sh|ssh|sudo)\b[^\n;&|]*$"#)
+        pattern: #"\b(?:(?:ba|z|da|k|fi)?sh|ssh|sudo|python[0-9.]*|node|deno|bun|ruby|perl|php|osascript|lua"#
+            + #"|Rscript|swift)\b[^\n;&|]*$"#)
+    /// … or piped into one after it, on the same line (`cat <<EOF | sh`).
+    private static let shellAfterHeredoc = try? NSRegularExpression(
+        pattern: #"^[^\n]*\|\s*(?:sudo\s+(?:-\S+\s+)*)?(?:\S*/)?"#
+            +
+            #"(?:(?:ba|z|da|k|fi)?sh|python[0-9.]*|node|deno|bun|ruby|perl|php|osascript|lua|xargs|swift)\b"#)
 
     static func withoutHeredocBodies(_ command: String) -> String {
         guard command.contains("<<"), let heredoc else { return command }
@@ -269,6 +277,14 @@ public struct RuleEngine: Sendable {
             let lead = String(result[lineStart ..< found.lowerBound])
             if let shell = shellBeforeHeredoc,
                shell.firstMatch(in: lead, range: NSRange(lead.startIndex..., in: lead)) != nil
+            {
+                continue
+            }
+            // The rest of the `<<WORD` line: what the body is piped into.
+            let headerEnd = result[found.lowerBound...].firstIndex(of: "\n") ?? found.upperBound
+            let trail = String(result[result.index(found.lowerBound, offsetBy: 2) ..< headerEnd])
+            if let piped = shellAfterHeredoc,
+               piped.firstMatch(in: trail, range: NSRange(trail.startIndex..., in: trail)) != nil
             {
                 continue
             }

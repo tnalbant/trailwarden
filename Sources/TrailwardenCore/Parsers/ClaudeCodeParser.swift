@@ -27,6 +27,10 @@ public struct ClaudeCodeParser: AgentParser {
         var cwd: String?
         var gitBranch: String?
         var indexInLine = 0
+        // One API response is written as several lines (one per content block),
+        // each repeating the same usage; the last copy of each is kept.
+        var usageByRequest: [String: PendingUsage] = [:]
+        var requestOrder: [String] = []
 
         let source = file.path
         let fallbackTimestamp = Self.modificationDate(of: file) ?? Date(timeIntervalSince1970: 0)
@@ -100,6 +104,16 @@ public struct ClaudeCodeParser: AgentParser {
             switch type {
             case "user", "assistant":
                 guard let message = object["message"] as? [String: Any] else { return }
+                if type == "assistant", let usage = Self.usage(message),
+                   let request = object["requestId"] as? String ?? message["id"] as? String
+                {
+                    if usageByRequest[request] == nil {
+                        requestOrder.append(request)
+                    }
+                    usageByRequest[request] = PendingUsage(
+                        usage: usage, line: lineNumber, ts: timestamp,
+                        sessionId: sessionId, cwd: cwd, gitBranch: gitBranch)
+                }
                 if let text = message["content"] as? String {
                     add(.message, preview: text)
                 } else if let blocks = message["content"] as? [[String: Any]] {
@@ -153,7 +167,51 @@ public struct ClaudeCodeParser: AgentParser {
             }
         }
 
+        events += requestOrder.compactMap { usageByRequest[$0] }.map { usageEvent($0, source: source) }
         return ParseResult(events: events, skippedLines: skippedLines)
+    }
+
+    private func usageEvent(_ pending: PendingUsage, source: String) -> Event {
+        Event(
+            // Content blocks use small indexes; this one never collides.
+            id: Event.makeID(
+                agent: agent, sessionId: pending.sessionId, source: source,
+                line: pending.line, index: Self.usageIndex),
+            ts: pending.ts,
+            agent: agent,
+            sessionId: pending.sessionId,
+            kind: .tokenUsage,
+            cwd: pending.cwd,
+            gitBranch: pending.gitBranch,
+            preview: pending.usage.preview,
+            usage: pending.usage)
+    }
+
+    private struct PendingUsage {
+        let usage: TokenCount
+        let line: Int
+        let ts: Date
+        let sessionId: String
+        let cwd: String?
+        let gitBranch: String?
+    }
+
+    static let usageIndex = 10000
+
+    /// Anthropic usage: `input_tokens` is only the uncached part, cache reads
+    /// and writes are their own fields, and thinking is inside `output_tokens`.
+    static func usage(_ message: [String: Any]) -> TokenCount? {
+        guard let usage = message["usage"] as? [String: Any] else { return nil }
+        let model = (message["model"] as? String).flatMap { $0.hasPrefix("<") ? nil : $0 }
+        let details = usage["output_tokens_details"] as? [String: Any]
+        let count = TokenCount(
+            model: model,
+            input: TokenCount.number(usage["input_tokens"]),
+            output: TokenCount.number(usage["output_tokens"]),
+            cacheRead: TokenCount.number(usage["cache_read_input_tokens"]),
+            cacheWrite: TokenCount.number(usage["cache_creation_input_tokens"]),
+            reasoning: TokenCount.number(details?["thinking_tokens"]))
+        return count.isEmpty ? nil : count
     }
 
     // MARK: - Line vocabulary

@@ -33,7 +33,8 @@ public struct FileSignature: Sendable, Equatable {
 /// The class is intentionally not `Sendable`: a store is owned by one queue at a
 /// time (the CLI, the menu-bar app, the MCP server each open their own).
 public final class EventStore {
-    private let database: SQLiteDatabase
+    /// Internal, not private: `EventStore+Rules.swift` writes through it too.
+    let database: SQLiteDatabase
 
     /// `TRAILWARDEN_DB=<path>` points the app, the CLI and the MCP server at
     /// another index — a demo, or a copy for a bug report — so trying something
@@ -64,18 +65,33 @@ public final class EventStore {
         try self.init(database: SQLiteDatabase(path: ":memory:"))
     }
 
+    /// The schema `migrate()` brings an index to; `doctor` compares against it.
+    public static let schemaVersion = 7
+
     public convenience init(url: URL) throws {
-        try FileManager.default.createDirectory(
+        let fileManager = FileManager.default
+        try fileManager.createDirectory(
             at: url.deletingLastPathComponent(),
             withIntermediateDirectories: true,
             attributes: [.posixPermissions: 0o700])
+        // Create the file 0600 before SQLite opens it, so the index is never
+        // readable by others, not even for the moment between create and chmod.
+        if !fileManager.fileExists(atPath: url.path) {
+            fileManager.createFile(atPath: url.path, contents: nil, attributes: [.posixPermissions: 0o600])
+        }
         let database = try SQLiteDatabase(path: url.path)
         try self.init(database: database)
-        try FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: url.path)
+        for suffix in ["", "-wal", "-shm"] where fileManager.fileExists(atPath: url.path + suffix) {
+            try fileManager.setAttributes([.posixPermissions: 0o600], ofItemAtPath: url.path + suffix)
+        }
     }
 
     private init(database: SQLiteDatabase) throws {
         self.database = database
+        // Re-reading a transcript replaces its rows (INSERT OR REPLACE). Without
+        // recursive triggers SQLite deletes the old row silently, the FTS delete
+        // trigger never runs, and the search index keeps the stale text forever.
+        try database.execute("PRAGMA recursive_triggers = ON")
         try migrate()
     }
 
@@ -193,7 +209,23 @@ public final class EventStore {
         if try userVersion() < 5 {
             try database.execute("DELETE FROM scanned_files")
         }
-        try database.execute("PRAGMA user_version = 5")
+        // v6: replaced rows used to leave their search entries behind (see
+        // recursive_triggers above). A rebuild drops the stale entries once.
+        if !rebuildIndex, try userVersion() < 6 {
+            try database.execute("INSERT INTO events_fts(events_fts) VALUES('rebuild')")
+        }
+        // v7: token events carry the model and a billing-shaped split of the
+        // counts (cache reads and writes apart). Older rows have none of it, and
+        // Claude Code and Gemini had no token events at all, so every transcript
+        // is read once more to fill the new columns.
+        for column in Self.usageColumnNames where try !columnExists(column.name, in: "events") {
+            try database.execute("ALTER TABLE events ADD COLUMN \(column.name) \(column.type)")
+        }
+        try database.execute("CREATE TABLE IF NOT EXISTS rereads (agent TEXT PRIMARY KEY)")
+        if try userVersion() < 7 {
+            try forgetOldTokenEvents()
+        }
+        try database.execute("PRAGMA user_version = \(Self.schemaVersion)")
     }
 
     /// Row statements for the query layer; keeps the database handle private.
@@ -220,8 +252,9 @@ public final class EventStore {
 
     private static let insertEventSQL = """
     INSERT OR REPLACE INTO events
-        (id, session_id, agent, kind, ts, cwd, git_branch, tool, command, paths, preview, risk, severity, severity_rank, raw_json)
-    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+        (id, session_id, agent, kind, ts, cwd, git_branch, tool, command, paths, preview, risk, severity, severity_rank,
+         raw_json, model, tok_input, tok_output, tok_cache_read, tok_cache_write, tok_reasoning)
+    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
     """
 
     /// Inserts or replaces events and refreshes the affected session rows.
@@ -263,7 +296,7 @@ public final class EventStore {
                     severity.map { SQLValue.text($0.rawValue) } ?? .null,
                     severity.map { SQLValue.int($0.rank) } ?? .null,
                     Self.cappedRawJSON(event.rawJSON).map { SQLValue.text($0) } ?? .null
-                ]
+                ] + Self.usageValues(event.usage)
                 try insert.bind(values)
                 // The FTS index is maintained by the events_ai / events_au
                 // triggers, so this stays a single statement per event.
@@ -279,7 +312,7 @@ public final class EventStore {
 
     /// Recomputes a session row from its events, so reprocessing a file can never
     /// double-count.
-    private func refreshSession(_ sessionID: String) throws {
+    func refreshSession(_ sessionID: String) throws {
         let select = try database.prepare("""
         SELECT agent, cwd, git_branch, MIN(ts), MAX(ts), COUNT(*),
                SUM(CASE WHEN severity = 'critical' THEN 1 ELSE 0 END)
@@ -323,7 +356,7 @@ public final class EventStore {
         let statement = try prepareRowStatement("""
         SELECT events.id, events.ts, events.agent, events.session_id, events.kind, events.cwd,
                events.git_branch, events.tool, events.command, events.paths, events.preview,
-               events.risk, events.raw_json
+               events.risk, events.raw_json, \(Self.usageColumns)
         FROM events WHERE events.id = ? LIMIT 1
         """)
         try statement.bind([.text(id)])
@@ -332,7 +365,13 @@ public final class EventStore {
     }
 
     /// The newest event stored for an agent — the watermark for a database source.
+    /// `nil` while the agent owes a full read (see `forgetOldTokenEvents`).
     public func latestTimestamp(agent: Agent) throws -> Date? {
+        let pending = try prepareRowStatement("SELECT 1 FROM rereads WHERE agent = ?")
+        try pending.bind([.text(agent.rawValue)])
+        if try pending.step() {
+            return nil
+        }
         let statement = try prepareRowStatement(
             "SELECT MAX(ts) FROM events WHERE agent = ?")
         try statement.bind([.text(agent.rawValue)])
@@ -384,96 +423,6 @@ public final class EventStore {
         let statement = try database.prepare("PRAGMA integrity_check")
         guard try statement.step(), let value = statement.text(0) else { return "unknown" }
         return value
-    }
-
-    // MARK: - Mutes
-
-    /// Silences one `(rule, target)` pair until `mute.until`.
-    public func addMute(_ mute: Mute) throws {
-        let statement = try database.prepare("""
-        INSERT OR REPLACE INTO mutes (rule_id, target, until) VALUES (?,?,?)
-        """)
-        try statement.bind([
-            .text(mute.ruleId),
-            .text(mute.target),
-            .double(mute.until.timeIntervalSince1970)
-        ])
-        try statement.step()
-    }
-
-    public func removeMute(_ mute: Mute) throws {
-        let statement = try database.prepare("DELETE FROM mutes WHERE rule_id = ? AND target = ?")
-        try statement.bind([.text(mute.ruleId), .text(mute.target)])
-        try statement.step()
-    }
-
-    public func mutes(now: Date = Date()) throws -> [Mute] {
-        let statement = try database.prepare("SELECT rule_id, target, until FROM mutes WHERE until > ?")
-        try statement.bind([.double(now.timeIntervalSince1970)])
-        var result: [Mute] = []
-        while try statement.step() {
-            guard let ruleId = statement.text(0), let target = statement.text(1) else { continue }
-            result.append(
-                Mute(
-                    ruleId: ruleId,
-                    target: target,
-                    until: Date(timeIntervalSince1970: statement.double(2) ?? 0)))
-        }
-        return result
-    }
-
-    /// Rewrites the rule hits of the listed events and re-derives the session
-    /// rows that count them. The rule set changed, so stored hits are stale.
-    @discardableResult
-    public func replaceRisk(_ hitsByEventID: [String: [RiskHit]]) throws -> Int {
-        guard !hitsByEventID.isEmpty else { return 0 }
-        let encoder = JSONEncoder()
-        let ids = Array(hitsByEventID.keys)
-
-        let lookup = try prepareRowStatement(
-            "SELECT session_id FROM events WHERE id IN (\(ids.map { _ in "?" }.joined(separator: ",")))")
-        try lookup.bind(ids.map { SQLValue.text($0) })
-        var sessions: Set<String> = []
-        while try lookup.step() {
-            if let session = lookup.text(0) {
-                sessions.insert(session)
-            }
-        }
-
-        try database.transaction {
-            let update = try database.prepare(
-                "UPDATE events SET risk = ?, severity = ?, severity_rank = ? WHERE id = ?")
-            for (id, hits) in hitsByEventID {
-                let risk = try String(decoding: encoder.encode(hits), as: UTF8.self)
-                let worst = hits.map(\.severity).max()
-                try update.bind([
-                    .text(risk),
-                    worst.map { SQLValue.text($0.rawValue) } ?? .null,
-                    worst.map { SQLValue.int($0.rank) } ?? .null,
-                    .text(id)
-                ])
-                try update.step()
-            }
-        }
-
-        for session in sessions {
-            try refreshSession(session)
-        }
-        return hitsByEventID.count
-    }
-
-    /// Drops mutes that have run out; called at the start of a scan.
-    @discardableResult
-    public func removeExpiredMutes(now: Date = Date()) throws -> Int {
-        let statement = try database.prepare("DELETE FROM mutes WHERE until <= ?")
-        try statement.bind([.double(now.timeIntervalSince1970)])
-        try statement.step()
-        return try count("mutes")
-    }
-
-    private func count(_ table: String) throws -> Int {
-        let statement = try database.prepare("SELECT COUNT(*) FROM \(table)")
-        return try statement.step() ? (statement.int(0) ?? 0) : 0
     }
 
     // MARK: - Reading
@@ -595,6 +544,7 @@ public final class EventStore {
             paths: paths,
             preview: statement.text(10),
             risk: risk,
-            rawJSON: statement.text(12))
+            rawJSON: statement.text(12),
+            usage: usage(from: statement))
     }
 }

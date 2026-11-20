@@ -29,6 +29,14 @@ struct TrailwardenApp: App {
         }
         .menuBarExtraStyle(.window)
 
+        // Prices get a window of their own: the list of models is long, and
+        // editing it should not push the rest of Settings out of view.
+        Window(L(.pricesWindow), id: PricesWindow.id) {
+            PricesWindow(book: model.priceBook, updates: updates)
+        }
+        .defaultSize(width: 900, height: 640)
+        .windowResizability(.contentMinSize)
+
         Window("Trailwarden", id: "main") {
             MainWindowView(model: model, updates: updates, router: router)
                 .environmentObject(router)
@@ -108,6 +116,9 @@ private struct MenuBarLabel: View {
                 router.tab = .report
                 openWindow(id: "main")
             }
+            if ProcessInfo.processInfo.environment["TRAILWARDEN_OPEN_PRICES"] == "1" {
+                openWindow(id: PricesWindow.id)
+            }
             if ProcessInfo.processInfo.environment["TRAILWARDEN_OPEN_USAGE"] == "1" {
                 router.tab = .usage
                 openWindow(id: "main")
@@ -123,6 +134,7 @@ private struct MenuBarLabel: View {
             {
                 let renderer = ImageRenderer(
                     content: ReportView(model: model, preloaded: card, scrolls: false)
+                        .environmentObject(router)
                         .frame(width: 860))
                 renderer.scale = 2
                 if let image = renderer.nsImage,

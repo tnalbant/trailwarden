@@ -43,6 +43,7 @@ public struct CodexParser: AgentParser {
         var lastTimestamp: Date?
         var toolNamesByCallId: [String: String] = [:]
         var indexInLine = 0
+        var tokens = TokenTracker()
 
         let source = Self.logicalPath(of: file)
         let fallbackTimestamp = Self.modificationDate(of: file) ?? Date(timeIntervalSince1970: 0)
@@ -88,7 +89,8 @@ public struct CodexParser: AgentParser {
                 tool: String? = nil,
                 command: String? = nil,
                 paths: [String] = [],
-                preview: String? = nil)
+                preview: String? = nil,
+                usage: TokenCount? = nil)
             {
                 indexInLine += 1
                 events.append(
@@ -110,7 +112,8 @@ public struct CodexParser: AgentParser {
                         paths: paths,
                         preview: preview.map(Self.cap),
                         risk: [],
-                        rawJSON: line))
+                        rawJSON: line,
+                        usage: usage))
             }
 
             switch type {
@@ -174,22 +177,79 @@ public struct CodexParser: AgentParser {
                     break
                 }
 
-            case "event_msg":
-                if payloadType == "token_count" {
-                    add(.tokenUsage, preview: Self.tokenUsagePreview(payload))
+            case "turn_context", "event_msg", "token_usage_record":
+                if let count = tokens.handle(type, payload) {
+                    add(.tokenUsage, preview: count.preview, usage: count)
+                    if type == "token_usage_record", let id = events.last?.id {
+                        tokens.recordIDs.insert(id)
+                    }
                 }
 
-            case "token_usage_record":
-                add(.tokenUsage, preview: Self.tokenUsagePreview(payload))
-
             default:
-                // turn_context / world_state / compacted carry no event of their own;
-                // a turn_context can still update the working directory above.
+                // world_state / compacted carry no event of their own.
                 break
             }
         }
 
+        // A rollout that has running totals also has per-response records for
+        // the same calls; counting both would double the session.
+        if tokens.sawRunningTotal, !tokens.recordIDs.isEmpty {
+            events.removeAll { tokens.recordIDs.contains($0.id) }
+        }
         return ParseResult(events: events, skippedLines: skippedLines)
+    }
+
+    /// What a rollout has said about tokens so far.
+    struct TokenTracker {
+        var model: String?
+        var previousTotal: TokenCount?
+        var sawRunningTotal = false
+        var recordIDs: Set<String> = []
+
+        /// The tokens a line adds, if any; a `turn_context` only names the model.
+        mutating func handle(_ type: String, _ payload: [String: Any]) -> TokenCount? {
+            switch type {
+            case "turn_context":
+                model = payload["model"] as? String ?? model
+                return nil
+            case "event_msg" where payload["type"] as? String == "token_count":
+                return runningTotal(payload)
+            case "token_usage_record":
+                return record(payload)
+            default:
+                return nil
+            }
+        }
+
+        /// The running total is the one number Codex never repeats out of step:
+        /// `last_token_usage` comes twice when a turn is re-reported, the
+        /// difference between two totals does not.
+        mutating func runningTotal(_ payload: [String: Any]) -> TokenCount? {
+            guard let info = payload["info"] as? [String: Any],
+                  let usage = info["total_token_usage"] as? [String: Any] else { return nil }
+            let total = CodexParser.count(usage, model: model)
+            let delta = previousTotal.map { total.since($0) } ?? total
+            previousTotal = total
+            sawRunningTotal = sawRunningTotal || !total.isEmpty
+            return delta.isEmpty ? nil : delta
+        }
+
+        func record(_ payload: [String: Any]) -> TokenCount? {
+            guard let usage = payload["usage"] as? [String: Any] else { return nil }
+            let count = CodexParser.count(usage, model: payload["model"] as? String ?? model)
+            return count.isEmpty ? nil : count
+        }
+    }
+
+    /// An OpenAI usage block, normalized so cached tokens are not also input.
+    static func count(_ usage: [String: Any], model: String?) -> TokenCount {
+        TokenCount.includingCache(
+            model: model,
+            input: TokenCount.number(usage["input_tokens"]),
+            cached: TokenCount.number(usage["cached_input_tokens"]),
+            cacheWrite: TokenCount.number(usage["cache_write_input_tokens"]),
+            output: TokenCount.number(usage["output_tokens"]),
+            reasoning: TokenCount.number(usage["reasoning_output_tokens"]))
     }
 
     // MARK: - Line vocabulary
@@ -276,34 +336,6 @@ public struct CodexParser: AgentParser {
             let object = try? JSONSerialization.jsonObject(with: data)
         else { return nil }
         return object as? [String: Any]
-    }
-
-    /// Two shapes exist: `event_msg`/`token_count` carries cumulative
-    /// `info.total_token_usage`, while `token_usage_record` carries a per-response
-    /// `usage` block.
-    static func tokenUsagePreview(_ payload: [String: Any]) -> String? {
-        if let info = payload["info"] as? [String: Any] {
-            if let total = info["total_token_usage"] as? [String: Any],
-               let tokens = total["total_tokens"] as? Int
-            {
-                return "total tokens: \(tokens)"
-            }
-            return "token usage"
-        }
-        if let usage = payload["usage"] as? [String: Any] {
-            let input = usage["input_tokens"] as? Int
-            let output = usage["output_tokens"] as? Int
-            switch (input, output) {
-            case let (input?, output?): return "tokens: \(input) in / \(output) out"
-            case let (input?, nil): return "tokens: \(input) in"
-            case let (nil, output?): return "tokens: \(output) out"
-            default: break
-            }
-        }
-        if let total = payload["total_tokens"] as? Int {
-            return "tokens: \(total)"
-        }
-        return "token usage"
     }
 
     // MARK: - Session identity

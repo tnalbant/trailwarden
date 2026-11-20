@@ -132,7 +132,9 @@ final class CursorDatabaseParserTests: XCTestCase {
         XCTAssertNil(calls[3].command, "a grep pattern is not a command")
 
         XCTAssertEqual(events.filter { $0.kind == .toolResult }.map(\.preview), ["gone\n", "error: "])
-        XCTAssertEqual(events.filter { $0.kind == .tokenUsage }.map(\.preview), ["tokens: 900 in / 40 out"])
+        XCTAssertEqual(
+            events.filter { $0.kind == .tokenUsage }.map(\.preview),
+            ["tokens: 900 in / 40 out · demo-model"])
         XCTAssertTrue(events.allSatisfy { $0.agent == .cursor })
     }
 

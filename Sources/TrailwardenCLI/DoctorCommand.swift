@@ -51,7 +51,7 @@ struct DoctorCommand: ParsableCommand {
                     Output.write("  \(agent.rawValue.padding(toLength: 12, withPad: " ", startingAt: 0))"
                         + " \(sessionCount) sessions, \(count) events")
                 }
-                if integrity != "ok" || version != 4 {
+                if integrity != "ok" || version != EventStore.schemaVersion {
                     healthy = false
                 }
             } catch {

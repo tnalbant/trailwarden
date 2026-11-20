@@ -12,14 +12,35 @@ import Foundation
 public struct TokenTotals: Sendable, Equatable {
     public var input: Int = 0
     public var output: Int = 0
+    public var cacheRead: Int = 0
+    public var cacheWrite: Int = 0
     public var total: Int = 0
     public var events: Int = 0
 
-    public init(input: Int = 0, output: Int = 0, total: Int = 0, events: Int = 0) {
+    public init(
+        input: Int = 0,
+        output: Int = 0,
+        cacheRead: Int = 0,
+        cacheWrite: Int = 0,
+        total: Int = 0,
+        events: Int = 0)
+    {
         self.input = input
         self.output = output
+        self.cacheRead = cacheRead
+        self.cacheWrite = cacheWrite
         self.total = total
         self.events = events
+    }
+
+    /// The counts of one stored token event.
+    public init(_ count: TokenCount) {
+        self.init(
+            input: count.input,
+            output: count.output,
+            cacheRead: count.cacheRead,
+            cacheWrite: count.cacheWrite,
+            events: 1)
     }
 
     /// `nil` when the text carries no number at all — an unparsable line must
@@ -33,7 +54,8 @@ public struct TokenTotals: Sendable, Equatable {
     /// the agent's running context size, which repeats on every turn — adding
     /// those up would invent billions of tokens that were never processed.
     public var processed: Int {
-        input + output
+        let (sum, overflow) = (input + output).addingReportingOverflow(cacheRead + cacheWrite)
+        return overflow ? Int.max : sum
     }
 
     /// The largest context a session reported, kept as its own number.
@@ -123,16 +145,26 @@ public extension EventStore {
         return try events(matching: query)
     }
 
+    /// One stored token event as counters: the token columns when the parser
+    /// filled them, the preview line otherwise.
+    private static func totals(of event: Event) -> TokenTotals? {
+        if let usage = event.usage {
+            return TokenTotals(usage)
+        }
+        return event.preview.flatMap(TokenTotals.init(preview:))
+    }
+
     /// Tokens per agent, read from the stored token events.
     func tokenTotalsByAgent(since: Date) throws -> [Agent: TokenTotals] {
         let events = try tokenEvents(since: since)
         var result: [Agent: TokenTotals] = [:]
         for event in events {
-            guard let preview = event.preview, var totals = TokenTotals(preview: preview) else { continue }
-            totals.events = 1
+            guard let totals = Self.totals(of: event) else { continue }
             var existing = result[event.agent] ?? TokenTotals()
             existing.input += totals.input
             existing.output += totals.output
+            existing.cacheRead += totals.cacheRead
+            existing.cacheWrite += totals.cacheWrite
             existing.total = max(existing.total, totals.total)
             existing.events += 1
             result[event.agent] = existing
@@ -140,17 +172,49 @@ public extension EventStore {
         return result
     }
 
+    /// Tokens per agent and model, for the events that name their model. The
+    /// key is what the agent wrote ("claude-opus-4-1", "gpt-5-codex"); events
+    /// without a model are left out rather than guessed.
+    func tokenCountsByModel(since: Date) throws -> [ModelUsage] {
+        var result: [ModelUsage.Key: TokenCount] = [:]
+        for event in try tokenEvents(since: since) {
+            guard let usage = event.usage, let model = usage.model else { continue }
+            let key = ModelUsage.Key(agent: event.agent, model: model)
+            var existing = result[key] ?? TokenCount(model: model)
+            existing.add(usage)
+            result[key] = existing
+        }
+        return result
+            .map { ModelUsage(agent: $0.key.agent, model: $0.key.model, tokens: $0.value) }
+            .sorted { $0.tokens.processed > $1.tokens.processed }
+    }
+
     /// Tokens per calendar day, oldest first, for the last `days` days.
     func dailyTokens(since: Date, calendar: Calendar = .current) throws -> [DailyTokens] {
         let events = try tokenEvents(since: since)
         var byDay: [Date: Int] = [:]
         for event in events {
-            guard let preview = event.preview, let totals = TokenTotals(preview: preview) else { continue }
+            guard let totals = Self.totals(of: event) else { continue }
             let day = calendar.startOfDay(for: event.ts)
             byDay[day, default: 0] += totals.processed
         }
         return byDay
             .map { DailyTokens(day: $0.key, tokens: $0.value) }
             .sorted { $0.day < $1.day }
+    }
+}
+
+/// What one agent spent on one model.
+public struct ModelUsage: Sendable, Equatable, Identifiable {
+    struct Key: Hashable {
+        let agent: Agent
+        let model: String
+    }
+
+    public let agent: Agent
+    public let model: String
+    public let tokens: TokenCount
+    public var id: String {
+        agent.rawValue + "|" + model
     }
 }

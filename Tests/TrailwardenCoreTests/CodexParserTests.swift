@@ -25,7 +25,7 @@ final class CodexParserTests: XCTestCase {
             .message, .reasoning,
             .toolCall, .toolResult,
             .toolCall, .toolResult,
-            .tokenUsage, .tokenUsage
+            .tokenUsage
         ])
     }
 
@@ -95,7 +95,12 @@ final class CodexParserTests: XCTestCase {
         let events = try parser.parse(file: fixture(rolloutName)).events
         let usage = events.filter { $0.kind == .tokenUsage }
 
-        XCTAssertEqual(usage.map(\.preview), ["total tokens: 1234", "tokens: 900 in / 80 out"])
+        // The fixture's running total has no input/output split, so only the
+        // per-response record counts, normalized and tagged with the turn's model.
+        XCTAssertEqual(usage.map(\.preview), ["tokens: 900 in / 80 out (reasoning 10) · demo"])
+        XCTAssertEqual(
+            usage.first?.usage,
+            TokenCount(model: "demo", input: 900, output: 80, reasoning: 10))
     }
 
     // MARK: - Damaged files

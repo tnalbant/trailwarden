@@ -77,6 +77,9 @@ public struct Event: Codable, Identifiable, Sendable, Hashable {
     public let preview: String?
     public let risk: [RiskHit]
     public let rawJSON: String?
+    /// Token counts, on `.tokenUsage` events only. Stored in their own columns,
+    /// so usage and cost never depend on parsing the preview text.
+    public let usage: TokenCount?
 
     public init(
         id: String,
@@ -91,7 +94,8 @@ public struct Event: Codable, Identifiable, Sendable, Hashable {
         paths: [String] = [],
         preview: String? = nil,
         risk: [RiskHit] = [],
-        rawJSON: String? = nil)
+        rawJSON: String? = nil,
+        usage: TokenCount? = nil)
     {
         self.id = id
         self.ts = ts
@@ -106,6 +110,7 @@ public struct Event: Codable, Identifiable, Sendable, Hashable {
         self.preview = preview
         self.risk = risk
         self.rawJSON = rawJSON
+        self.usage = usage
     }
 
     /// A copy carrying fresh rule hits (the parser always produces an empty list).
@@ -123,7 +128,8 @@ public struct Event: Codable, Identifiable, Sendable, Hashable {
             paths: paths,
             preview: preview,
             risk: risk,
-            rawJSON: rawJSON)
+            rawJSON: rawJSON,
+            usage: usage)
     }
 
     /// A copy that knows which folder it happened in, when the agent did not
@@ -142,7 +148,8 @@ public struct Event: Codable, Identifiable, Sendable, Hashable {
             paths: paths,
             preview: preview,
             risk: risk,
-            rawJSON: rawJSON)
+            rawJSON: rawJSON,
+            usage: usage)
     }
 
     /// Stable identity for an event: the same transcript parsed twice yields

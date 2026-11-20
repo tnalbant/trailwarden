@@ -27,16 +27,22 @@ lets you export a redacted record.
   a GET for one small JSON document (`version`, `notes`, `url`), no cookies, no
   identifiers, no query string. It runs when the reader clicks "Check for
   updates", or — only if the reader picks a schedule in Settings, which is off by
-  default — at most once a week or once a month. Everything else stays local, and
+  default — at most once a week or once a month. The same file makes one more GET,
+  only when the reader clicks "Update prices": the public `prices.json` in the
+  project's repository, used for the API cost estimate. It has no schedule; the
+  downloaded list must parse, carry a date and hold sane rates before it is kept,
+  and it never replaces a price the reader entered. Everything else stays local, and
   CI fails the build if a network API appears in any other file under `Sources/`.
 - **Secrets in exports.** Known token shapes are masked before storage and
   again on export; the raw line is masked too. A test asserts every documented
   pattern is caught, and an export test asserts a token never reaches the file.
 - **Accidental disclosure in a shared file.** Home paths become `~`, exports
   are 0600, and the JSON contract carries no raw transcript line.
-- **Evidence tampering.** The index is append-only from the app's point of
-  view: files are re-read only when size or mtime changes, and every event
-  keeps its session id and timestamp.
+- **Silent rewriting of the record.** Events have stable ids derived from their
+  transcript, so re-reading a file replaces the same rows instead of adding or
+  dropping any. Rows are removed only by an explicit `prune`, and rule hits are
+  rewritten only when the rules change. Trailwarden does not make the index
+  tamper-proof: the owner of the account can edit it like any other file.
 
 ## What it does not protect against
 
@@ -56,6 +62,6 @@ lets you export a redacted record.
 | `.zst` archive → decoder | malformed or hostile compressed data | the official Zstandard decoder (fuzzed upstream), streamed in bounded chunks; a frame asking for a window over 128 MB is refused; a corrupt or truncated file fails that file only |
 | parser → database | redaction miss | rules run on raw text, store only ever sees masked text |
 | database → export | leaking paths or tokens | second redaction pass, `~` shortening, 0600 |
-| rules file → regex engine | catastrophic backtracking | patterns are anchored and bounded; user rules are validated at load |
+| rules file → regex engine | catastrophic backtracking | the shipped patterns are anchored and bounded, and every one is exercised by a table of matching and non-matching commands; users can switch rules off or regrade them, not add regexes |
 | index → notification | a command shown on the lock screen | the notification carries the already-masked command; macOS hides notification previews on the lock screen by default |
 | index → shareable summary | leaking work details | the report card's summary is built from counts, agent names and rule titles only; a test asserts no command, path or project name reaches it |

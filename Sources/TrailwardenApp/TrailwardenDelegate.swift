@@ -67,7 +67,11 @@ final class TrailwardenDelegate: NSObject, NSApplicationDelegate, UNUserNotifica
     /// hidden app), `.accessory` again once the last one closes. The menu bar
     /// panel is a status-bar level window, so it is deliberately not counted.
     private func syncActivationPolicy() {
-        let hasWindow = !NSApp.isHidden && NSApp.windows.contains { window in
+        // A hidden app (⌘H) reports its windows as not visible. Dropping the Dock
+        // tile then would leave nothing to click to bring them back, so the
+        // policy only changes while the app is on screen.
+        guard !NSApp.isHidden else { return }
+        let hasWindow = NSApp.windows.contains { window in
             (window.isVisible || window.isMiniaturized) && window.canBecomeMain && window.level == .normal
         }
         let policy: NSApplication.ActivationPolicy = hasWindow ? .regular : .accessory
