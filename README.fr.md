@@ -12,11 +12,14 @@ ces transcriptions, te prévient dès qu'un agent lance quelque chose de risqué
 agent a touché quel fichier, et résume un mois de travail des agents en une page que tu peux
 lire, ou transmettre à quelqu'un d'autre, masquée.
 
-Rien de ce que font tes agents ne quitte la machine : pas de compte, pas de serveur, pas de
-télémétrie. Le seul appel réseau de l'app est la vérification des mises à jour : un GET pour un
-petit fichier JSON sur la dernière version GitHub, déclenché quand tu cliques dessus ou, si tu
-l'actives dans les Réglages, au plus une fois par semaine ou par mois (désactivé par défaut). La CI échoue
-si une API réseau apparaît ailleurs dans `Sources/`.
+Rien de ce que font tes agents ne quitte la machine : pas de compte, pas de serveur,
+pas de télémétrie. L'app ne va sur le réseau que pour deux choses, toutes deux depuis
+un seul fichier. La vérification des mises à jour est un GET pour un petit fichier
+JSON sur la dernière version GitHub, déclenché quand tu cliques dessus ou, si tu
+l'actives dans les Réglages, au plus une fois par semaine ou par mois (désactivé par
+défaut). « Mettre à jour les prix » est un GET pour le `prices.json` public de ce
+dépôt, utilisé pour l'estimation du coût, fait seulement quand tu cliques. La CI
+échoue si une API réseau apparaît ailleurs dans `Sources/`.
 
 > État : **v0.2.4** — veille en direct, 27 règles, agent blame, rapport, garde-fou CI.
 > Interface en anglais (US), turc, allemand, espagnol, italien et français.
@@ -78,8 +81,10 @@ donc aucun vrai projet n'y apparaît.
   pour une plage de dates (les clés d'API, jetons, clés privées et longs blocs base64
   sont masqués ; les chemins du dossier personnel sont raccourcis en `~`).
 - **Utilisation** — un graphique des tokens sur 30 jours et une répartition par agent, à partir des compteurs
-  que les agents écrivent déjà. Aucun prix n'est affiché : un même token ne coûte pas la même somme
-  selon le forfait et le modèle.
+  que les agents écrivent déjà, ventilés par modèle, avec une estimation du coût
+  « équivalent API ». C'est une estimation, pas une facture : avec un abonnement, les mêmes
+  tokens coûtent autre chose. Les prix sont intégrés, se mettent à jour à la main, et un
+  prix que tu saisis (ou marques comme gratuit) l'emporte toujours.
 - **Reprendre** — la commande exacte pour continuer à partir d'une session (`claude --resume`,
   `codex resume`, `gemini --resume`, `opencode --session`, `hermes --resume`),
   correctement échappée et prête à copier.

@@ -13,10 +13,12 @@ agent touched which file, and turns a month of agent work into one page you can
 read — or hand to someone else, redacted.
 
 Nothing about your agents leaves the machine: no account, no server, no
-telemetry. The only network call in the app is the update check — one GET for one
-small JSON file on the newest GitHub release, made when you click it or, if you
-turn it on in Settings, at most weekly or monthly (off by default) — and CI fails
-if a network API shows up anywhere else in `Sources/`.
+telemetry. The app goes online for two things only, both from one file. The
+update check is one GET for one small JSON file on the newest GitHub release,
+made when you click it or, if you turn it on in Settings, at most weekly or
+monthly (off by default). "Update prices" is one GET for the public
+`prices.json` in this repository, used for the cost estimate, made only when you
+click it. CI fails if a network API shows up anywhere else in `Sources/`.
 
 > Status: **v0.2.4** — live guard, 27 rules, agent blame, report card, CI gate.
 > Interface in English (US), Turkish, German, Spanish, Italian and French.
@@ -78,8 +80,10 @@ so no real project appears in them.
   record for a date range (API keys, tokens, private keys and long base64 blobs
   are masked; home-directory paths are shortened to `~`).
 - **Usage** — a 30-day token chart and a per-agent breakdown, from the counters
-  the agents already write. No price is printed: the same token costs different
-  money depending on plan and model.
+  the agents already write, split by model, with an "API equivalent" cost
+  estimate. It is an estimate, not a bill: on a subscription the same tokens
+  cost something else. Prices are built in, can be refreshed by hand, and any
+  price you enter (or mark as free) always wins.
 - **Resume** — the exact command to carry on from a session (`claude --resume`,
   `codex resume`, `gemini --resume`, `opencode --session`, `hermes --resume`),
   quoted and ready to copy.

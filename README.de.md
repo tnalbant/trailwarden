@@ -13,10 +13,13 @@ Agent welche Datei angefasst hat, und macht aus einem Monat Agentenarbeit eine e
 lesen kannst – oder geschwärzt an andere weitergeben.
 
 Nichts über deine Agenten verlässt den Rechner: kein Konto, kein Server, keine
-Telemetrie. Der einzige Netzwerkzugriff der App ist die Update-Prüfung – ein GET auf eine
-kleine JSON-Datei im neuesten GitHub-Release, ausgelöst per Klick oder, wenn du es
-in den Einstellungen einschaltest, höchstens wöchentlich oder monatlich (standardmäßig aus) – und die CI schlägt fehl,
-sobald irgendwo sonst in `Sources/` eine Netzwerk-API auftaucht.
+Telemetrie. Die App geht nur für zwei Dinge ins Netz, beide aus einer Datei. Die
+Update-Prüfung ist ein GET auf eine kleine JSON-Datei im neuesten GitHub-Release,
+ausgelöst per Klick oder, wenn du es in den Einstellungen einschaltest, höchstens
+wöchentlich oder monatlich (standardmäßig aus). „Preise aktualisieren“ ist ein GET
+auf die öffentliche `prices.json` in diesem Repository, für die Kostenschätzung,
+und nur per Klick. Die CI schlägt fehl, sobald irgendwo sonst in `Sources/` eine
+Netzwerk-API auftaucht.
 
 > Status: **v0.2.4** – Live-Wächter, 27 Regeln, Agent-Blame, Bericht, CI-Gate.
 > Oberfläche auf Englisch (US), Türkisch, Deutsch, Spanisch, Italienisch und Französisch.
@@ -78,8 +81,10 @@ sodass darin kein echtes Projekt zu sehen ist.
   Protokoll für einen Zeitraum (API-Schlüssel, Tokens, private Schlüssel und lange Base64-Blöcke
   werden maskiert; Pfade im Home-Verzeichnis werden zu `~` gekürzt).
 - **Nutzung** – ein Token-Diagramm über 30 Tage und eine Aufschlüsselung pro Agent, aus den Zählern,
-  die die Agenten ohnehin schreiben. Es wird kein Preis ausgegeben: Derselbe Token kostet je nach
-  Tarif und Modell unterschiedlich viel.
+  die die Agenten ohnehin schreiben, nach Modell getrennt, mit einer Kostenschätzung als
+  „API-Gegenwert“. Das ist eine Schätzung, keine Rechnung: Im Abo kosten dieselben Tokens
+  etwas anderes. Die Preise sind eingebaut, lassen sich per Hand aktualisieren, und ein
+  Preis, den du einträgst (oder als kostenlos markierst), hat immer Vorrang.
 - **Fortsetzen** – der genaue Befehl, um eine Sitzung weiterzuführen (`claude --resume`,
   `codex resume`, `gemini --resume`, `opencode --session`, `hermes --resume`),
   in Anführungszeichen gesetzt und fertig zum Kopieren.

@@ -12,10 +12,13 @@ quelle trascrizioni, ti avvisa nel momento in cui un agente esegue qualcosa di r
 agente ha toccato quale file e trasforma un mese di lavoro degli agenti in una pagina che puoi
 leggere, oppure passare a qualcun altro, con i dati sensibili mascherati.
 
-Niente di ciò che riguarda i tuoi agenti lascia il computer: nessun account, nessun server, nessuna
-telemetria. L'unica richiesta di rete dell'app è la verifica degli aggiornamenti: una sola GET per un
-piccolo file JSON nell'ultima release su GitHub, fatta quando premi il pulsante o, se
-la attivi nelle Impostazioni, al massimo ogni settimana o ogni mese (disattivata per impostazione predefinita). La CI fallisce
+Niente di ciò che riguarda i tuoi agenti lascia il computer: nessun account, nessun
+server, nessuna telemetria. L'app va in rete solo per due cose, entrambe dallo stesso
+file. La verifica degli aggiornamenti è una sola GET per un piccolo file JSON
+nell'ultima release su GitHub, fatta quando premi il pulsante o, se la attivi nelle
+Impostazioni, al massimo ogni settimana o ogni mese (disattivata per impostazione
+predefinita). «Aggiorna prezzi» è una GET per il `prices.json` pubblico di questo
+repository, usato per la stima dei costi, fatta solo quando lo premi. La CI fallisce
 se compare un'API di rete in qualsiasi altro punto di `Sources/`.
 
 > Stato: **v0.2.4** — guardia live, 27 regole, agent blame, rapporto, CI gate.
@@ -78,8 +81,10 @@ quindi non compare nessun progetto reale.
   per un intervallo di date (chiavi API, token, chiavi private e lunghi blob base64
   vengono mascherati; i percorsi della home sono abbreviati in `~`).
 - **Utilizzo**: un grafico dei token degli ultimi 30 giorni e una ripartizione per agente, ricavati dai contatori
-  che gli agenti scrivono già. Nessun prezzo: lo stesso token costa cifre diverse
-  a seconda del piano e del modello.
+  che gli agenti scrivono già, divisi per modello, con una stima del costo «equivalente
+  API». È una stima, non una fattura: con un abbonamento gli stessi token costano altro.
+  I prezzi sono inclusi, si aggiornano a mano e il prezzo che inserisci tu (o segni
+  come gratuito) ha sempre la precedenza.
 - **Riprendi**: il comando esatto per continuare da una sessione (`claude --resume`,
   `codex resume`, `gemini --resume`, `opencode --session`, `hermes --resume`),
   tra virgolette e pronto da copiare.
