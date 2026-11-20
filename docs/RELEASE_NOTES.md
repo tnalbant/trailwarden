@@ -1,7 +1,12 @@
 <!-- SPDX-License-Identifier: Apache-2.0 -->
 # Trailwarden 0.2.4
 
-Secrets that slipped past the masking are now caught, a rule can no longer be dodged with a heredoc, and the search index stops growing with every re-read.
+Usage now estimates what your tokens would cost at API prices, the app has its own icon, and secrets that slipped past the masking are caught.
+
+## New
+
+- **API cost estimate.** The Usage tab splits tokens by model and shows an "API equivalent": what the same tokens would have cost on each provider's pay-as-you-go API. It is an estimate, not a bill; a subscription costs what you pay for it. Prices are built into the release, "Update prices" in Settings › Prices reads a newer public list from this repository on request (the only network read besides the update check), and a price you enter, or mark as free, always wins.
+- **An icon of its own.** A shield with a T on it, in the Dock and in the menu bar.
 
 ## Fixed
 
