@@ -270,6 +270,42 @@ public final class EventStore {
         return String(raw.prefix(rawJSONLimit)) + "…[truncated]"
     }
 
+    /// The bound values of one `events` row, in `insertEventSQL` column order.
+    /// Kept out of `insert(events:)` so older compilers type-check it in time.
+    private static func rowValues(for event: Event, encoder: JSONEncoder) throws -> [SQLValue] {
+        let paths = try String(decoding: encoder.encode(event.paths), as: UTF8.self)
+        let risk = try String(decoding: encoder.encode(event.risk), as: UTF8.self)
+        let severity: Severity? = event.risk.map(\.severity).max()
+        var values: [SQLValue] = []
+        values.reserveCapacity(15 + usageColumnNames.count)
+        values.append(.text(event.id))
+        values.append(.text(event.sessionId))
+        values.append(.text(event.agent.rawValue))
+        values.append(.text(event.kind.rawValue))
+        values.append(.double(event.ts.timeIntervalSince1970))
+        values.append(optionalText(event.cwd))
+        values.append(optionalText(event.gitBranch))
+        values.append(optionalText(event.tool))
+        values.append(optionalText(event.command))
+        values.append(.text(paths))
+        values.append(optionalText(event.preview))
+        values.append(.text(risk))
+        values.append(optionalText(severity?.rawValue))
+        if let severity {
+            values.append(.int(severity.rank))
+        } else {
+            values.append(.null)
+        }
+        values.append(optionalText(cappedRawJSON(event.rawJSON)))
+        values.append(contentsOf: usageValues(event.usage))
+        return values
+    }
+
+    private static func optionalText(_ text: String?) -> SQLValue {
+        guard let text else { return .null }
+        return .text(text)
+    }
+
     @discardableResult
     public func insert(events: [Event]) throws -> Int {
         guard !events.isEmpty else { return 0 }
@@ -277,26 +313,7 @@ public final class EventStore {
         try database.transaction {
             let insert = try database.prepare(Self.insertEventSQL)
             for event in events {
-                let paths = try String(decoding: encoder.encode(event.paths), as: UTF8.self)
-                let risk = try String(decoding: encoder.encode(event.risk), as: UTF8.self)
-                let severity = event.risk.map(\.severity).max()
-                let values: [SQLValue] = [
-                    .text(event.id),
-                    .text(event.sessionId),
-                    .text(event.agent.rawValue),
-                    .text(event.kind.rawValue),
-                    .double(event.ts.timeIntervalSince1970),
-                    event.cwd.map { SQLValue.text($0) } ?? .null,
-                    event.gitBranch.map { SQLValue.text($0) } ?? .null,
-                    event.tool.map { SQLValue.text($0) } ?? .null,
-                    event.command.map { SQLValue.text($0) } ?? .null,
-                    .text(paths),
-                    event.preview.map { SQLValue.text($0) } ?? .null,
-                    .text(risk),
-                    severity.map { SQLValue.text($0.rawValue) } ?? .null,
-                    severity.map { SQLValue.int($0.rank) } ?? .null,
-                    Self.cappedRawJSON(event.rawJSON).map { SQLValue.text($0) } ?? .null
-                ] + Self.usageValues(event.usage)
+                let values = try Self.rowValues(for: event, encoder: encoder)
                 try insert.bind(values)
                 // The FTS index is maintained by the events_ai / events_au
                 // triggers, so this stays a single statement per event.
