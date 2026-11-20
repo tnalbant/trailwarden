@@ -14,11 +14,13 @@ ve bir aylık ajan işini tek sayfalık, okunabilir bir özete çevirir. İsters
 özeti maskelenmiş halde başkasına verebilirsin.
 
 Ajanlarına dair hiçbir şey makineden çıkmaz: hesap yok, sunucu yok, telemetri yok.
-Uygulamadaki tek ağ çağrısı güncelleme denetimidir. En yeni GitHub sürümündeki küçük
-bir JSON dosyası için tek bir GET isteği yapılır. İstek, sen tıkladığında yapılır.
-Ayarlar'dan açarsan en fazla haftada veya ayda bir de kendiliğinden yapılır
-(varsayılan olarak kapalıdır). `Sources/` altında başka herhangi bir yerde ağ API'si
-görünürse CI başarısız olur.
+Uygulama yalnızca iki şey için ağa çıkar ve ikisi de aynı dosyadadır. Güncelleme
+denetimi, en yeni GitHub sürümündeki küçük bir JSON dosyası için tek bir GET
+isteğidir. Sen tıkladığında yapılır; Ayarlar'dan açarsan en fazla haftada veya ayda
+bir de kendiliğinden yapılır (varsayılan olarak kapalıdır). "Fiyatları güncelle" ise
+maliyet tahmini için bu depodaki herkese açık `prices.json` dosyasını çeken tek bir
+GET'tir ve yalnızca sen tıkladığında yapılır. `Sources/` altında başka herhangi bir
+yerde ağ API'si görünürse CI başarısız olur.
 
 > Durum: **v0.2.4** — canlı bekçi, 27 kural, ajan izi, karne, CI kapısı.
 > Arayüz İngilizce (ABD), Türkçe, Almanca, İspanyolca, İtalyanca ve Fransızca.
@@ -83,8 +85,10 @@ bu yüzden hiçbirinde gerçek bir proje görünmez.
   özel anahtarlar ve uzun base64 blokları maskelenir; ev dizini yolları `~` olarak
   kısaltılır).
 - **Kullanım** — Ajanların zaten yazdığı sayaçlardan 30 günlük bir token grafiği
-  ve ajan başına döküm. Fiyat yazılmaz: aynı token plana ve modele göre farklı para
-  eder.
+  ve ajan başına döküm; model bazında ayrılır ve "API karşılığı" bir maliyet
+  tahmini gösterir. Bu bir fatura değil, tahmindir: abonelikte aynı token başka
+  bir tutara denk gelir. Fiyatlar uygulamayla gelir, elle güncellenebilir ve
+  senin girdiğin (ya da ücretsiz işaretlediğin) fiyat her zaman önceliklidir.
 - **Sürdürme** — Bir oturumdan devam etmek için tam komut (`claude --resume`,
   `codex resume`, `gemini --resume`, `opencode --session`, `hermes --resume`),
   tırnaklanmış ve kopyalamaya hazır.

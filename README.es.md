@@ -13,10 +13,13 @@ agente tocó qué archivo y convierte un mes de trabajo de agentes en una sola p
 leer, o entregar a otra persona, con los datos enmascarados.
 
 Nada sobre tus agentes sale de tu máquina: sin cuenta, sin servidor, sin
-telemetría. La única petición de red de la app es la búsqueda de actualizaciones: un GET a un
-pequeño archivo JSON de la última versión en GitHub, que se hace cuando pulsas el botón o, si lo
-activas en Ajustes, como mucho una vez por semana o por mes (desactivado por defecto). Además, la CI falla si aparece
-una API de red en cualquier otro punto de `Sources/`.
+telemetría. La app solo se conecta a la red para dos cosas, ambas desde un mismo
+archivo. La búsqueda de actualizaciones es un GET a un pequeño archivo JSON de la
+última versión en GitHub, que se hace cuando pulsas el botón o, si lo activas en
+Ajustes, como mucho una vez por semana o por mes (desactivado por defecto).
+«Actualizar precios» es un GET al `prices.json` público de este repositorio, para
+la estimación de coste, y solo se hace cuando lo pulsas. La CI falla si aparece una
+API de red en cualquier otro punto de `Sources/`.
 
 > Estado: **v0.2.4** — vigía en vivo, 27 reglas, agent blame, informe, control en CI.
 > Interfaz en inglés (EE. UU.), turco, alemán, español, italiano y francés.
@@ -78,8 +81,10 @@ así que no aparece ningún proyecto real.
   para un intervalo de fechas (se enmascaran claves de API, tokens, claves privadas y bloques largos de base64;
   las rutas del directorio personal se abrevian a `~`).
 - **Uso**: un gráfico de tokens de 30 días y un desglose por agente, a partir de los contadores
-  que los agentes ya escriben. No se muestra ningún precio: el mismo token vale distinto
-  según el plan y el modelo.
+  que los agentes ya escriben, separado por modelo y con una estimación de coste
+  «equivalente en API». Es una estimación, no una factura: con una suscripción los mismos
+  tokens cuestan otra cosa. Los precios vienen incluidos, se pueden actualizar a mano y
+  el precio que tú pongas (o marques como gratis) siempre manda.
 - **Retomar**: el comando exacto para continuar desde una sesión (`claude --resume`,
   `codex resume`, `gemini --resume`, `opencode --session`, `hermes --resume`),
   entrecomillado y listo para copiar.
