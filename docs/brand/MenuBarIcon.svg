@@ -1,0 +1,10 @@
+<!-- SPDX-License-Identifier: Apache-2.0 -->
+<!-- Trailwarden menu bar glyph (template image: only the alpha is used). Render with scripts/render-icons.sh. -->
+<svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="150 186 662 662">
+<defs><mask id="gap"><rect x="0" y="0" width="1024" height="1024" fill="#fff"/><path d="M176 240 H584 V388 H556 C550 356 532 316 494 316 H436 V748 C436 772 448 780 492 784 V800 H268 V784 C312 780 324 772 324 748 V316 H266 C228 316 210 356 204 388 H176 Z" fill="#000" stroke="#000" stroke-width="36" stroke-linejoin="round"/></mask></defs>
+<g mask="url(#gap)">
+<path d="M532 222 L772 302 V500 C772 650 670 760 532 812 C394 760 292 650 292 500 V302 Z" fill="none" stroke="#000" stroke-width="84" stroke-linejoin="round"/>
+<g stroke="#000" stroke-linecap="round" stroke-width="52"><line x1="510" y1="450" x2="680" y2="450"/><line x1="510" y1="560" x2="660" y2="560"/><line x1="510" y1="670" x2="620" y2="670"/></g>
+</g>
+<path d="M176 240 H584 V388 H556 C550 356 532 316 494 316 H436 V748 C436 772 448 780 492 784 V800 H268 V784 C312 780 324 772 324 748 V316 H266 C228 316 210 356 204 388 H176 Z" fill="#000"/>
+</svg>

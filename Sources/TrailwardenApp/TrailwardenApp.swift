@@ -78,7 +78,7 @@ struct TrailwardenApp: App {
     }
 }
 
-/// The menu bar item: a shield, plus today's critical count when there is one.
+/// The menu bar item: the shield-and-T glyph, plus today's critical count when there is one.
 private struct MenuBarLabel: View {
     @Environment(\.openWindow) private var openWindow
     @EnvironmentObject private var router: DashboardRouter
@@ -89,7 +89,9 @@ private struct MenuBarLabel: View {
 
     var body: some View {
         HStack(spacing: 3) {
-            Image(systemName: "shield.lefthalf.filled")
+            // Template glyph from docs/brand/MenuBarIcon.svg: the app icon's
+            // shield and T, in one colour so the menu bar can tint it.
+            Image("MenuBarIcon")
             if model.snapshot.criticalToday > 0 {
                 Text("\(model.snapshot.criticalToday)")
             }
