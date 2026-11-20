@@ -32,6 +32,8 @@ struct WhoCommand: ParsableCommand {
 
     func run() throws {
         guard limit > 0 else { throw ValidationError("--limit must be at least 1") }
+        // Multiplied below; a huge value would overflow instead of meaning "all".
+        let limit = min(limit, 10000)
         let target = FileHistory.Target.resolve(path, cwd: FileManager.default.currentDirectoryPath)
         let database = try store.open()
         var touches = try FileHistory.touches(

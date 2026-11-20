@@ -7,9 +7,11 @@ import UserNotifications
 
 /// The only file in the app that talks to the network. It goes online when the
 /// reader clicks "Check for updates", or — only if the reader picked a schedule
-/// in Settings (off by default) — at most once a week or once a month. Nothing is
-/// sent either way: the request carries no identifiers, no cursor and no usage
-/// data — it is a GET for one small JSON document.
+/// in Settings (off by default) — at most once a week or once a month; and when
+/// the reader clicks "Update prices", which reads the published price list and
+/// has no schedule at all. Nothing is sent either way: each request carries no
+/// identifiers, no cursor and no usage data — it is a GET for one small public
+/// JSON document.
 ///
 /// `THREATMODEL.md` documents this as the single exception; CI allows the network
 /// APIs here and nowhere else in `Sources/`.
@@ -33,6 +35,11 @@ final class UpdateChecker: ObservableObject {
     static let publishedFeed = URL(
         string: "https://github.com/tnalbant/trailwarden/releases/latest/download/latest.json")!
 
+    /// The price list kept in the repository, next to the code it prices. It is
+    /// updated there between releases; the app reads it only on request.
+    static let publishedPrices = URL(
+        string: "https://raw.githubusercontent.com/tnalbant/trailwarden/main/prices.json")!
+
     @Published private(set) var state: State = .idle
 
     /// A file URL is accepted in debug builds so the check can be exercised without
@@ -46,6 +53,23 @@ final class UpdateChecker: ObservableObject {
             }
         #endif
         return Self.publishedFeed
+    }
+
+    private var pricesURL: URL {
+        #if DEBUG
+            if let override = ProcessInfo.processInfo.environment["TRAILWARDEN_PRICES_FEED"],
+               let url = URL(string: override)
+            {
+                return url
+            }
+        #endif
+        return Self.publishedPrices
+    }
+
+    /// The published price list, as bytes; checking and keeping it is the
+    /// price table's job.
+    func downloadPriceList() async throws -> Data {
+        try await fetch(pricesURL)
     }
 
     /// When the feed was last read successfully, by hand or on schedule.

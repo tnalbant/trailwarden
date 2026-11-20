@@ -71,7 +71,8 @@ public struct CopilotParser: AgentParser {
                 tool: String? = nil,
                 command: String? = nil,
                 paths: [String] = [],
-                preview: String?)
+                preview: String?,
+                usage: TokenCount? = nil)
             {
                 index += 1
                 events.append(Event(
@@ -91,7 +92,8 @@ public struct CopilotParser: AgentParser {
                     command: command,
                     paths: paths,
                     preview: preview.map(CodexParser.cap),
-                    rawJSON: line))
+                    rawJSON: line,
+                    usage: usage))
             }
 
             switch type {
@@ -135,10 +137,9 @@ public struct CopilotParser: AgentParser {
                 add(.toolResult, tool: name, paths: edits, preview: preview)
             case "session.usage_record":
                 let usage = payload["usage"] as? [String: Any] ?? [:]
-                let input = (usage["inputTokens"] as? Int) ?? 0
-                let output = (usage["outputTokens"] as? Int) ?? 0
-                if input > 0 || output > 0 {
-                    add(.tokenUsage, preview: "tokens: \(input) in / \(output) out")
+                let count = Self.count(usage)
+                if !count.isEmpty {
+                    add(.tokenUsage, preview: count.preview, usage: count)
                 }
             case "permission.requested":
                 let request = payload["permissionRequest"] as? [String: Any] ?? [:]
@@ -152,6 +153,18 @@ public struct CopilotParser: AgentParser {
             }
         }
         return ParseResult(events: events, skippedLines: skippedLines)
+    }
+
+    /// `inputTokens` includes the cache reads and writes; `reasoningTokens` is
+    /// part of `outputTokens`.
+    static func count(_ usage: [String: Any]) -> TokenCount {
+        TokenCount.includingCache(
+            model: usage["model"] as? String ?? usage["responseModel"] as? String,
+            input: TokenCount.number(usage["inputTokens"]),
+            cached: TokenCount.number(usage["cacheReadTokens"]),
+            cacheWrite: TokenCount.number(usage["cacheWriteTokens"]),
+            output: TokenCount.number(usage["outputTokens"]),
+            reasoning: TokenCount.number(usage["reasoningTokens"]))
     }
 
     /// What a tool call did. Only `bash` gets a `command`: a search pattern is

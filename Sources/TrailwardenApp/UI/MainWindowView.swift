@@ -47,6 +47,9 @@ struct MainWindowView: View {
                 if environment["TRAILWARDEN_OPEN_MODE"] == "timeline" {
                     router.tab = .timeline
                 }
+                if environment["TRAILWARDEN_OPEN_MODE"] == "prices" {
+                    router.tab = .settings
+                }
                 if let term = environment["TRAILWARDEN_SEARCH"], !term.isEmpty {
                     try? await Task.sleep(for: .seconds(1))
                     timeline.search = term

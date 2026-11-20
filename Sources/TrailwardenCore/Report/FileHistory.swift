@@ -88,7 +88,9 @@ public enum FileHistory {
         in store: EventStore,
         limit: Int = 50) throws -> [FileTouch]
     {
-        let candidates = try store.fileHistoryCandidates(name: target.name, scanLimit: max(limit * 40, 2000))
+        let candidates = try store.fileHistoryCandidates(
+            name: target.name,
+            scanLimit: max(min(limit, 10000) * 40, 2000))
         var result: [FileTouch] = []
         for event in candidates {
             guard let action = action(for: event, target: target) else { continue }

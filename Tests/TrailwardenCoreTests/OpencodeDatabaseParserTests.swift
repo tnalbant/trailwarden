@@ -84,7 +84,8 @@ final class OpencodeDatabaseParserTests: XCTestCase {
         XCTAssertTrue(tools.allSatisfy { $0.cwd == "/Users/demo/dev/aurora" && $0.agent == .opencode })
 
         let tokens = try XCTUnwrap(result.events.first { $0.kind == .tokenUsage })
-        XCTAssertEqual(tokens.preview, "tokens: 2000 in / 300 out")
+        XCTAssertEqual(tokens.preview, "tokens: 2000 in / 300 out (cache read 800)")
+        XCTAssertEqual(tokens.usage, TokenCount(input: 1200, output: 300, cacheRead: 800))
     }
 
     func testRulesSeeTheShellCommandAndTheFiles() throws {

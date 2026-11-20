@@ -175,13 +175,13 @@ public extension EventStore {
     private static let eventColumnsWithoutRaw = """
     events.id, events.ts, events.agent, events.session_id, events.kind, events.cwd,
     events.git_branch, events.tool, events.command, events.paths, events.preview,
-    events.risk, NULL AS raw_json
+    events.risk, NULL AS raw_json, \(usageColumns)
     """
 
     private static let eventColumns = """
     events.id, events.ts, events.agent, events.session_id, events.kind, events.cwd,
     events.git_branch, events.tool, events.command, events.paths, events.preview,
-    events.risk, events.raw_json
+    events.risk, events.raw_json, \(usageColumns)
     """
 
     /// Builds the shared FROM/WHERE part so the list and the count cannot drift.

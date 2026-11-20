@@ -1,4 +1,22 @@
 <!-- SPDX-License-Identifier: Apache-2.0 -->
+# Trailwarden 0.2.4
+
+Secrets that slipped past the masking are now caught, a rule can no longer be dodged with a heredoc, and the search index stops growing with every re-read.
+
+## Fixed
+
+- **A private key cut off in a preview was stored in clear.** Previews are capped at 500 characters before masking, so `cat ~/.ssh/id_rsa` kept the key's first lines without its footer, and the key rule needed both ends. A key header now masks everything after it when the footer is missing.
+- **More secret shapes are masked:** Google API keys (`AIza…`, which rule R27 already flagged), GitLab, Stripe, npm and Hugging Face tokens, JSON Web Tokens, `"Authorization": "Bearer …"` inside JSON, and a password inside a URL (`https://user:secret@host`). The "this looks like a path" exception for long runs of letters and slashes is stricter, so a base64 credential that happens to contain slashes is masked.
+- **Dodging a rule with a heredoc.** `cat <<'EOF' | bash` and `python3 - <<'EOF'` had their script treated as file content and never checked. A heredoc that is piped into, or fed to, a shell or an interpreter is checked like any command.
+- **The MCP server** crashed on `limit: -1` for `list_sessions`, and `search_events` read `-1` as "no limit". Page sizes are kept between 1 and 200.
+- **The search index grew on every re-read** and could still match text that had been replaced. Rewritten events now update their search entry; the first launch rebuilds the index once (schema 6).
+- **`trailwarden doctor`** reported every index as unhealthy (it expected schema 4).
+- **Crashes on odd input:** a rule listed twice in `rule-preferences.json`, or an out-of-range number in Hermes, opencode or Cursor data, no longer stops the app or the scan.
+- **Exports** shorten home paths in previews too and mask the branch name; export, preference and index files are private (0600) from the first byte. A busy agent database is reported instead of being read halfway.
+- **Hermes** sessions that began before the last scan keep their folder and their token count.
+- The first-run screen no longer says Trailwarden has no network access; it names the optional update check.
+- On a hidden app (⌘H) the Dock tile stays, and Settings no longer says notifications are "turned off" before anyone has been asked.
+
 # Trailwarden 0.2.3
 
 One window instead of six, one panel row instead of nine controls, and the interface finally speaks the language of the Mac it runs on.
@@ -14,6 +32,8 @@ One window instead of six, one panel row instead of nine controls, and the inter
 - **System menus.** The app declared no supported languages, so Window and Help stayed English on a Turkish Mac. It now lists all six, and Düzen/Görüntü/Pencere/Yardım appear where they should.
 - **Notification permission.** The live guard could only ask on the first alert, and Settings could only report that notifications were off. Both ask now, Settings offers the System Settings link when the answer was no, and a grant made there is picked up without a restart.
 - **The Dock tile.** Closing the last window left the app in the Dock with nothing to show for it, because the policy was computed while the closing window still counted as visible. A Dock click now brings the dashboard back, and the tile goes away with the last window.
+- **The first scan shows its progress** ("Scanning… 42%") in the panel, the first-run screen and the window, and `trailwarden scan` prints a progress line on a terminal.
+- **The npm package carries the signed, notarized MCP binary** from the release instead of a local build.
 
 # Trailwarden 0.2.2
 

@@ -72,38 +72,53 @@ public struct HermesDatabaseParser: DatabaseAgentParser {
         var events: [Event] = []
 
         let cutoff = since ?? .distantPast
-        var tokenEvents: [Event] = []
 
+        // Every session, not only those started since the last pass: a session
+        // that began yesterday and is still running needs its folder for today's
+        // messages and its growing token count. The table is one row per session.
+        var tokenCandidates: [String: Event] = [:]
+        // Cache, reasoning and model columns are newer than the table; a
+        // missing one reads as 0 (or no model) instead of failing the pass.
+        var columns = Set<String>()
+        try query(handle, "PRAGMA table_info(sessions)") { row in
+            if let name = row.text(1) {
+                columns.insert(name)
+            }
+        }
+        func column(_ name: String) -> String {
+            columns.contains(name) ? name : "NULL"
+        }
         try query(
             handle,
             """
-            SELECT id, cwd, started_at, input_tokens, output_tokens FROM sessions
-            WHERE started_at >= ?
-            """,
-            since: cutoff)
-        { row in
-            guard let id = row.text(0) else { return }
-            let cwd = row.text(1)
-            let started = Date(timeIntervalSince1970: row.double(2))
-            sessions[id] = (cwd, started)
+            SELECT id, cwd, started_at, input_tokens, output_tokens, \(column("cache_read_tokens")),
+                   \(column("cache_write_tokens")), \(column("reasoning_tokens")), \(column("model"))
+            FROM sessions
+            """) { row in
+                guard let id = row.text(0) else { return }
+                let cwd = row.text(1)
+                let started = Date(timeIntervalSince1970: row.double(2))
+                sessions[id] = (cwd, started)
 
-            let input = Int(row.double(3))
-            let output = Int(row.double(4))
-            guard input > 0 || output > 0 else { return }
-            tokenEvents.append(Event(
-                id: "hermes:\(id):tokens",
-                ts: started,
-                agent: .hermes,
-                sessionId: id,
-                kind: .tokenUsage,
-                cwd: cwd,
-                tool: nil,
-                command: nil,
-                paths: [],
-                preview: "tokens: \(input) in / \(output) out",
-                risk: [],
-                rawJSON: nil))
-        }
+                let usage = TokenCount(
+                    model: row.text(8),
+                    input: Int(saturating: row.double(3)),
+                    output: Int(saturating: row.double(4)),
+                    cacheRead: Int(saturating: row.double(5)),
+                    cacheWrite: Int(saturating: row.double(6)),
+                    reasoning: Int(saturating: row.double(7)))
+                guard !usage.isEmpty else { return }
+                tokenCandidates[id] = Event(
+                    id: "hermes:\(id):tokens",
+                    ts: started,
+                    agent: .hermes,
+                    sessionId: id,
+                    kind: .tokenUsage,
+                    cwd: cwd,
+                    preview: usage.preview,
+                    usage: usage)
+            }
+        var activeSessions = Set<String>()
 
         try query(
             handle,
@@ -115,7 +130,8 @@ public struct HermesDatabaseParser: DatabaseAgentParser {
             since: cutoff)
         { row in
             guard let sessionId = row.text(1), let role = row.text(2) else { return }
-            let messageId = Int(row.double(0))
+            activeSessions.insert(sessionId)
+            let messageId = Int(saturating: row.double(0))
             let ts = Date(timeIntervalSince1970: row.double(6))
             let cwd = sessions[sessionId]?.cwd
             let content = row.text(3)
@@ -161,6 +177,12 @@ public struct HermesDatabaseParser: DatabaseAgentParser {
                   let path = event.paths.first, path.hasPrefix("/") else { continue }
             projectBySession[event.sessionId] = URL(fileURLWithPath: path).deletingLastPathComponent().path
         }
+        // Token counters for sessions that started since the last pass or wrote
+        // something in it; the others have not changed.
+        let tokenEvents = tokenCandidates.compactMap { id, event -> Event? in
+            let started = sessions[id]?.started ?? .distantPast
+            return started >= cutoff || activeSessions.contains(id) ? event : nil
+        }.sorted { $0.id < $1.id }
         let resolved = (events + tokenEvents).map { event -> Event in
             guard event.cwd == nil, let cwd = projectBySession[event.sessionId] else { return event }
             return event.withCwd(cwd)
@@ -240,8 +262,15 @@ public struct HermesDatabaseParser: DatabaseAgentParser {
         if sql.contains("?") {
             sqlite3_bind_double(statement, 1, (since ?? .distantPast).timeIntervalSince1970)
         }
-        while sqlite3_step(statement) == SQLITE_ROW {
+        var status = sqlite3_step(statement)
+        while status == SQLITE_ROW {
             row(Row(statement: statement))
+            status = sqlite3_step(statement)
+        }
+        // A busy or locked database ends the loop too; storing half a result as
+        // if it were whole would hide the rest until the next change.
+        guard status == SQLITE_DONE else {
+            throw TranscriptError.unreadable(sqlite3_errmsg(handle).map { String(cString: $0) } ?? "step")
         }
     }
 

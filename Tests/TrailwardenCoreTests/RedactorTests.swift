@@ -20,9 +20,9 @@ final class RedactorTests: XCTestCase {
     func testEveryRuleCompiled() {
         // A pattern that fails to compile would silently disappear from the
         // masking pass, so the count is asserted, not assumed.
-        XCTAssertEqual(Redactor.baseRules.count, 8)
+        XCTAssertEqual(Redactor.baseRules.count, 15)
         XCTAssertEqual(Redactor.strictRules.count, 2)
-        XCTAssertEqual(Redactor.ruleCount, 10)
+        XCTAssertEqual(Redactor.ruleCount, 17)
     }
 
     func testOpenAIKey() {
@@ -94,6 +94,54 @@ final class RedactorTests: XCTestCase {
         for secret in [openAIKey, gitHubKey, gitHubPat, awsKey, slackKey] {
             XCTAssertFalse(normal.redact(filler + secret).contains(secret))
         }
+    }
+
+    func testAPrivateKeyCutBeforeItsFooterIsStillMasked() {
+        // Previews are capped at 500 characters, so `cat ~/.ssh/id_rsa` keeps the
+        // header and the first lines of the key, never the footer.
+        let begin = "-----BEGIN OPENSSH " + "PRIVATE KEY-----"
+        let body = String(repeating: "b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQ\n", count: 8)
+        let cut = String("\(begin)\n\(body)".prefix(300))
+        XCTAssertEqual(normal.redact("output: " + cut), "output: [redacted:private-key]")
+    }
+
+    func testMoreTokenShapes() {
+        // Built from pieces: none of these is a real credential, and the file
+        // itself must not trip a secret scanner.
+        let cases: [(String, String)] = [
+            ("AI" + "za" + String(repeating: "Q", count: 35), "[redacted:google-key]"),
+            ("gl" + "pat-" + String(repeating: "g", count: 20), "[redacted:gitlab-token]"),
+            ("sk" + "_live_" + String(repeating: "s", count: 24), "[redacted:stripe-key]"),
+            ("np" + "m_" + String(repeating: "n", count: 36), "[redacted:npm-token]"),
+            ("h" + "f_" + String(repeating: "h", count: 34), "[redacted:huggingface-token]"),
+            (
+                "ey" + "JhbGciOiJIUzI1NiJ9." + String(repeating: "p", count: 20) + "."
+                    + String(repeating: "s", count: 20),
+                "[redacted:jwt]")
+        ]
+        for (secret, label) in cases {
+            XCTAssertEqual(normal.redact("value \(secret) end"), "value \(label) end", label)
+        }
+    }
+
+    func testBearerInJSONAndInAURL() {
+        let token = String(repeating: "t", count: 40)
+        XCTAssertEqual(
+            normal.redact(#"{"Authorization": "Bearer "# + token + #""}"#),
+            #"{"Authorization": "Bearer [redacted:bearer]"}"#)
+        XCTAssertEqual(
+            normal.redact("git clone https://deploy:" + "hunter2secret@example.test/repo.git"),
+            "git clone https://deploy:[redacted:password]@example.test/repo.git")
+    }
+
+    func testABase64CredentialWithSlashesIsNotAPath() {
+        // Random base64 with four slashes: short segments, but dense with digits
+        // and capitals — the old "looks like a path" check let this through.
+        let blob = "MIIEvQIBADANBgkqhkiG9w0BAQEFAASC/BKcwggSjAgEAAoIBAQC7Vx3K9/q2Lm8Ndf5RtY1zP0aJ"
+            + "/7HcXb3WkQ9eT2uV6sR8gY4L/1pM0nZoE5iFhD3jKw"
+        XCTAssertEqual(normal.redact("key \(blob)"), "key [redacted:blob]")
+        let relative = "Sources/TrailwardenCore/Localization/RuleLocalizationEntries/GeneratedTables/rules.swift"
+        XCTAssertEqual(normal.redact("sed -n 1,80p \(relative)"), "sed -n 1,80p \(relative)")
     }
 
     func testEmailOnlyMaskedAtStrictLevel() {

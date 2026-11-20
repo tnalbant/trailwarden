@@ -20,7 +20,7 @@ Ayarlar'dan açarsan en fazla haftada veya ayda bir de kendiliğinden yapılır
 (varsayılan olarak kapalıdır). `Sources/` altında başka herhangi bir yerde ağ API'si
 görünürse CI başarısız olur.
 
-> Durum: **v0.2.3** — canlı bekçi, 27 kural, ajan izi, karne, CI kapısı.
+> Durum: **v0.2.4** — canlı bekçi, 27 kural, ajan izi, karne, CI kapısı.
 > Arayüz İngilizce (ABD), Türkçe, Almanca, İspanyolca, İtalyanca ve Fransızca.
 
 ![Karne](docs/screenshots/report-light.tr.png)

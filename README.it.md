@@ -18,7 +18,7 @@ piccolo file JSON nell'ultima release su GitHub, fatta quando premi il pulsante 
 la attivi nelle Impostazioni, al massimo ogni settimana o ogni mese (disattivata per impostazione predefinita). La CI fallisce
 se compare un'API di rete in qualsiasi altro punto di `Sources/`.
 
-> Stato: **v0.2.3** — guardia live, 27 regole, agent blame, rapporto, CI gate.
+> Stato: **v0.2.4** — guardia live, 27 regole, agent blame, rapporto, CI gate.
 > Interfaccia in inglese (US), turco, tedesco, spagnolo, italiano e francese.
 
 ![Rapporto](docs/screenshots/report-light.png)

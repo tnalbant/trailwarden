@@ -61,20 +61,39 @@ public struct OpencodeDatabaseParser: DatabaseAgentParser {
         var events: [Event] = []
         var skipped = 0
 
+        // Token columns came in over several releases; a missing one reads as 0.
+        var columns = Set<String>()
+        try Self.query(handle, "PRAGMA table_info(session_v2)") { row in
+            if let name = row.text(1) {
+                columns.insert(name)
+            }
+        }
+        func column(_ name: String) -> String {
+            columns.contains(name) ? name : "NULL"
+        }
         try Self.query(
             handle,
             """
-            SELECT id, directory, time_created, tokens_input, tokens_output, tokens_cache_read, time_updated
+            SELECT id, directory, time_created, \(column("tokens_input")), \(column("tokens_output")),
+                   \(column("tokens_cache_read")), time_updated, \(column("tokens_cache_write")),
+                   \(column("tokens_reasoning")), \(column("model"))
             FROM session_v2
             """) { row in
                 guard let id = row.text(0) else { return }
                 let directory = row.text(1)
                 sessions[id] = directory
                 let created = Date(timeIntervalSince1970: row.double(2) / 1000)
-                let input = Int(row.double(3)) + Int(row.double(5))
-                let output = Int(row.double(4))
+                // Opencode keeps reasoning apart from output and bills it as output.
+                let reasoning = Int(saturating: row.double(8))
+                let usage = TokenCount(
+                    model: Self.modelName(row.text(9)),
+                    input: Int(saturating: row.double(3)),
+                    output: Int(saturating: row.double(4)) + reasoning,
+                    cacheRead: Int(saturating: row.double(5)),
+                    cacheWrite: Int(saturating: row.double(7)),
+                    reasoning: reasoning)
                 // A long session keeps adding tokens: refresh it while it is still updated.
-                guard row.double(6) >= cutoffMillis, input > 0 || output > 0 else { return }
+                guard row.double(6) >= cutoffMillis, !usage.isEmpty else { return }
                 events.append(Event(
                     id: "opencode:\(id):tokens",
                     ts: created,
@@ -82,7 +101,8 @@ public struct OpencodeDatabaseParser: DatabaseAgentParser {
                     sessionId: id,
                     kind: .tokenUsage,
                     cwd: directory,
-                    preview: "tokens: \(input) in / \(output) out"))
+                    preview: usage.preview,
+                    usage: usage))
             }
 
         try Self.query(
@@ -213,6 +233,18 @@ public struct OpencodeDatabaseParser: DatabaseAgentParser {
 
     // MARK: - SQLite
 
+    /// The model column is JSON (`{"id": …, "providerID": …}`) in current
+    /// releases and a plain id in older ones.
+    static func modelName(_ value: String?) -> String? {
+        guard let value, !value.isEmpty else { return nil }
+        if let data = value.data(using: .utf8),
+           let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
+        {
+            return object["id"] as? String ?? object["modelID"] as? String
+        }
+        return value
+    }
+
     private static func query(
         _ handle: OpaquePointer,
         _ sql: String,
@@ -227,8 +259,14 @@ public struct OpencodeDatabaseParser: DatabaseAgentParser {
         if let value {
             sqlite3_bind_double(statement, 1, value)
         }
-        while sqlite3_step(statement) == SQLITE_ROW {
+        var status = sqlite3_step(statement)
+        while status == SQLITE_ROW {
             row(Row(statement: statement))
+            status = sqlite3_step(statement)
+        }
+        // A busy database also ends the loop; half a result is not a result.
+        guard status == SQLITE_DONE else {
+            throw TranscriptError.unreadable(sqlite3_errmsg(handle).map { String(cString: $0) } ?? "step")
         }
     }
 

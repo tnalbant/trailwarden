@@ -46,7 +46,7 @@ final class CopilotParserTests: XCTestCase {
 
         XCTAssertEqual(
             result.events.filter { $0.kind == .tokenUsage }.map(\.preview),
-            ["tokens: 1200 in / 80 out"])
+            ["tokens: 1200 in / 80 out · demo-model"])
         XCTAssertEqual(result.events.filter { $0.kind == .permission }.map(\.preview), ["shell bash"])
     }
 

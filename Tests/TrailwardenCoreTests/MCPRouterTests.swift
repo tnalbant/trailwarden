@@ -142,4 +142,20 @@ final class MCPRouterTests: XCTestCase {
 
         XCTAssertEqual(error["code"] as? Int, -32700)
     }
+
+    func testANegativeOrHugeLimitIsClampedInsteadOfCrashing() throws {
+        // `prefix(-1)` traps and `LIMIT -1` means "everything" in SQLite.
+        XCTAssertEqual(MCPRouter.limit(-1, default: 20), 1)
+        XCTAssertEqual(MCPRouter.limit(0, default: 20), 1)
+        XCTAssertEqual(MCPRouter.limit(1_000_000, default: 20), 200)
+        XCTAssertEqual(MCPRouter.limit(nil, default: 20), 20)
+        XCTAssertEqual(MCPRouter.limit("7", default: 20), 20, "a string is not a number")
+
+        let router = try makeRouter()
+        for tool in ["list_sessions", "search_events"] {
+            let line = #"{"jsonrpc":"2.0","id":9,"method":"tools/call","params":{"name":"\#(tool)","arguments":{"limit":-1}}}"#
+            let response = try object(router.handle(line))
+            XCTAssertNotNil(response["result"], "\(tool) answers instead of crashing")
+        }
+    }
 }

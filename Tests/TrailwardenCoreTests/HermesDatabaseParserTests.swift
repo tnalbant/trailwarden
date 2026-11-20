@@ -65,7 +65,8 @@ final class HermesDatabaseParserTests: XCTestCase {
         XCTAssertEqual(read.paths, ["/Users/demo/dev/aurora-api/src/app.ts"])
 
         let tokens = try XCTUnwrap(result.events.first { $0.kind == .tokenUsage })
-        XCTAssertEqual(tokens.preview, "tokens: 1200 in / 340 out")
+        XCTAssertEqual(tokens.preview, "tokens: 1200 in / 340 out · gpt")
+        XCTAssertEqual(tokens.usage, TokenCount(model: "gpt", input: 1200, output: 340))
 
         XCTAssertTrue(result.events.contains { $0.kind == .message && $0.preview == "deploy the beta" })
     }

@@ -71,22 +71,38 @@ public struct Redactor: Sendable {
         }
     }
 
-    /// Shared by both levels.
+    /// Shared by both levels. Specific shapes first, so a known token is named
+    /// for what it is before the generic long-blob rule sees it.
     static let baseRules: [Rule] = [
-        // PEM key material, header to footer.
+        // PEM key material, header to footer — or to the end of the text when the
+        // footer is missing: previews are cut to a few hundred characters, and a
+        // key printed by `cat ~/.ssh/id_rsa` loses its footer in the cut.
         compile(
-            "-----BEGIN [A-Z0-9 ]*PRIVATE KEY-----[\\s\\S]*?-----END [A-Z0-9 ]*PRIVATE KEY-----",
+            "-----BEGIN [A-Z0-9 ]*PRIVATE KEY-----[\\s\\S]*?(?:-----END [A-Z0-9 ]*PRIVATE KEY-----|\\z)",
             "[redacted:private-key]",
             hint: "-----BEGIN "),
         compile("\\bsk-[A-Za-z0-9_-]{16,}", "[redacted:openai-key]", hint: "sk-"),
         compile("\\b(?:ghp|gho|ghu|ghs|ghr)_[A-Za-z0-9]{20,}", "[redacted:github-token]", hint: "gh"),
         compile("\\bgithub_pat_[A-Za-z0-9_]{20,}", "[redacted:github-token]", hint: "github_pat_"),
+        compile("\\bglpat-[A-Za-z0-9_-]{20,}", "[redacted:gitlab-token]", hint: "glpat-"),
         compile("\\bAKIA[0-9A-Z]{16}\\b", "[redacted:aws-key]", hint: "akia"),
+        compile("\\bAIza[0-9A-Za-z_-]{35}", "[redacted:google-key]", hint: "aiza"),
         compile("\\bxox[baprs]-[A-Za-z0-9-]{10,}", "[redacted:slack-token]", hint: "xox"),
+        compile("\\b[sr]k_(?:live|test)_[A-Za-z0-9]{16,}", "[redacted:stripe-key]", hint: "k_"),
+        compile("\\bnpm_[A-Za-z0-9]{36}\\b", "[redacted:npm-token]", hint: "npm_"),
+        compile("\\bhf_[A-Za-z0-9]{30,}", "[redacted:huggingface-token]", hint: "hf_"),
+        // JSON Web Tokens: three base64url parts, the first always a JSON header.
         compile(
-            "(?i)(authorization:\\s*bearer\\s+)[A-Za-z0-9._~+/=-]+",
+            "\\beyJ[A-Za-z0-9_-]{8,}\\.[A-Za-z0-9_-]{8,}\\.[A-Za-z0-9_-]{8,}",
+            "[redacted:jwt]",
+            hint: "eyj"),
+        // `Authorization: Bearer x` as a header line, a JSON field or a curl flag.
+        compile(
+            "(?i)(authorization[\"']?\\s*[:=]\\s*[\"']?\\s*bearer\\s+)[A-Za-z0-9._~+/=-]+",
             "$1[redacted:bearer]",
             hint: "bearer"),
+        // A password inside a URL: scheme://user:secret@host.
+        compile("(://[^/\\s:@'\"]+:)[^/\\s@'\"]+@", "$1[redacted:password]@", hint: "://"),
         // Long base64-ish blobs: certificates, encoded credentials, dumps.
         compile("\\b[A-Za-z0-9+/]{64,}={0,2}", "[redacted:blob]").map { rule in
             var rule = rule
@@ -95,13 +111,21 @@ public struct Redactor: Sendable {
         }
     ].compactMap(\.self)
 
-    /// Base64 and a long file path share an alphabet. A path has short segments
-    /// between many slashes (`Users/me/Desktop/App/Sources/Feature/View.swift`);
-    /// an encoded blob has a slash every 64 characters or so, by chance. Without
-    /// this, every deep path in the index was stored as `/[redacted:blob]`.
+    /// Base64 and a long file path share an alphabet, so a deep path would be
+    /// stored as `/[redacted:blob]` without this. A path has many short segments
+    /// of mostly lower-case words; base64 has a slash only every 64 characters or
+    /// so, by chance, and is dense with digits and capitals. All three must look
+    /// like a path before a match is kept — a credential that merely happens to
+    /// contain three slashes is still masked.
     @Sendable static func isPathLike(_ text: Substring) -> Bool {
         let segments = text.split(separator: "/", omittingEmptySubsequences: false)
-        return segments.count >= 4 && segments.allSatisfy { $0.count <= 48 }
+        guard segments.count >= 4, segments.allSatisfy({ $0.count <= 48 }) else { return false }
+        let letters = text.unicodeScalars.filter { CharacterSet.letters.contains($0) }
+        let digits = text.unicodeScalars.filter { CharacterSet.decimalDigits.contains($0) }.count
+        let capitals = letters.filter { CharacterSet.uppercaseLetters.contains($0) }.count
+        let length = max(1, text.unicodeScalars.count)
+        return Double(digits) / Double(length) <= 0.08
+            && Double(capitals) / Double(max(1, letters.count)) <= 0.3
     }
 
     /// Only applied at `.strict`.
@@ -169,13 +193,14 @@ public struct Redactor: Sendable {
             sessionId: event.sessionId,
             kind: event.kind,
             cwd: event.cwd.map(redact),
-            gitBranch: event.gitBranch,
+            gitBranch: event.gitBranch.map(redact),
             tool: event.tool,
             command: event.command.map(redact),
             paths: event.paths.map(redact),
             preview: event.preview.map(redact),
             risk: event.risk,
-            rawJSON: event.rawJSON.map(redact))
+            rawJSON: event.rawJSON.map(redact),
+            usage: event.usage)
     }
 
     /// What leaves the machine: secrets masked *and* the user name in home paths
@@ -193,8 +218,10 @@ public struct Redactor: Sendable {
             tool: base.tool,
             command: base.command.map(shortenHome),
             paths: base.paths.map(shortenHome),
-            preview: base.preview,
+            // Many previews are a path or a command; the user name goes too.
+            preview: base.preview.map(shortenHome),
             risk: base.risk,
-            rawJSON: base.rawJSON)
+            rawJSON: base.rawJSON,
+            usage: base.usage)
     }
 }

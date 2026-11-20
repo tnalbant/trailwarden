@@ -127,12 +127,39 @@ public struct GeminiCLIParser: AgentParser {
             default:
                 skipped += 1
             }
+            if type == "gemini", let usage = Self.usage(message) {
+                events.append(Event(
+                    id: "gemini:\(sessionId):\(messageId):t",
+                    ts: date,
+                    agent: .gemini,
+                    sessionId: sessionId,
+                    kind: .tokenUsage,
+                    preview: usage.preview,
+                    risk: [],
+                    rawJSON: nil,
+                    usage: usage))
+            }
         }
 
         return ParseResult(events: events, skippedLines: skipped)
     }
 
     // MARK: - Helpers
+
+    /// `tokens: {input, output, cached, thoughts, tool, total}` per reply.
+    /// `input` includes the cached part; `thoughts` is billed as output but
+    /// not counted in `output` (total = input + output + thoughts).
+    static func usage(_ message: [String: Any]) -> TokenCount? {
+        guard let tokens = message["tokens"] as? [String: Any] else { return nil }
+        let thoughts = TokenCount.number(tokens["thoughts"])
+        let count = TokenCount.includingCache(
+            model: message["model"] as? String,
+            input: TokenCount.number(tokens["input"]),
+            cached: TokenCount.number(tokens["cached"]),
+            output: TokenCount.number(tokens["output"]) + thoughts,
+            reasoning: thoughts)
+        return count.isEmpty ? nil : count
+    }
 
     private func isTranscript(_ url: URL) -> Bool {
         url.lastPathComponent.hasPrefix("session-") && url.pathExtension == "json"

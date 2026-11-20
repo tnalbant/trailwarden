@@ -84,8 +84,7 @@ public enum ExportWriter {
         try FileManager.default.createDirectory(
             at: url.deletingLastPathComponent(),
             withIntermediateDirectories: true)
-        try body.write(to: url, options: .atomic)
-        try FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: url.path)
+        try PrivateFile.write(body, to: url)
 
         let summary = AuditReport.summarize(sessions: sessions, events: events)
         return ExportOutcome(

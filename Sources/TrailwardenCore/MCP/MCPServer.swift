@@ -143,7 +143,7 @@ public struct MCPRouter: @unchecked Sendable {
                 agents: (arguments["agent"] as? String).flatMap(Agent.init(rawValue:)).map { [$0] },
                 onlyFindings: arguments["only_findings"] as? Bool ?? false,
                 search: arguments["query"] as? String,
-                limit: min(arguments["limit"] as? Int ?? 50, 200))
+                limit: Self.limit(arguments["limit"], default: 50))
             query.includeRawJSON = false
             query.excludedKinds = [.tokenUsage, .sessionStart]
 
@@ -184,10 +184,17 @@ public struct MCPRouter: @unchecked Sendable {
         }
     }
 
+    /// A client-supplied page size, between 1 and 200. Zero or a negative number
+    /// would crash `prefix(_:)` or reach SQLite as `LIMIT -1`, which means "no
+    /// limit" — a way around the cap.
+    static func limit(_ value: Any?, default fallback: Int) -> Int {
+        max(1, min(value as? Int ?? fallback, 200))
+    }
+
     private func listSessions(_ arguments: [String: Any], id: Any?) -> String {
         do {
             let agent = (arguments["agent"] as? String).flatMap(Agent.init(rawValue:))
-            let limit = min(arguments["limit"] as? Int ?? 20, 200)
+            let limit = Self.limit(arguments["limit"], default: 20)
             let sessions = try store.sessions(agents: agent.map { [$0] })
                 .sorted { $0.startedAt > $1.startedAt }
                 .prefix(limit)
@@ -251,7 +258,7 @@ public struct MCPRouter: @unchecked Sendable {
             return Self.error(id: id, code: -32602, message: "path is required")
         }
         let cwd = arguments["cwd"] as? String ?? FileManager.default.currentDirectoryPath
-        let limit = min(arguments["limit"] as? Int ?? 20, 200)
+        let limit = Self.limit(arguments["limit"], default: 20)
         let changesOnly = arguments["changes_only"] as? Bool ?? false
         do {
             let target = FileHistory.Target.resolve(path, cwd: cwd)

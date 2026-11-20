@@ -96,7 +96,22 @@ final class RuleCatalogExpansionTests: XCTestCase {
                 "cat > gen.py <<'EOF'\nos.system('rm -rf ~/.claude/projects')\nEOF",
                 [],
                 "a script that mentions it"),
-            Case("bash <<'EOF'\nrm -rf ~\nEOF", ["R1"], "a heredoc fed to bash runs")
+            Case("bash <<'EOF'\nrm -rf ~\nEOF", ["R1"], "a heredoc fed to bash runs"),
+            Case("cat <<'EOF' | bash\nrm -rf ~\nEOF", ["R1"], "piped into a shell after the heredoc"),
+            Case("cat <<EOF | sudo sh\nrm -rf ~\nEOF", ["R1", "R3"], "piped into sudo sh"),
+            Case(
+                "python3 - <<'EOF'\nprint(open('/Users/demo/.ssh/id_rsa').read())\nEOF",
+                ["R4"],
+                "fed to python"),
+            Case(
+                "cat > a.py <<'EOF'\nprint(open('/Users/demo/.ssh/id_rsa').read())\nEOF",
+                [],
+                "written to a file"),
+            Case(
+                "cat <<'EOF' | tee notes.md\nrm -rf ~ is dangerous\nEOF",
+                [],
+                "piped into a file is content"),
+            Case("env FOO=1 cat > a.txt <<'EOF'\nrm -rf ~\nEOF", [], "env in front of cat is not a shell")
         ])
     }
 

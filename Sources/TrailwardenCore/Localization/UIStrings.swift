@@ -53,6 +53,15 @@ public enum UIString: String, CaseIterable, Sendable {
     // Usage
     case usageSummary, dailyTokens, noTokenData, token, byAgent, processedTokens
     case counterCount, noCounterData, usageNote
+    case byModel, apiEquivalent, estimatedCost, priceUnknown, priceFree, unpricedNote, priceNote,
+         priceFileError, noteTitle
+    /// Settings › Prices: the reader's own prices and the manual list update
+    case pricesSection, priceListBuiltIn, priceListDownloaded, checkPrices, checkingPrices
+    case pricesUpdated, pricesCurrent, pricesCheckFailed, pricesStale, pricesHint
+    case priceModel, priceInput, priceOutput, priceCacheRead, priceCacheWrite, priceFreeToggle
+    case priceSave, priceReset, priceSourceBuiltIn, priceSourcePublished, priceSourceUser
+    case addModel, addModelPlaceholder, noPriceModels, priceSaveFailed
+    case pricesWindow, editPrices, pricesSummary, searchModels, onlyUnpriced, noPriceMatches
     // Status line
     case statusScan, statusError, statusPrune, statusPruneFailed
     case statusExport, statusExportFailed
@@ -194,7 +203,7 @@ public enum UITranslations {
         .exportRange: "Last 30 days",
         .exportHint: "Same content as `trailwarden export` on the command line: redacted, your user name shortened to `~`, file mode 600.",
         .privacySection: "Privacy",
-        .privacyText: "Nothing about your agents leaves this Mac. The only network request is the update check — when you click it, or on the schedule above. An export only writes to the file you pick.",
+        .privacyText: "Nothing about your agents leaves this Mac. The app goes online only to check for updates (when you click, or on the schedule above) and to read the public price list when you click \"Update prices\"; neither sends anything about you. An export only writes to the file you pick.",
         .privacyBadge: "A redacted audit record will be written",
         .settingsVersion: "v%@ · %d events · %d sessions",
 
@@ -206,7 +215,47 @@ public enum UITranslations {
         .processedTokens: "tokens processed",
         .counterCount: "%d counters",
         .noCounterData: "No session wrote a token counter in this range. They add up here as the agents report them.",
-        .usageNote: "Numbers are summed from the counters the agents write into their own transcripts. No prices: the same token is worth different money depending on plan and model.",
+        .usageNote: "Numbers are summed from the counters the agents write into their own transcripts. Cache reads are counted with the rest; they are most of the tokens and the cheapest ones.",
+        .byModel: "By model",
+        .apiEquivalent: "API equivalent",
+        .estimatedCost: "≈ %@ at API prices",
+        .priceUnknown: "no price",
+        .priceFree: "free",
+        .unpricedNote: "%@ tokens from %d models have no price yet and are left out of the estimate.",
+        .priceNote: "An estimate: what these tokens would have cost on each provider's pay-as-you-go API, at the prices of %@. A subscription costs what you pay for it. Default tiers only (short context, 5-minute cache writes, peak hours). To add a model, enter your own price or mark one free, open Settings › Prices.",
+        .priceFileError: "Your price file could not be read, so your own prices are not applied: %@",
+        .noteTitle: "Note",
+        .pricesSection: "Prices · USD per million tokens",
+        .priceListBuiltIn: "Price list of %@, built into the app",
+        .priceListDownloaded: "Price list of %@, downloaded",
+        .checkPrices: "Update prices",
+        .checkingPrices: "Checking…",
+        .pricesUpdated: "New price list of %@ loaded",
+        .pricesCurrent: "Already up to date",
+        .pricesCheckFailed: "The price list could not be read",
+        .pricesStale: "These prices are more than 60 days old and may have changed. Use \"Update prices\" in Settings › Prices.",
+        .pricesHint: "The price window lists the models your agents used in the last 90 days, the ones without a price first. A price you enter always wins: updating the list never changes it. \"Update prices\" reads one public file from the project's GitHub page and sends nothing.",
+        .priceModel: "Model",
+        .priceInput: "Input",
+        .priceOutput: "Output",
+        .priceCacheRead: "Cache read",
+        .priceCacheWrite: "Cache write",
+        .priceFreeToggle: "Free",
+        .priceSave: "Save",
+        .priceReset: "Use list price",
+        .priceSourceBuiltIn: "list price",
+        .priceSourcePublished: "downloaded price",
+        .priceSourceUser: "your price",
+        .addModel: "Add",
+        .addModelPlaceholder: "Another model id, e.g. gpt-6-sol",
+        .noPriceModels: "No models yet. They appear once an agent reports tokens.",
+        .priceSaveFailed: "Could not save the price: %@",
+        .pricesWindow: "Prices",
+        .editPrices: "Edit prices…",
+        .pricesSummary: "%d models · %d without a price · %d of your own",
+        .searchModels: "Search models or agents",
+        .onlyUnpriced: "Only models without a price",
+        .noPriceMatches: "No model matches “%@”.",
 
         .statusScan: "%d events scanned · %d updated · %.2f s",
         .statusError: "Error: %@",
@@ -217,7 +266,7 @@ public enum UITranslations {
 
         .onboardingNotifications: "Live alerts need notification permission.",
         .onboardingTitle: "What am I reading?",
-        .onboardingPrivacy: "Nothing leaves this Mac: there is no network access, everything stays local. Your transcripts stay where they are — they are only ever read.",
+        .onboardingPrivacy: "Nothing about your agents leaves this Mac. Your transcripts stay where they are and are only ever read; the one network request is the optional update check.",
 
         .axisDay: "Day",
         .quit: "Quit",
