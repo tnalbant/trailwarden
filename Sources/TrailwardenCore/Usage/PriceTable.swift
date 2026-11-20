@@ -106,9 +106,9 @@ public struct PriceTable: Sendable {
         for row in usage {
             if let price = price(for: row.model) {
                 estimate.dollars += price.cost(of: row.tokens)
-                estimate.pricedTokens += row.tokens.processed
+                estimate.pricedTokens = estimate.pricedTokens.saturatingAdd(row.tokens.processed)
             } else {
-                estimate.unpricedTokens += row.tokens.processed
+                estimate.unpricedTokens = estimate.unpricedTokens.saturatingAdd(row.tokens.processed)
                 estimate.unpricedModels.insert(row.model)
             }
         }
@@ -133,12 +133,17 @@ public struct PriceTable: Sendable {
         key.hasSuffix(":free") || key.hasSuffix("-free")
     }
 
+    /// A `yyyy-MM-dd` day in UTC, or `nil`. Strict: `2026-9-1` and
+    /// `2026-02-31` are rejected, so dates also compare correctly as text.
     static func day(_ text: String) -> Date? {
+        guard text.utf8.count == 10, text.allSatisfy(\.isASCII) else { return nil }
         let formatter = DateFormatter()
         formatter.locale = Locale(identifier: "en_US_POSIX")
         formatter.timeZone = TimeZone(identifier: "UTC")
         formatter.dateFormat = "yyyy-MM-dd"
-        return formatter.date(from: text)
+        formatter.isLenient = false
+        guard let date = formatter.date(from: text), formatter.string(from: date) == text else { return nil }
+        return date
     }
 
     // MARK: - Layers
@@ -163,11 +168,14 @@ public struct PriceTable: Sendable {
 
     public static func load(
         user: URL? = try? userPricesURL(),
-        published: URL? = try? publishedListURL()) -> Loaded
+        published: URL? = try? publishedListURL(),
+        now: Date = Date()) -> Loaded
     {
         var table = builtIn
         var loaded = Loaded(table: table, userPrices: [:])
-        if let published, let list = try? PriceList.read(published), list.asOf > table.asOf {
+        if let published, let list = try? PriceList.read(published),
+           PriceList.isUsableDate(list.asOf, now: now), list.asOf > table.asOf
+        {
             table.apply(list.prices, as: .published)
             table.asOf = list.asOf
         }

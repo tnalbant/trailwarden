@@ -86,27 +86,35 @@ final class PriceTableTests: XCTestCase {
         let url = temporaryURL("published")
         defer { try? FileManager.default.removeItem(at: url) }
         let builtIn = PriceTable.builtIn
+        // The test lists are dated 2999, so "now" is set after that.
+        let now = try XCTUnwrap(PriceTable.day("2999-06-01"))
         let newer = Data(
             #"{"asOf": "2999-01-01", "models": {"new-model": {"input": 1, "output": 2}, "gpt-6-sol": {"input": 9, "output": 9}}}"#
                 .utf8)
         let older = Data(#"{"asOf": "2000-01-01", "models": {"gpt-6-sol": {"input": 1}}}"#.utf8)
 
         XCTAssertEqual(
-            try PriceTable.installPublished(older, at: url, current: builtIn),
+            try PriceTable.installPublished(older, at: url, current: builtIn, now: now),
             .alreadyCurrent(builtIn.asOf))
         XCTAssertFalse(FileManager.default.fileExists(atPath: url.path), "an older list is never written")
         XCTAssertThrowsError(try PriceTable.installPublished(
             Data(#"{"models": {"a": {"input": 1}}}"#.utf8),
             at: url,
-            current: builtIn))
+            current: builtIn,
+            now: now))
         XCTAssertThrowsError(try PriceTable.installPublished(
             Data(#"{"asOf": "2999-01-01", "models": {"a": {"input": -1}}}"#.utf8),
             at: url,
-            current: builtIn))
-        XCTAssertThrowsError(try PriceTable.installPublished(Data("<html>".utf8), at: url, current: builtIn))
+            current: builtIn,
+            now: now))
+        XCTAssertThrowsError(try PriceTable.installPublished(
+            Data("<html>".utf8),
+            at: url,
+            current: builtIn,
+            now: now))
 
         XCTAssertEqual(
-            try PriceTable.installPublished(newer, at: url, current: builtIn),
+            try PriceTable.installPublished(newer, at: url, current: builtIn, now: now),
             .updated("2999-01-01"))
         let user = temporaryURL("prices")
         defer { try? FileManager.default.removeItem(at: user) }
@@ -115,7 +123,7 @@ final class PriceTableTests: XCTestCase {
             for: "gpt-6-sol",
             at: user)
 
-        let table = PriceTable.load(user: user, published: url).table
+        let table = PriceTable.load(user: user, published: url, now: now).table
         XCTAssertEqual(table.asOf, "2999-01-01")
         XCTAssertTrue(table.usesPublishedList)
         XCTAssertEqual(table.source(for: "new-model"), .published)
@@ -123,6 +131,62 @@ final class PriceTableTests: XCTestCase {
         XCTAssertNotNil(
             table.price(for: "claude-opus-5-5"),
             "models the download leaves out keep their built-in price")
+    }
+
+    func testAFutureOrSloppyDateNeverBlocksLaterLists() throws {
+        let url = temporaryURL("published")
+        defer { try? FileManager.default.removeItem(at: url) }
+        let now = try XCTUnwrap(PriceTable.day("2026-11-20"))
+        let future = Data(#"{"asOf": "9999-12-31", "models": {"a": {"input": 1}}}"#.utf8)
+        XCTAssertThrowsError(try PriceTable.installPublished(future, at: url, current: .builtIn, now: now)) {
+            XCTAssertEqual($0 as? PriceList.Problem, .futureDate("9999-12-31"))
+        }
+        XCTAssertFalse(FileManager.default.fileExists(atPath: url.path))
+
+        for sloppy in ["2026-9-1", "2026-02-31", "2026-11-20T00:00", "２０２６-01-01"] {
+            XCTAssertNil(PriceTable.day(sloppy), sloppy)
+        }
+        XCTAssertNotNil(PriceTable.day("2026-02-28"))
+
+        // A future-dated list already on disk (from an older build) is ignored.
+        try future.write(to: url)
+        let table = PriceTable.load(user: nil, published: url, now: now).table
+        XCTAssertFalse(table.usesPublishedList)
+        XCTAssertEqual(table.asOf, PriceTable.builtIn.asOf)
+    }
+
+    func testAbsurdTokenCountsSaturateInsteadOfCrashing() {
+        let huge = Int.max - 10
+        XCTAssertEqual(
+            TokenTotals(input: huge, output: huge, cacheRead: huge, cacheWrite: huge).processed,
+            .max)
+        let usage = [
+            ModelUsage(agent: .hermes, model: "model-a", tokens: TokenCount(input: huge)),
+            ModelUsage(agent: .opencode, model: "model-a", tokens: TokenCount(input: huge)),
+            ModelUsage(agent: .hermes, model: "mystery", tokens: TokenCount(input: huge)),
+            ModelUsage(agent: .opencode, model: "mystery", tokens: TokenCount(input: huge))
+        ]
+        let estimate = table.estimate(usage)
+        XCTAssertEqual(estimate.pricedTokens, .max)
+        XCTAssertEqual(estimate.unpricedTokens, .max)
+        XCTAssertEqual(Int.min.saturatingAdd(-1), .min)
+        XCTAssertEqual(2.saturatingAdd(3), 5)
+    }
+
+    func testARateTheFileWouldRejectIsNeverSaved() throws {
+        let url = temporaryURL("prices")
+        defer { try? FileManager.default.removeItem(at: url) }
+        try PriceTable.setUserPrice(
+            ModelPrice(input: 3, output: 9, cacheRead: 0, cacheWrite: 0), for: "kept", at: url)
+        XCTAssertThrowsError(try PriceTable.setUserPrice(
+            ModelPrice(input: 1500, output: 1, cacheRead: 0, cacheWrite: 0), for: "typo", at: url))
+        {
+            XCTAssertEqual($0 as? PriceList.Problem, .badRate("typo"))
+        }
+        let loaded = PriceTable.load(user: url, published: nil)
+        XCTAssertNil(loaded.problem, "the reader's file stays readable")
+        XCTAssertEqual(loaded.userPrices["kept"]?.input, 3)
+        XCTAssertNil(loaded.userPrices["typo"])
     }
 
     func testOldPricesAreFlagged() throws {

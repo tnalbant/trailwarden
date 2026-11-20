@@ -134,6 +134,22 @@ final class RedactorTests: XCTestCase {
             "git clone https://deploy:[redacted:password]@example.test/repo.git")
     }
 
+    func testAURLPasswordWithAnAtOrASlashIsMaskedWhole() {
+        // Built from parts so secret scanners do not read the fixture as a
+        // real connection string.
+        let scheme = "postgres" + "://"
+        XCTAssertEqual(
+            normal.redact("psql " + scheme + "app:" + "p@ss" + "@db.example.test:5432/main"),
+            "psql " + scheme + "app:[redacted:password]" + "@db.example.test:5432/main")
+        XCTAssertEqual(
+            normal.redact("curl https://bot:" + "p/ss@example.test/a@b"),
+            "curl https://bot:[redacted:password]@example.test/a@b")
+        XCTAssertEqual(
+            normal.redact("ssh://git@example.test:22/repo and https://example.test/u:x@y"),
+            "ssh://git@example.test:22/repo and https://example.test/u:x@y",
+            "no user:password part, nothing to mask")
+    }
+
     func testABase64CredentialWithSlashesIsNotAPath() {
         // Random base64 with four slashes: short segments, but dense with digits
         // and capitals — the old "looks like a path" check let this through.

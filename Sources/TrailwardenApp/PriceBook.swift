@@ -63,7 +63,7 @@ final class PriceBook: ObservableObject {
         var agents: [String: Set<Agent>] = [:]
         for row in usage {
             let key = PriceTable.normalize(row.model)
-            tokens[key, default: 0] += row.tokens.processed
+            tokens[key] = tokens[key, default: 0].saturatingAdd(row.tokens.processed)
             agents[key, default: []].insert(row.agent)
         }
         used = tokens.keys.map { key in

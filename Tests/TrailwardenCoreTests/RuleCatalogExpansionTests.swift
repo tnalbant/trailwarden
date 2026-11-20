@@ -103,6 +103,11 @@ final class RuleCatalogExpansionTests: XCTestCase {
                 "python3 - <<'EOF'\nprint(open('/Users/demo/.ssh/id_rsa').read())\nEOF",
                 ["R4"],
                 "fed to python"),
+            Case("psql app <<'EOF'\nDROP TABLE users;\nEOF", ["R24"], "fed to a database shell"),
+            Case("mysql -u root shop <<EOF\nDROP DATABASE shop;\nEOF", ["R24"], "fed to mysql"),
+            Case("sqlite3 app.db <<'SQL'\nDROP TABLE events;\nSQL", ["R24"], "fed to sqlite3"),
+            Case("cat <<'EOF' | psql app\nDROP TABLE users;\nEOF", ["R24"], "piped into psql"),
+            Case("cat > down.sql <<'EOF'\nDROP TABLE users;\nEOF", [], "a migration written to a file"),
             Case(
                 "cat > a.py <<'EOF'\nprint(open('/Users/demo/.ssh/id_rsa').read())\nEOF",
                 [],

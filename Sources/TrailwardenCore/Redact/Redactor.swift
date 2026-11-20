@@ -101,8 +101,13 @@ public struct Redactor: Sendable {
             "(?i)(authorization[\"']?\\s*[:=]\\s*[\"']?\\s*bearer\\s+)[A-Za-z0-9._~+/=-]+",
             "$1[redacted:bearer]",
             hint: "bearer"),
-        // A password inside a URL: scheme://user:secret@host.
-        compile("(://[^/\\s:@'\"]+:)[^/\\s@'\"]+@", "$1[redacted:password]@", hint: "://"),
+        // A password inside a URL: scheme://user:secret@host. The password may
+        // itself hold `@` or `/`, so it runs to the `@` that is followed by a
+        // host (and optional port) and then the end of the authority.
+        compile(
+            "(://[^/\\s:@'\"]+:)[^\\s'\"]{1,256}?@(?=[A-Za-z0-9.\\-\\[\\]:]+(?:[/?#\\s'\"]|$))",
+            "$1[redacted:password]@",
+            hint: "://"),
         // Long base64-ish blobs: certificates, encoded credentials, dumps.
         compile("\\b[A-Za-z0-9+/]{64,}={0,2}", "[redacted:blob]").map { rule in
             var rule = rule

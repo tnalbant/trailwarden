@@ -256,13 +256,17 @@ public struct RuleEngine: Sendable {
     /// A heredoc whose body is run, not stored: fed to a shell or an interpreter
     /// before the `<<` (`bash <<EOF`, `python3 - <<EOF`) …
     private static let shellBeforeHeredoc = try? NSRegularExpression(
-        pattern: #"\b(?:(?:ba|z|da|k|fi)?sh|ssh|sudo|python[0-9.]*|node|deno|bun|ruby|perl|php|osascript|lua"#
-            + #"|Rscript|swift)\b[^\n;&|]*$"#)
+        pattern: #"\b(?:(?:ba|z|da|k|fi|c|tc)?sh|ssh|sudo|eval|source|python[0-9.]*|node|deno|bun|ruby|perl|php"#
+            + #"|osascript|lua|tclsh|pwsh|Rscript|swift|"# + sqlClients + #")\b[^\n;&|]*$"#)
+    /// Database shells: a heredoc fed to one is SQL that runs (`psql db <<EOF`).
+    private static let sqlClients =
+        #"psql|mysql|mariadb|sqlite3|duckdb|sqlcmd|clickhouse-client|mongosh|redis-cli|cqlsh"#
     /// … or piped into one after it, on the same line (`cat <<EOF | sh`).
     private static let shellAfterHeredoc = try? NSRegularExpression(
         pattern: #"^[^\n]*\|\s*(?:sudo\s+(?:-\S+\s+)*)?(?:\S*/)?"#
             +
-            #"(?:(?:ba|z|da|k|fi)?sh|python[0-9.]*|node|deno|bun|ruby|perl|php|osascript|lua|xargs|swift)\b"#)
+            #"(?:(?:ba|z|da|k|fi|c|tc)?sh|python[0-9.]*|node|deno|bun|ruby|perl|php|osascript|lua|tclsh|pwsh"#
+            + #"|xargs|swift|"# + sqlClients + #")\b"#)
 
     static func withoutHeredocBodies(_ command: String) -> String {
         guard command.contains("<<"), let heredoc else { return command }

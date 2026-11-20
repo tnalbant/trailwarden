@@ -33,6 +33,7 @@ public struct PriceList: Sendable, Equatable {
         case missingDate
         case empty
         case badRate(String)
+        case futureDate(String)
 
         public var description: String {
             switch self {
@@ -40,6 +41,7 @@ public struct PriceList: Sendable, Equatable {
             case .missingDate: "the list has no asOf date"
             case .empty: "the list has no models"
             case let .badRate(model): "an impossible rate for \(model)"
+            case let .futureDate(date): "the list is dated in the future (\(date))"
             }
         }
     }
@@ -71,15 +73,32 @@ public struct PriceList: Sendable, Equatable {
                 output: entry.output ?? 0,
                 cacheRead: entry.cacheRead ?? 0,
                 cacheWrite: entry.cacheWrite ?? 0)
-            // No provider charges a negative or a four-figure rate per million
-            // tokens; such a number is a typo or a tampered file.
-            let rates = [price.input, price.output, price.cacheRead, price.cacheWrite]
-            guard rates.allSatisfy({ $0.isFinite && $0 >= 0 && $0 < 1000 }) else {
-                throw Problem.badRate(model)
-            }
+            try check(price, for: model)
             prices[model] = price
         }
         return PriceList(asOf: file.asOf ?? "", prices: prices)
+    }
+
+    /// No provider charges a negative or a four-figure rate per million tokens;
+    /// such a number is a typo or a tampered file.
+    public static let maxRate = 1000.0
+
+    /// Throws `badRate` unless every rate is finite, not negative and below
+    /// `maxRate`. Used on reading *and* on saving, so a price the reader typed
+    /// can never make their own file unreadable.
+    public static func check(_ price: ModelPrice, for model: String) throws {
+        let rates = [price.input, price.output, price.cacheRead, price.cacheWrite]
+        guard rates.allSatisfy({ $0.isFinite && $0 >= 0 && $0 < maxRate }) else {
+            throw Problem.badRate(model)
+        }
+    }
+
+    /// A list date is usable when it is a real `yyyy-MM-dd` day and not later
+    /// than tomorrow (UTC), so a broken or tampered date cannot block every
+    /// later list from looking newer.
+    static func isUsableDate(_ text: String, now: Date = Date()) -> Bool {
+        guard let day = PriceTable.day(text) else { return false }
+        return day.timeIntervalSince(now) <= 86400
     }
 
     public func encoded() throws -> Data {
@@ -103,9 +122,10 @@ public struct PriceList: Sendable, Equatable {
 
     /// Checks a downloaded list before it is kept: it must parse, carry a date
     /// and price at least one model.
-    public static func validatePublished(_ data: Data) throws -> PriceList {
+    public static func validatePublished(_ data: Data, now: Date = Date()) throws -> PriceList {
         let list = try decode(data)
         guard PriceTable.day(list.asOf) != nil else { throw Problem.missingDate }
+        guard isUsableDate(list.asOf, now: now) else { throw Problem.futureDate(list.asOf) }
         guard !list.prices.isEmpty else { throw Problem.empty }
         return list
     }
@@ -131,6 +151,9 @@ public extension PriceTable {
     static func setUserPrice(_ price: ModelPrice?, for model: String, at url: URL) throws {
         let key = normalize(model)
         guard !key.isEmpty else { return }
+        if let price {
+            try PriceList.check(price, for: key)
+        }
         var list = try PriceList.read(url) ?? PriceList(prices: [:])
         list.prices = Dictionary(
             list.prices.map { (normalize($0.key), $0.value) },
@@ -152,8 +175,13 @@ public extension PriceTable {
     /// Keeps a downloaded list when it is newer than the one in use. Nothing is
     /// written for an older or equal list, so a stale mirror cannot roll prices
     /// back.
-    static func installPublished(_ data: Data, at url: URL, current: PriceTable) throws -> PublishedOutcome {
-        let list = try PriceList.validatePublished(data)
+    static func installPublished(
+        _ data: Data,
+        at url: URL,
+        current: PriceTable,
+        now: Date = Date()) throws -> PublishedOutcome
+    {
+        let list = try PriceList.validatePublished(data, now: now)
         guard list.asOf > current.asOf else { return .alreadyCurrent(current.asOf) }
         try FileManager.default.createDirectory(
             at: url.deletingLastPathComponent(),
