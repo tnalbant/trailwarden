@@ -21,8 +21,34 @@ for suffix in ("-wal", "-shm"):
 
 db = sqlite3.connect(path)
 db.executescript(open(os.path.join(os.path.dirname(__file__), "demo-schema.sql")).read())
+# Schema 7: token events carry the model and the cache split. The database is
+# marked as already migrated, so the app keeps these rows instead of dropping
+# them to re-read transcripts the demo does not have.
+db.executescript("""
+ALTER TABLE events ADD COLUMN model TEXT;
+ALTER TABLE events ADD COLUMN tok_input INTEGER;
+ALTER TABLE events ADD COLUMN tok_output INTEGER;
+ALTER TABLE events ADD COLUMN tok_cache_read INTEGER;
+ALTER TABLE events ADD COLUMN tok_cache_write INTEGER;
+ALTER TABLE events ADD COLUMN tok_reasoning INTEGER;
+""")
+db.execute("CREATE TABLE IF NOT EXISTS rereads (agent TEXT PRIMARY KEY)")
+db.execute("PRAGMA user_version = 7")
+# One or two models per agent, as an agent would write them. opencode's runs on
+# a model the built-in price list does not know, so the estimate shows how an
+# unpriced model is reported.
+MODELS = {
+    "claude-code": ["claude-opus-5-5", "claude-sonnet-5-5"],
+    "codex": ["gpt-6-sol"],
+    "gemini": ["gemini-3-flash-preview"],
+    "hermes": ["deepseek-v4-pro"],
+    "cursor": ["claude-sonnet-5-5"],
+    "copilot": ["gpt-5.5"],
+    "opencode": ["qwen3.7-coder"],
+}
 
 random.seed(7)
+token_random = random.Random(11)
 now = time.time()
 # A neutral home, so a demo database never carries the real user's name.
 DEMO_HOME = "/Users/demo"
@@ -118,12 +144,21 @@ for sid, cwd, branch, agent, started in sessions:
              json.dumps(paths), preview, "[]", None, None, None),
         )
         if i % 7 == 0:
+            # The first two draws are the ones the demo always made, so the rest
+            # of the invented data (and the older screenshots) stays the same.
+            fresh = random.randint(4000, 60000)
+            out = random.randint(80, 900)
+            model = token_random.choice(MODELS[agent])
+            cache_read = token_random.randint(20000, 200000)
+            cache_write = token_random.randint(0, 8000)
             db.execute(
                 "INSERT INTO events (id, session_id, agent, kind, ts, cwd, tool, command, paths, preview,"
-                " risk, raw_json) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
-                (f"{sid}-t{i}", sid, agent, "token_usage", ts, cwd, None, None,
-                 "[]", f"tokens: {random.randint(4000, 60000)} in / {random.randint(80, 900)} out",
-                 "[]", None),
+                " risk, raw_json, model, tok_input, tok_output, tok_cache_read, tok_cache_write,"
+                " tok_reasoning) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                (f"{sid}-t{i}", sid, agent, "token_usage", ts, cwd, None, None, "[]",
+                 f"tokens: {fresh + cache_read + cache_write} in / {out} out"
+                 f" (cache read {cache_read}, cache write {cache_write}) · {model}",
+                 "[]", None, model, fresh, out, cache_read, cache_write, 0),
             )
     db.execute(
         "INSERT OR REPLACE INTO sessions (id, agent, cwd, git_branch, started_at, ended_at, event_count,"
