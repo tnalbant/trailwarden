@@ -19,3 +19,14 @@ extension Int {
         }
     }
 }
+
+public extension Int {
+    /// `self + other`, clamped to `Int.max` / `Int.min` instead of trapping.
+    /// Token counts come from other programs' data; one absurd row must not
+    /// crash the app when it is added to a total.
+    func saturatingAdd(_ other: Int) -> Int {
+        let (sum, overflow) = addingReportingOverflow(other)
+        guard overflow else { return sum }
+        return other > 0 ? .max : .min
+    }
+}

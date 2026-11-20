@@ -54,8 +54,7 @@ public struct TokenTotals: Sendable, Equatable {
     /// the agent's running context size, which repeats on every turn — adding
     /// those up would invent billions of tokens that were never processed.
     public var processed: Int {
-        let (sum, overflow) = (input + output).addingReportingOverflow(cacheRead + cacheWrite)
-        return overflow ? Int.max : sum
+        input.saturatingAdd(output).saturatingAdd(cacheRead).saturatingAdd(cacheWrite)
     }
 
     /// The largest context a session reported, kept as its own number.
@@ -161,10 +160,10 @@ public extension EventStore {
         for event in events {
             guard let totals = Self.totals(of: event) else { continue }
             var existing = result[event.agent] ?? TokenTotals()
-            existing.input += totals.input
-            existing.output += totals.output
-            existing.cacheRead += totals.cacheRead
-            existing.cacheWrite += totals.cacheWrite
+            existing.input = existing.input.saturatingAdd(totals.input)
+            existing.output = existing.output.saturatingAdd(totals.output)
+            existing.cacheRead = existing.cacheRead.saturatingAdd(totals.cacheRead)
+            existing.cacheWrite = existing.cacheWrite.saturatingAdd(totals.cacheWrite)
             existing.total = max(existing.total, totals.total)
             existing.events += 1
             result[event.agent] = existing
@@ -196,7 +195,7 @@ public extension EventStore {
         for event in events {
             guard let totals = Self.totals(of: event) else { continue }
             let day = calendar.startOfDay(for: event.ts)
-            byDay[day, default: 0] += totals.processed
+            byDay[day] = byDay[day, default: 0].saturatingAdd(totals.processed)
         }
         return byDay
             .map { DailyTokens(day: $0.key, tokens: $0.value) }

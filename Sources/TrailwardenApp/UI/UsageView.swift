@@ -15,7 +15,7 @@ struct UsageView: View {
     private let ranges = [7, 30, 90]
 
     private var total: Int {
-        model.usage.values.reduce(0) { $0 + $1.processed }
+        model.usage.values.reduce(0) { $0.saturatingAdd($1.processed) }
     }
 
     var body: some View {

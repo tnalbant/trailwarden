@@ -15,6 +15,9 @@ Secrets that slipped past the masking are now caught, a rule can no longer be do
 - **Exports** shorten home paths in previews too and mask the branch name; export, preference and index files are private (0600) from the first byte. A busy agent database is reported instead of being read halfway.
 - **Hermes** sessions that began before the last scan keep their folder and their token count.
 - The first-run screen no longer says Trailwarden has no network access; it names the optional update check.
+- **Token totals** from a corrupt agent database (counts near the 64-bit limit) no longer crash the app; sums stop at the largest number instead.
+- **A password with `@` or `/` inside a URL** (a database URL whose password is `p@ss`, say) is now masked whole; part of it used to stay visible.
+- **SQL fed to a database shell in a heredoc** (`psql`, `mysql`, `sqlite3`, `duckdb`, `mongosh`, `redis-cli` and others, before the `<<` or piped after it) is checked, so `DROP TABLE` inside it is flagged. The same goes for `eval`, `source`, `csh`, `tclsh` and `pwsh`.
 - On a hidden app (⌘H) the Dock tile stays, and Settings no longer says notifications are "turned off" before anyone has been asked.
 
 # Trailwarden 0.2.3
