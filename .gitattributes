@@ -1,0 +1,5 @@
+# Sources/CZstd is zstd v1.5.7's decompress-only single-file build, unmodified
+# (see Sources/CZstd/README.md for the release and checksum, and its BSD
+# license). GitHub's language bar should describe the app, not the decoder it
+# ships, so those files stay out of the statistics.
+Sources/CZstd/** linguist-vendored
