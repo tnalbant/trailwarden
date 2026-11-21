@@ -2,4 +2,4 @@
 # (see Sources/CZstd/README.md for the release and checksum, and its BSD
 # license). GitHub's language bar should describe the app, not the decoder it
 # ships, so those files stay out of the statistics.
-Sources/CZstd/** linguist-vendored
+Sources/CZstd/**/* linguist-vendored
