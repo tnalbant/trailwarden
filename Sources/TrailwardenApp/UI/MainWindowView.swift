@@ -79,23 +79,17 @@ struct MainWindowView: View {
         }
         .onChange(of: model.sessionToOpen) { _, sessionID in
             guard let sessionID else { return }
-            open(sessionID)
+            open(sessionID, event: model.eventToSelect)
             model.sessionToOpen = nil
-            if let eventID = model.eventToSelect {
-                timeline.selectedEventID = eventID
-                model.eventToSelect = nil
-            }
+            model.eventToSelect = nil
         }
         .onAppear {
             // A notification clicked while the window was closed: the request
             // arrived before this view existed to observe it.
             if let sessionID = model.sessionToOpen {
-                open(sessionID)
+                open(sessionID, event: model.eventToSelect)
                 model.sessionToOpen = nil
-                if let eventID = model.eventToSelect {
-                    timeline.selectedEventID = eventID
-                    model.eventToSelect = nil
-                }
+                model.eventToSelect = nil
             }
         }
     }
@@ -239,8 +233,8 @@ struct MainWindowView: View {
     private var content: some View {
         switch router.tab {
         case .today:
-            FeedView(model: feed) { sessionID in
-                open(sessionID)
+            FeedView(model: feed) { item in
+                open(item.sessionID, event: item.id)
             }
         case .timeline:
             timelineView
@@ -282,7 +276,7 @@ struct MainWindowView: View {
     /// Jumping to a session always means the timeline: the feed is a digest, the
     /// timeline is the record. The range widens first, or an older session would
     /// be filtered out by the current preset.
-    private func open(_ sessionID: String) {
+    private func open(_ sessionID: String, event eventID: String? = nil) {
         // Opening a session means its whole story, so any finding/agent filter
         // from a previous visit is cleared rather than silently applied.
         timeline.findingsOnly = false
@@ -290,6 +284,9 @@ struct MainWindowView: View {
         timeline.search = ""
         timeline.window = .everything
         timeline.selection = .session(sessionID)
+        if let eventID {
+            timeline.reveal(eventID)
+        }
         router.tab = .timeline
     }
 }

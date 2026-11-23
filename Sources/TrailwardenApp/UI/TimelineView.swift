@@ -211,10 +211,21 @@ struct TimelineView: View {
     }
 
     private var list: some View {
+        ScrollViewReader { proxy in
+            listContent
+                .onChange(of: model.scrollTarget) { _, target in
+                    guard let target else { return }
+                    withAnimation { proxy.scrollTo(target, anchor: .center) }
+                }
+        }
+    }
+
+    private var listContent: some View {
         ScrollView {
             LazyVStack(alignment: .leading, spacing: 0) {
                 ForEach(model.events) { event in
                     EventRowView(event: event, selected: model.selectedEventID == event.id)
+                        .id(event.id)
                         .onTapGesture { model.selectedEventID = event.id }
                         .onAppear {
                             if event.id == model.events.last?.id {

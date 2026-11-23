@@ -10,9 +10,8 @@ import TrailwardenCore
 struct FeedView: View {
     @AppStorage(LocalizationStore.defaultsKey) private var language = AppLanguage.system.rawValue
     @ObservedObject var model: FeedModel
-    /// Clicking a row hands the session to the timeline, which already knows how
-    /// to show the full event.
-    var onOpenSession: (String) -> Void
+    /// Clicking a row hands the event to the timeline, which shows it in full.
+    var onOpen: (ActivityItem) -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -95,7 +94,7 @@ struct FeedView: View {
 
     private func row(_ item: ActivityItem) -> some View {
         Button {
-            onOpenSession(item.sessionID)
+            onOpen(item)
         } label: {
             HStack(alignment: .firstTextBaseline, spacing: 10) {
                 Text(time(item.time))

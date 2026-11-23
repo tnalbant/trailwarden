@@ -95,6 +95,10 @@ final class TimelineModel: ObservableObject {
 
     private var store: EventStore?
     private var searchTask: Task<Void, Never>?
+    private var revealTask: Task<Void, Never>?
+
+    /// Set once a revealed event is in the loaded page; the list scrolls to it.
+    @Published private(set) var scrollTarget: String?
 
     let databaseURL: URL
 
@@ -152,6 +156,26 @@ final class TimelineModel: ObservableObject {
             events.append(contentsOf: more)
         } catch {
             errorMessage = String(describing: error)
+        }
+    }
+
+    /// Selects an event from a deep link, loading further pages until it is in
+    /// the list (at most 20 pages). A page per main-actor turn keeps the UI live.
+    func reveal(_ eventID: String) {
+        revealTask?.cancel()
+        scrollTarget = nil
+        revealTask = Task { [weak self] in
+            for _ in 0 ..< 20 {
+                guard let self, !Task.isCancelled else { return }
+                if events.contains(where: { $0.id == eventID }) { break }
+                guard events.count < total else { return }
+                loadMore()
+                await Task.yield()
+            }
+            guard let self, !Task.isCancelled,
+                  events.contains(where: { $0.id == eventID }) else { return }
+            selectedEventID = eventID
+            scrollTarget = eventID
         }
     }
 

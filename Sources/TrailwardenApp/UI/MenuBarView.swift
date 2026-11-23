@@ -217,10 +217,10 @@ struct MenuBarView: View {
         .padding(.vertical, 11)
     }
 
-    /// A row opens the timeline on the session it belongs to.
+    /// A row opens the timeline on the event it describes.
     private func actionRow(_ item: ActivityItem) -> some View {
         Button {
-            model.sessionToOpen = item.sessionID
+            model.openEvent(item.id, in: item.sessionID)
             openWindow(id: "main")
             NSApp.activate(ignoringOtherApps: true)
         } label: {
