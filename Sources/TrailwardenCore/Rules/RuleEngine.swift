@@ -129,9 +129,9 @@ public struct RuleEngine: Sendable {
     public func hits(for event: Event, now: Date = Date()) -> [RiskHit] {
         // Heredoc bodies are file content (`cat > x <<EOF`), not commands — unless
         // they are fed to a shell, which `withoutHeredocBodies` keeps.
-        let texts = [event.command, event.preview].compactMap(\.self)
-            .filter { !$0.isEmpty }
-            .map(Self.withoutHeredocBodies)
+        // What the agent ran is the command. A tool result is what came back and a
+        // Bash description is what the agent said, so neither is scanned.
+        let texts = Self.scannedTexts(for: event)
         let candidates = Self.pathCandidates(for: event)
         let target = Self.target(for: event)
 
@@ -150,6 +150,20 @@ public struct RuleEngine: Sendable {
         return result.sorted { lhs, rhs in
             lhs.severity == rhs.severity ? lhs.ruleId < rhs.ruleId : lhs.severity > rhs.severity
         }
+    }
+
+    /// The text of an event that rules match against: the command with heredoc
+    /// bodies and quoted prose (commit messages, `echo` text) removed. Preview is
+    /// only used for tool calls that have no command.
+    static func scannedTexts(for event: Event) -> [String] {
+        if event.kind == .toolResult { return [] }
+        let source: String? = if let command = event.command, !command.isEmpty {
+            command
+        } else {
+            event.preview
+        }
+        guard let source, !source.isEmpty else { return [] }
+        return [strippingQuotedArguments(withoutHeredocBodies(source))]
     }
 
     /// Returns the events with `risk` filled in, one hit per situation.
@@ -242,7 +256,7 @@ public struct RuleEngine: Sendable {
         let tool = canonicalTool(event.tool)
         let isEdit = tool == "Write" || tool == "Edit"
         if let command = event.command, !(isEdit && !event.paths.isEmpty) {
-            values.append(contentsOf: tokens(in: withoutHeredocBodies(command)))
+            values.append(contentsOf: tokens(in: strippingQuotedArguments(withoutHeredocBodies(command))))
         }
         return values.map(normalizePathToken).filter { !$0.isEmpty }
     }
@@ -293,6 +307,146 @@ public struct RuleEngine: Sendable {
                 continue
             }
             result.replaceSubrange(found, with: "<<" + result[name])
+        }
+        return result
+    }
+
+    // MARK: - Quoted prose
+
+    private static let messageArgument = try? NSRegularExpression(
+        pattern: #"(?<![\w-])(-m|--message)(=|[ \t]+|(?=["']))("[^"\\]*(?:\\.[^"\\]*)*"|'[^']*')"#)
+    private static let echoPart = try? NSRegularExpression(pattern: #"^\s*(?:echo|printf)\b"#)
+    private static let interpreterPart = try? NSRegularExpression(
+        pattern: #"^\s*(?:sudo\s+(?:-\S+\s+)*)?(?:\S*/)?(?:sh|bash|zsh|dash|python3?|perl|ruby|node|eval|base64)\b"#)
+    private static let startupFileRedirect = try? NSRegularExpression(
+        pattern: #">>?\s*["']?(?:~|\$\{?HOME\}?|/[\w/.-]*)?/?\.(?:zshrc|zshenv|zprofile|zlogin|bashrc|bash_profile|profile)\b"#)
+
+    /// Removes text that is prose, not a command: the quoted argument of `-m` /
+    /// `--message` and the quoted arguments of `echo` / `printf`. An `echo` that is
+    /// piped into a shell or interpreter, or redirected into a shell startup
+    /// file, keeps its text because that text runs.
+    static func strippingQuotedArguments(_ command: String) -> String {
+        var text = command
+        if text.contains("-m"), let messageArgument {
+            text = messageArgument.stringByReplacingMatches(
+                in: text,
+                range: NSRange(text.startIndex..., in: text),
+                withTemplate: "$1$2\"\"")
+        }
+        guard text.contains("echo") || text.contains("printf") else { return text }
+        let parts = splitCommandParts(text)
+        var result = ""
+        for (index, part) in parts.enumerated() {
+            var body = part.body
+            if isMatch(echoPart, body), !runsItsText(parts, from: index, body: body) {
+                body = blankingQuotes(body)
+            }
+            result += body + part.delimiter
+        }
+        return result
+    }
+
+    private static func isMatch(_ regex: NSRegularExpression?, _ text: String) -> Bool {
+        guard let regex else { return false }
+        return regex.firstMatch(in: text, range: NSRange(text.startIndex..., in: text)) != nil
+    }
+
+    private static func runsItsText(
+        _ parts: [(body: String, delimiter: String)],
+        from index: Int,
+        body: String) -> Bool
+    {
+        if isMatch(startupFileRedirect, body) { return true }
+        var next = index
+        while parts[next].delimiter == "|", next + 1 < parts.count {
+            next += 1
+            if isMatch(interpreterPart, parts[next].body) { return true }
+        }
+        return false
+    }
+
+    /// Splits at unquoted `;`, `&`, `&&`, `|`, `||` and newlines, keeping the delimiters.
+    private static func splitCommandParts(_ text: String) -> [(body: String, delimiter: String)] {
+        let chars = Array(text)
+        var parts: [(body: String, delimiter: String)] = []
+        var current = ""
+        var quote: Character?
+        var index = 0
+        func flush(_ delimiter: String) {
+            parts.append((current, delimiter))
+            current = ""
+            index += delimiter.count
+        }
+        while index < chars.count {
+            let char = chars[index]
+            let next: Character? = index + 1 < chars.count ? chars[index + 1] : nil
+            if let open = quote {
+                current.append(char)
+                if char == "\\", open == "\"", let next {
+                    current.append(next)
+                    index += 2
+                    continue
+                }
+                if char == open { quote = nil }
+                index += 1
+                continue
+            }
+            switch char {
+            case "\"", "'":
+                quote = char
+                current.append(char)
+                index += 1
+            case "\\":
+                current.append(char)
+                if let next { current.append(next) }
+                index += 2
+            case ";", "\n":
+                flush(String(char))
+            case "&" where current.last == ">" || current.last == "<":
+                current.append(char)
+                index += 1
+            case "&", "|":
+                flush(next == char ? String([char, char]) : String(char))
+            default:
+                current.append(char)
+                index += 1
+            }
+        }
+        parts.append((current, ""))
+        return parts
+    }
+
+    /// Replaces each closed quoted string with an empty pair, unless it holds a
+    /// command substitution.
+    private static func blankingQuotes(_ body: String) -> String {
+        var result = ""
+        var index = body.startIndex
+        while index < body.endIndex {
+            let char = body[index]
+            guard char == "\"" || char == "'" else {
+                result.append(char)
+                index = body.index(after: index)
+                continue
+            }
+            var end = body.index(after: index)
+            while end < body.endIndex, body[end] != char {
+                if char == "\"", body[end] == "\\" {
+                    end = body.index(after: end)
+                    if end == body.endIndex { break }
+                }
+                end = body.index(after: end)
+            }
+            guard end < body.endIndex else {
+                result += body[index...]
+                break
+            }
+            let inner = body[body.index(after: index) ..< end]
+            if char == "\"", inner.contains("$(") || inner.contains("`") {
+                result += body[index ... end]
+            } else {
+                result += "\(char)\(char)"
+            }
+            index = body.index(after: end)
         }
         return result
     }
