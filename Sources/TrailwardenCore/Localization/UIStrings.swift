@@ -28,7 +28,7 @@ public enum UIString: String, CaseIterable, Sendable {
     case rangeDay, rangeWeek, rangeMonth, rangeAll
     // Counts
     case events, event, findings, sessions, eventCount, sessionMeta, sessionCritical
-    case projectMeta, liveCount, liveTooltip, zeroEvents, eventsRatio
+    case projectMeta, liveCount, liveTooltip, eventsRatio
     // Empty states
     case noDataYet, noSessionsFound, noSessionSelected, noEventsInRange, noEventsHint
     case pickEvent, pickEventHint, loadMore
@@ -133,7 +133,6 @@ public enum UITranslations {
         .projectMeta: "%d sessions · %d events",
         .liveCount: "%d live",
         .liveTooltip: "This session wrote in the last two minutes — the agent may still be running",
-        .zeroEvents: "0 events",
         .eventsRatio: "%d / %d events",
 
         .noDataYet: "No data yet — hit Scan.",

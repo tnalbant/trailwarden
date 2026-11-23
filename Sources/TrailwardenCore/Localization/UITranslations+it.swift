@@ -47,7 +47,6 @@ extension UITranslations {
         .projectMeta: "%d sessioni · %d eventi",
         .liveCount: "%d attive",
         .liveTooltip: "Questa sessione ha scritto negli ultimi due minuti: l'agente potrebbe essere ancora in esecuzione",
-        .zeroEvents: "0 eventi",
         .eventsRatio: "%d / %d eventi",
 
         .noDataYet: "Ancora nessun dato: premi «Analizza».",

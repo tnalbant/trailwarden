@@ -47,7 +47,6 @@ extension UITranslations {
         .projectMeta: "%d oturum · %d olay",
         .liveCount: "%d canlı",
         .liveTooltip: "Bu oturum son 2 dakikada yazdı — ajan hâlâ çalışıyor olabilir",
-        .zeroEvents: "0 olay",
         .eventsRatio: "%d / %d olay",
 
         .noDataYet: "Henüz veri yok — Tara'ya bas.",
