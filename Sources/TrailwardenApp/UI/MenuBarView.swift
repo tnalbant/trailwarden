@@ -43,6 +43,9 @@ struct MenuBarView: View {
             if model.onboardingDone, !live.isRunning {
                 guardOffStrip
             }
+            if model.onboardingDone, case let .failed(message) = loginItem.status {
+                loginFailedStrip(message)
+            }
             updateBar
             Hairline()
             if model.onboardingDone {
@@ -103,6 +106,29 @@ struct MenuBarView: View {
                 .font(Tokens.Typography.text(9.5, weight: .medium))
             Spacer(minLength: 2)
             Button(L(.guardOffAction)) {
+                openMain(.settings)
+            }
+            .buttonStyle(.plain)
+            .font(Tokens.Typography.text(9.5, weight: .medium))
+            .foregroundStyle(Tokens.Palette.accent)
+        }
+        .padding(.horizontal, Tokens.Metrics.gutter)
+        .padding(.bottom, 4)
+    }
+
+    /// A login item that could not be changed says so here, where the reader
+    /// will see it, instead of only inside Settings.
+    private func loginFailedStrip(_ message: String) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 6) {
+            Image(systemName: "exclamationmark.triangle")
+                .font(.system(size: 9))
+                .foregroundStyle(Tokens.Palette.accent)
+            Text(message)
+                .font(Tokens.Typography.text(9.5, weight: .medium))
+                .lineLimit(2)
+                .fixedSize(horizontal: false, vertical: true)
+            Spacer(minLength: 2)
+            Button(L(.windowSettings)) {
                 openMain(.settings)
             }
             .buttonStyle(.plain)

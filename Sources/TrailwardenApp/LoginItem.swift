@@ -20,8 +20,15 @@ final class LoginItem: ObservableObject {
     }
 
     /// Reads the system's answer again; the reader can change it in System Settings.
+    /// A failed change stays on screen until the system says something definite:
+    /// "not registered" is what a failed registration looks like, so it must not
+    /// erase the explanation.
     func refresh() {
-        status = Self.current()
+        let current = Self.current()
+        if case .failed = status, current == .disabled {
+            return
+        }
+        status = current
     }
 
     func setEnabled(_ on: Bool) {
