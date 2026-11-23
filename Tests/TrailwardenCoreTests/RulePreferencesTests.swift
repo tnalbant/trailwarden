@@ -45,7 +45,9 @@ final class RulePreferencesTests: XCTestCase {
     func testUserSeverityOverrideSurvivesPatternChange() throws {
         let rules = try RuleCatalog.builtIn()
 
-        let applied = RulePreferences.apply([RulePreference(id: "R7", enabled: true, severity: .warn)], to: rules)
+        let prefs = [RulePreference(id: "R7", enabled: true, severity: .warn)]
+
+        let applied = RulePreferences.apply(prefs, to: rules)
 
         let r7 = try XCTUnwrap(applied.first { $0.id == "R7" })
         XCTAssertEqual(r7.severity, .warn)

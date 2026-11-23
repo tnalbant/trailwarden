@@ -156,7 +156,9 @@ public struct RuleEngine: Sendable {
     /// bodies and quoted prose (commit messages, `echo` text) removed. Preview is
     /// only used for tool calls that have no command.
     static func scannedTexts(for event: Event) -> [String] {
-        if event.kind == .toolResult { return [] }
+        if event.kind == .toolResult {
+            return []
+        }
         let source: String? = if let command = event.command, !command.isEmpty {
             command
         } else {
@@ -356,11 +358,15 @@ public struct RuleEngine: Sendable {
         from index: Int,
         body: String) -> Bool
     {
-        if isMatch(startupFileRedirect, body) { return true }
+        if isMatch(startupFileRedirect, body) {
+            return true
+        }
         var next = index
         while parts[next].delimiter == "|", next + 1 < parts.count {
             next += 1
-            if isMatch(interpreterPart, parts[next].body) { return true }
+            if isMatch(interpreterPart, parts[next].body) {
+                return true
+            }
         }
         return false
     }
@@ -387,7 +393,9 @@ public struct RuleEngine: Sendable {
                     index += 2
                     continue
                 }
-                if char == open { quote = nil }
+                if char == open {
+                    quote = nil
+                }
                 index += 1
                 continue
             }
@@ -398,7 +406,9 @@ public struct RuleEngine: Sendable {
                 index += 1
             case "\\":
                 current.append(char)
-                if let next { current.append(next) }
+                if let next {
+                    current.append(next)
+                }
                 index += 2
             case ";", "\n":
                 flush(String(char))
@@ -432,7 +442,9 @@ public struct RuleEngine: Sendable {
             while end < body.endIndex, body[end] != char {
                 if char == "\"", body[end] == "\\" {
                     end = body.index(after: end)
-                    if end == body.endIndex { break }
+                    if end == body.endIndex {
+                        break
+                    }
                 }
                 end = body.index(after: end)
             }
