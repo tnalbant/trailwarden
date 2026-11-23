@@ -10,6 +10,8 @@ import TrailwardenCore
 struct OnboardingView: View {
     @AppStorage(LocalizationStore.defaultsKey) private var language = AppLanguage.system.rawValue
     @ObservedObject var model: AppModel
+    @ObservedObject var loginItem: LoginItem
+    @State private var opensAtLogin = true
     @Environment(\.openWindow) private var openWindow
     @EnvironmentObject private var router: DashboardRouter
     @State private var roots: [TranscriptRoot] = AppModel.transcriptRoots()
@@ -42,10 +44,19 @@ struct OnboardingView: View {
                 .foregroundStyle(Tokens.Palette.secondary)
                 .fixedSize(horizontal: false, vertical: true)
 
+            Toggle(isOn: $opensAtLogin) {
+                Text(L(.loginItemTitle))
+                    .font(Tokens.Typography.text(9.5))
+                    .foregroundStyle(Tokens.Palette.secondary)
+            }
+            .toggleStyle(.switch)
+            .controlSize(.small)
+
             NotificationPermissionRow(live: model.live)
 
             Button {
                 Task {
+                    loginItem.setEnabled(opensAtLogin)
                     await model.scan()
                     model.finishOnboarding()
                     // The first thing after the first scan: what the agents did.

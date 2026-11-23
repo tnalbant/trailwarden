@@ -14,15 +14,17 @@ struct MainWindowView: View {
     @ObservedObject var model: AppModel
     @ObservedObject var updates: UpdateChecker
     @ObservedObject var router: DashboardRouter
+    @ObservedObject var loginItem: LoginItem
 
     @StateObject private var timeline: TimelineModel
     @StateObject private var feed: FeedModel
     @FocusState private var searchFocused: Bool
 
-    init(model: AppModel, updates: UpdateChecker, router: DashboardRouter) {
+    init(model: AppModel, updates: UpdateChecker, router: DashboardRouter, loginItem: LoginItem) {
         self.model = model
         self.updates = updates
         self.router = router
+        self.loginItem = loginItem
         _timeline = StateObject(wrappedValue: TimelineModel(databaseURL: model.databaseURL))
         _feed = StateObject(wrappedValue: FeedModel(databaseURL: model.databaseURL))
     }
@@ -245,7 +247,7 @@ struct MainWindowView: View {
         case .rules:
             RulesView(model: model)
         case .settings:
-            SettingsView(model: model, updates: updates)
+            SettingsView(model: model, updates: updates, loginItem: loginItem)
         }
     }
 

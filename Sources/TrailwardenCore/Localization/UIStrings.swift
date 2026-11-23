@@ -74,6 +74,9 @@ public enum UIString: String, CaseIterable, Sendable {
     case liveGuard, liveGuardHint, liveOn, liveOff, liveNotifyFor, liveCriticalOnly, liveWarnAndCritical
     case liveNotificationsDenied, liveMoreFindings, liveAllowNotifications, liveOpenNotificationSettings
     case liveNotificationsAllowed
+    // Launch at login
+    case loginItemTitle, loginItemOn, loginItemOff, loginItemNeedsApproval, loginItemOpenSettings
+    case loginItemFailed, guardOffBanner, guardOffAction
     // Report card
     case windowReport, reportTitle, reportWork, reportCommands, reportEdits, reportReads, reportFilesChanged
     case reportWorthALook, reportNoFindings, reportByAgent, reportHotFiles, reportRules, reportCopySummary
@@ -285,6 +288,14 @@ public enum UITranslations {
         .liveNotificationsDenied: "Notifications are turned off for Trailwarden in System Settings.",
         .liveAllowNotifications: "Allow notifications",
         .liveNotificationsAllowed: "Notifications are on",
+        .loginItemTitle: "Open Trailwarden when you log in",
+        .loginItemOn: "Trailwarden opens when you log in.",
+        .loginItemOff: "Trailwarden does not open when you log in.",
+        .loginItemNeedsApproval: "Allow Trailwarden in System Settings to open at login.",
+        .loginItemOpenSettings: "Open Login Items",
+        .loginItemFailed: "Could not change the login item: %@",
+        .guardOffBanner: "Live guard is off",
+        .guardOffAction: "Turn on",
         .liveOpenNotificationSettings: "Open Notification Settings",
         .liveMoreFindings: "%d more findings — open Trailwarden to see them",
         .windowReport: "Report",

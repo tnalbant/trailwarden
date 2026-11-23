@@ -10,6 +10,7 @@ import TrailwardenCore
 struct SettingsView: View {
     @ObservedObject var model: AppModel
     @ObservedObject var updates: UpdateChecker
+    @ObservedObject var loginItem: LoginItem
 
     @AppStorage(AppearanceMode.storageKey) private var appearance = AppearanceMode.system.rawValue
     @AppStorage(LocalizationStore.defaultsKey) private var language = AppLanguage.system.rawValue
@@ -47,7 +48,7 @@ struct SettingsView: View {
         VStack(alignment: .leading, spacing: 18) {
             header
             Hairline()
-            LiveSection(live: model.live, enabled: $liveEnabled, threshold: $liveThreshold)
+            LiveSection(live: model.live, loginItem: loginItem, enabled: $liveEnabled, threshold: $liveThreshold)
             Hairline()
             appearanceSection
             Hairline()
@@ -222,8 +223,26 @@ struct SettingsView: View {
 /// observe the monitor (running, notification permission) directly.
 private struct LiveSection: View {
     @ObservedObject var live: LiveMonitor
+    @ObservedObject var loginItem: LoginItem
     @Binding var enabled: Bool
     @Binding var threshold: String
+
+    /// Follows the system's answer rather than a stored flag, so a change made in
+    /// System Settings is what the switch shows.
+    private var opensAtLogin: Binding<Bool> {
+        Binding(
+            get: { loginItem.status == .enabled || loginItem.status == .requiresApproval },
+            set: { loginItem.setEnabled($0) })
+    }
+
+    private var loginItemLine: String {
+        switch loginItem.status {
+        case .enabled: L(.loginItemOn)
+        case .disabled: L(.loginItemOff)
+        case .requiresApproval: L(.loginItemNeedsApproval)
+        case let .failed(message): message
+        }
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 7) {
@@ -258,6 +277,29 @@ private struct LiveSection: View {
                 .font(Tokens.Typography.text(9.5))
                 .foregroundStyle(Tokens.Palette.secondary)
                 .fixedSize(horizontal: false, vertical: true)
+            VStack(alignment: .leading, spacing: 4) {
+                Toggle(isOn: opensAtLogin) {
+                    Text(L(.loginItemTitle))
+                        .font(Tokens.Typography.text(10.5))
+                }
+                .toggleStyle(.switch)
+                .controlSize(.small)
+                Text(loginItemLine)
+                    .font(Tokens.Typography.text(9.5))
+                    .foregroundStyle(Tokens.Palette.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                if loginItem.status == .requiresApproval {
+                    Button(L(.loginItemOpenSettings)) {
+                        loginItem.openLoginItemsSettings()
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+                }
+            }
+            .onAppear { loginItem.refresh() }
+            .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
+                loginItem.refresh()
+            }
             if enabled, !live.notificationsAllowed {
                 VStack(alignment: .leading, spacing: 6) {
                     // "Turned off" only when the answer was no; before anyone has

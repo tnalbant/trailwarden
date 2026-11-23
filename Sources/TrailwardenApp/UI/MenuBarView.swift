@@ -17,15 +17,17 @@ struct MenuBarView: View {
     @ObservedObject var updates: UpdateChecker
     @ObservedObject var live: LiveMonitor
     @ObservedObject var router: DashboardRouter
+    @ObservedObject var loginItem: LoginItem
     @Environment(\.openWindow) private var openWindow
     /// The places menu unfolds inside the panel: a `Menu` renders as an
     /// unsupported control inside a menu bar window.
     @State private var showsDestinations = false
 
-    init(model: AppModel, updates: UpdateChecker, router: DashboardRouter) {
+    init(model: AppModel, updates: UpdateChecker, router: DashboardRouter, loginItem: LoginItem) {
         self.model = model
         self.updates = updates
         self.router = router
+        self.loginItem = loginItem
         live = model.live
         #if DEBUG
             // Screenshots need the unfolded list without a hand on the mouse.
@@ -38,6 +40,9 @@ struct MenuBarView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             header
+            if model.onboardingDone, !live.isRunning {
+                guardOffStrip
+            }
             updateBar
             Hairline()
             if model.onboardingDone {
@@ -45,7 +50,7 @@ struct MenuBarView: View {
                 Hairline()
                 activity
             } else {
-                OnboardingView(model: model)
+                OnboardingView(model: model, loginItem: loginItem)
             }
             Hairline()
             if showsDestinations {
@@ -85,6 +90,27 @@ struct MenuBarView: View {
         .padding(.horizontal, Tokens.Metrics.gutter)
         .padding(.top, 11)
         .padding(.bottom, 5)
+    }
+
+    /// The guard is the point of the app; when it is off, say so where the
+    /// reader looks, with the way back.
+    private var guardOffStrip: some View {
+        HStack(spacing: 6) {
+            Image(systemName: "exclamationmark.triangle")
+                .font(.system(size: 9))
+                .foregroundStyle(Tokens.Palette.accent)
+            Text(L(.guardOffBanner))
+                .font(Tokens.Typography.text(9.5, weight: .medium))
+            Spacer(minLength: 2)
+            Button(L(.guardOffAction)) {
+                openMain(.settings)
+            }
+            .buttonStyle(.plain)
+            .font(Tokens.Typography.text(9.5, weight: .medium))
+            .foregroundStyle(Tokens.Palette.accent)
+        }
+        .padding(.horizontal, Tokens.Metrics.gutter)
+        .padding(.bottom, 4)
     }
 
     /// The version and the one network call the reader can start, on the row
