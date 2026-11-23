@@ -26,7 +26,7 @@ struct TrailwardenApp: App {
             MenuBarView(model: model, updates: updates, router: router, loginItem: loginItem)
                 .environmentObject(router)
         } label: {
-            MenuBarLabel(model: model, updates: updates)
+            MenuBarLabel(model: model, updates: updates, loginItem: loginItem)
                 .environmentObject(router)
         }
         .menuBarExtraStyle(.window)
@@ -88,6 +88,7 @@ private struct MenuBarLabel: View {
     /// it cannot see changing would never open anything.
     @ObservedObject var model: AppModel
     @ObservedObject var updates: UpdateChecker
+    @ObservedObject var loginItem: LoginItem
 
     var body: some View {
         HStack(spacing: 3) {

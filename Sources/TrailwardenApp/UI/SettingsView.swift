@@ -48,7 +48,11 @@ struct SettingsView: View {
         VStack(alignment: .leading, spacing: 18) {
             header
             Hairline()
-            LiveSection(live: model.live, loginItem: loginItem, enabled: $liveEnabled, threshold: $liveThreshold)
+            LiveSection(
+                live: model.live,
+                loginItem: loginItem,
+                enabled: $liveEnabled,
+                threshold: $liveThreshold)
             Hairline()
             appearanceSection
             Hairline()
@@ -235,6 +239,9 @@ private struct LiveSection: View {
             set: { loginItem.setEnabled($0) })
     }
 
+    private static let becameActive = NotificationCenter.default
+        .publisher(for: NSApplication.didBecomeActiveNotification)
+
     private var loginItemLine: String {
         switch loginItem.status {
         case .enabled: L(.loginItemOn)
@@ -297,7 +304,7 @@ private struct LiveSection: View {
                 }
             }
             .onAppear { loginItem.refresh() }
-            .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
+            .onReceive(Self.becameActive) { _ in
                 loginItem.refresh()
             }
             if enabled, !live.notificationsAllowed {
