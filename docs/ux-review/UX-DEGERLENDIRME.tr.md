@@ -1,6 +1,6 @@
 # Trailwarden — Kullanıcı Deneyimi ve Kullanıcı Faydası Değerlendirmesi
 
-**Sürüm:** v0.2.4 · **Tarih:** 22 Kasım 2026 · **Kapsam:** menü çubuğu uygulaması, ana pencere, canlı koruma, CLI/MCP'nin kullanıcıya dokunan kısımları
+**Sürüm:** v0.2.4 · **Tarih:** 22 Kasım 2026 (HN doğrulamasıyla güncellendi: 23 Kasım 2026) · **Kapsam:** menü çubuğu uygulaması, ana pencere, canlı koruma, CLI/MCP'nin kullanıcıya dokunan kısımları
 
 ---
 
@@ -12,11 +12,12 @@
 | Ekran görüntüleri | `docs/screenshots/*` (demo veritabanı) incelendi. |
 | Erişilebilirlik | Yazı boyutları sayıldı; renk kontrastı WCAG formülüyle hesaplandı. |
 | Kural motoru | `rules.json` ve `RuleEngine` Python'da yeniden kurularak gerçekçi komut derlemlerine karşı yanlış alarm / kaçırma testi yapıldı (§7). |
+| Hacker News (23 Kasım) | Algolia API ile ~195 sorgu, ~12.000 benzersiz kayıt, ~54 başlık tam okundu; hipotezler tek tek doğrulandı veya çürütüldü (§11). |
 | Pazar sesi | Üç araştırma: (a) kullanım/maliyet izleyiciler (ccusage, Claude‑Code‑Usage‑Monitor, CodexBar, ClaudeBar, Usage4Claude, ccstatusline…), (b) oturum/geçmiş görüntüleyiciler (Agent Sessions, claude‑code‑history‑viewer, Sniffly, opcode…), (c) güvenlik/koruma araçları ve gerçek olaylar (dcg, cc‑safe‑setup, sandbox, mcp‑scan, Little Snitch/LuLu, Replit, ev dizini silinmesi…). |
 
 **Sınırlar — dürüstçe:**
 - Uygulama macOS'a özel; bu ortamda (Linux, Swift yok) **çalıştırılamadı**. Değerlendirme kod okuma + ekran görüntüleri + hesaplamaya dayanıyor. Animasyon, gerçek hız, bildirim zamanlaması gibi şeyler gözlenmedi.
-- Reddit, Hacker News ve Product Hunt yorum metinlerine bu ortamdan erişilemedi. Pazar sesi ağırlıkla **GitHub issue'ları (tepki sayılarıyla)**, resmî dokümanlar, olay haberleri ve blog yazılarından geliyor. Kanıt gücü her bölümde belirtildi.
+- Reddit bu ortamdan erişilemedi: Reddit bulut sunucularından gelen istekleri kendi tarafında engelliyor, arama aracı da Reddit içeriğine ulaşamıyor. Hacker News sonradan tarandı (§11); Product Hunt yorumlarına erişilemedi. Pazar sesi ağırlıkla **GitHub issue'ları (tepki sayılarıyla)**, resmî dokümanlar, olay haberleri ve blog yazılarından geliyor. Kanıt gücü her bölümde belirtildi.
 
 ---
 
@@ -29,20 +30,22 @@
 1. **"Girişte aç" yok.** Uygulama Login Item kaydı yapmıyor, belgelerde de anılmıyor. Mac yeniden başlatılınca canlı koruma sessizce kapalı kalıyor. Bir "bekçi" için bu en temel işlev açığı.
 2. **"Ne değişti?" sorusu en yaygın ajanda cevapsız.** Claude Code `Edit`/`Write` olaylarında önizleme, alfabetik ilk anahtar olan `file_path`'e düşüyor (`ClaudeCodeParser.swift:242`). Detay panelinde fark (diff) yerine yalnızca yol görünüyor. Gemini `replace` için de durum aynı (ekran görüntüsünde de böyle). Fark yalnızca Codex yamalarında çalışıyor.
 3. **Bulgular kapatılamıyor.** "İncelendi / beklenen davranış" durumu yok. Menü çubuğundaki kırmızı sayı gün boyu yanıyor, tek seçenek "30 gün sustur". Muadil güvenlik araçlarının kullanıcıları en çok **alarm yorgunluğundan** ve **tek tıkla izin listesinin olmamasından** şikâyet ediyor.
-4. **Tespit, önlemeden sonra geliyor.** Gerçek olaylarda (ev dizininin `rm -rf` ile silinmesi, Replit veritabanı) mağdurların istediği bildirim değil; **önleme** ve **geri alma**. `rm -rf ~` için "saniyeler içinde bildirim" iş işten geçtikten sonra gelir. Trailwarden'ın kural motoru, isteğe bağlı bir ön‑yürütme kancasına (hook) dönüşmeye hazır.
-5. **Pazarın en yüksek sesli acısı geçmiş kaybı, ve Trailwarden bunu zaten kısmen çözüyor ama söylemiyor.** Claude Code'un 30 günlük `cleanupPeriodDays` temizliği eski oturumları siliyor (anthropics/claude-code#46621 ve ≥12 ilgili issue). Trailwarden'ın dizini kaynak dosya silinse de olayları tutuyor (önizlemeler 500 karakterle sınırlı). Bu, ürünün en güçlü edinme kancası olabilir; README'de tek kelime yok.
+4. **Tespit, önlemeden sonra geliyor, ama önleme yarışına girmek de doğru değil.** Gerçek olaylarda mağdurların istediği **önleme** ve **geri alma**. `rm -rf ~` için "saniyeler içinde bildirim" geç kalır; HN'de denetim aracına ilk tepki "Çözümünüz çok geç gelmiyor mu?" oluyor. Öte yandan HN, ajanları onaysız çalıştırmanın (YOLO) çok yaygın olduğunu ve bu modda **kancaların eşzamansız çalıştığını** gösteriyor: komut, kanca onu engelleyemeden yürütülüyor. Satıcılar da "auto mode" ile önlemeyi kendisi yapıyor. Doğru konum: **ajandan bağımsız kayıt + önleme katmanlarını denetleyen gözlemci** ("sandbox etki alanını daraltır; Trailwarden içinde ve dışında ne olduğunu söyler"). Bkz. §11.
+5. **Pazarın en yüksek sesli acısı geçmiş kaybı, ve Trailwarden bunu zaten kısmen çözüyor ama söylemiyor.** Claude Code'un 30 günlük `cleanupPeriodDays` temizliği eski oturumları siliyor (anthropics/claude-code#46621, ≥12 ilgili issue, HN'de buna ayrılmış bir başlık ve ~20 mağdur yorumu). Ayrıca bağlam sıkıştırma (compaction) sıkıştırma öncesi geçmişi değiştiriyor. Trailwarden'ın dizini kaynak dosya silinse de olayları tutuyor, ama önizlemeler 500 karakterle sınırlı, yani **tam bir arşiv değil**. Bu, ürünün en güçlü edinme kancası olabilir; README'de tek kelime yok.
 6. **Oturumlar insan diliyle adlandırılmamış.** Kenar çubuğunda oturum `gemini d23f0824` gibi görünüyor. İlk istem, başlık, dal, süre ve maliyet yok. Görüntüleyici kullanıcılarının en sık istekleri: oturum başlığı, eşleşen pasajı gösteren tam metin arama, tek tıkla resume.
 7. **Kritik kümesi fazla geniş.** Kural testinde (§7) sıradan geliştirme trafiği temiz çıktı. Ama altyapı/DB/kimlik bilgisi işi yoğun bir günde varsayılan eşikte bile **~10–12 kritik bildirim** oluşuyor (`ls ~/.ssh`, test DB'sinde `DROP TABLE`, `kubectl delete pod`, `curl -d @payload.json localhost`). Yakalama oranı %74; `bash -c`, değişken dolaylaması ve `eval "$(curl …)"` yapısal kör noktalar. Beş kural düzeltmesiyle kritik bildirim yarıya iniyor, yakalama artıyor.
 8. **Erişilebilirlik ciddi biçimde eksik.** Kodda **sıfır** erişilebilirlik etiketi var. Metinlerin yaklaşık %73'ü 10 pt ve altında (en sık 9–9,5 pt). Açık temada üçüncül metin kontrastı **2,66:1**, vurgu rengindeki küçük düğmeler **3,45:1** (WCAG AA küçük metin için 4,5:1 ister). Seçiciler boş etiketli, olay listesi klavyeyle gezilemiyor.
 
-**Önerilen ilk 6 adım (etki/çaba sırasıyla)**
+**Önerilen ilk 6 adım (HN doğrulamasından sonra güncellendi; etki/çaba sırasıyla)**
 
 1. Girişte aç anahtarı: ilk açılışta ve Ayarlar'da (`SMAppService.mainApp`). *Çaba: S*
-2. Bulgu "gelen kutusu": Yeni → İncelendi → Beklenen durumları, bildirim üzerinde eylem düğmeleri (Aç / Bu projede beklenen / Sustur). Menü çubuğu sayısı yalnızca **incelenmemiş** bulguları göstersin. *Çaba: M*
-3. Tüm ajanlar için diff ve oturum başlıkları: `old_string/new_string` gibi alanları (maskelenmiş, sınırlı) sakla; oturumu ilk kullanıcı istemiyle adlandır. *Çaba: M*
-4. "Geçmişin silinmez" konumlandırması + kaynak transkript silindiğinde rozet ve resume uyarısı; isteğe bağlı tam arşiv. *Çaba: S→M*
-5. Kural ayarı: §7'deki 5 düzeltmeyle kritik bildirimi yarıya indir, yanlış alarm derlemini CI'a ekle. *Çaba: M*
-6. İsteğe bağlı **Kalkan (Shield)** modu: aynı kural motorunu yalnızca dar ve yüksek güvenli bir "felaket" kümesi için PreToolUse kancası olarak çalıştır; açık rıza, tek tıkla kur/kaldır. *Çaba: L*
+2. **Geçmişin silinmez:** kaynak silinince rozet ve resume uyarısı, Claude'un temizlik ayarını okuyup bilgilendirme, ve isteğe bağlı **tam kalitede arşiv** (ham transkriptin sıkıştırılmış kopyası; temizlik ve sıkıştırmaya karşı). README'nin ilk vaadi bu olsun. *Çaba: S→M*
+3. Bulgu "gelen kutusu": Yeni → İncelendi → Beklenen durumları, bildirimde eylem düğmeleri (Aç / Bu projede beklenen / Sustur) ve komutun **sade dille açıklaması** ("Ev klasörünüzün tamamını siler"). Menü çubuğu sayısı yalnızca **incelenmemiş** bulguları göstersin. *Çaba: M*
+4. Kural ayarı: §7'deki 5 düzeltmeyle kritik bildirimi yarıya indir. Ağırlığı **sırlar, kimlik bilgileri ve kalıcılık** tarafına kaydır (ör. ajan ayar dosyalarına yazılan parolalar). Yanlış alarm derlemini CI'a ekle. *Çaba: M*
+5. **Kota sinyalleri** (transkriptten, ağsız) ve oturum/proje maliyeti. Abonelik kullanıcısının asıl sorusu "limite takılacak mıyım?". *Çaba: M*
+6. **Geri çağırma**: oturum adları, eşleşen pasajı gösteren arama, ve aynı aramanın MCP üzerinden ajana açılması ("geçen sefer bunu nasıl çözmüştük?"). *Çaba: M*
+
+*İlk sürümdeki "Kalkan" (komut öncesi engelleme) önerisi geri çekildi; yerine "Koruma doğrulayıcı" geldi (§8.3 S1, §11).*
 
 ---
 
@@ -218,7 +221,7 @@ Her iş için puan, "kullanıcı bugün bu araçla bu işi ne kadar bitirebiliyo
 | **"CI ajan riskini yakalasın / denetime kanıt vereyim."** | **3,5/5** | `--fail-on`, maskeli markdown var. SARIF/JSON, değiştirilemezlik (hash zinciri) ve zamanlanmış rapor yok. |
 | **"Geçmişim kaybolmasın."** *(fark edilmemiş iş)* | **3/5 (potansiyel 5)** | Dizin, kaynak silinse de olayları tutuyor. Ama önizlemeler 500 karakter, mesajlar kırpık, ve bunu kimse bilmiyor. |
 
-**"Olaydan sonra uyarı" konusunda net görüş:** Trailwarden'ın salt okunur gözlemci kimliği **güven** açısından değerli ve korunmalı. Ama pazarın sesi açık: en pahalı zararlarda bildirim tek başına yetmiyor. Doğru strateji kimliği bozmadan iki şey eklemek: **(1) isteğe bağlı, dar kapsamlı önleme** ve **(2) olay sonrası kurtarma rehberi**. Böylece Trailwarden, kanca araçlarının kırılganlığını da (sessizce açık kalma, zincir komutlar, alt ajanlar) **bağımsız olarak denetleyen** tek ürün olur.
+**"Olaydan sonra uyarı" konusunda net görüş (HN doğrulamasıyla güncellendi):** Trailwarden'ın salt okunur gözlemci kimliği **güven** açısından değerli ve korunmalı. Pazarın sesi açık: en pahalı zararlarda bildirim tek başına yetmiyor. Ama önlemeyi Trailwarden'ın kendi kancasıyla yapmak da çözüm değil: onaysız modda kancalar komutu durduramıyor, satıcılar da önlemeyi kendisi üstleniyor. Doğru strateji: **(1) ajandan bağımsız, eksiksiz kayıt**, **(2) önleme katmanlarının (sandbox, auto mode, kancalar, deny-list) gerçekten çalışıp çalışmadığını denetlemek** ve **(3) olay sonrası kurtarma rehberi**. Böylece Trailwarden, önleme araçlarıyla yarışan değil, onları **bağımsız olarak denetleyen** tek ürün olur.
 
 ---
 
@@ -289,23 +292,35 @@ Ek: araç **çıktısı** olaylarını ve Bash `description` alanını kural tar
 |---|---|---|---|---|
 | K1 | **Bulgu gelen kutusu** | Durumlar: Yeni · İncelendi · Beklenen · Yanlış alarm. Menü çubuğu rozeti = incelenmemiş kritik sayısı. "Tümünü incelendi say" ve ilk taramadan sonra "**Geçmiş bulguları toplu incelendi say**" seçeneği. Bugün sekmesinin üstünde "İncelenecek 3 bulgu" şeridi. | M | ★★★ |
 | K2 | **Kapsamlı izin listesi** | Susturma kapsamları: *bu komut* · *bu projede bu kural* · *bu kural için şu kalıp* (ör. `rm -rf ./dist*`) · *her zaman*. Süreler: 1 gün / 30 gün / süresiz. Yanlış alarm işaretlemeleri yerel bir "kural geri bildirimi" dosyasına yazılsın; kullanıcı isterse issue şablonuna yapıştırsın (telemetri olmadan iyileştirme döngüsü). | M | ★★★ |
-| K3 | **Tüm ajanlar için diff** | Claude `Edit/MultiEdit/Write`, Gemini `replace/write_file`, Copilot `str_replace`, Cursor, opencode düzenlemelerinden eski/yeni metni çıkar; maskele, sınırla (ör. 16 KB), birleşik diff olarak sakla. Detayda renkli diff, oturum düzeyinde "**Bu oturumda değişen dosyalar**" özeti. | M | ★★★ |
+| K3 | **Tüm ajanlar için diff — "neden"iyle birlikte** | Claude `Edit/MultiEdit/Write`, Gemini `replace/write_file`, Copilot `str_replace`, Cursor, opencode düzenlemelerinden eski/yeni metni çıkar; maskele, sınırla (ör. 16 KB), birleşik diff olarak sakla. *HN notu:* kod incelemesi zaten `git diff` ile yapılıyor; Trailwarden'ın katkısı diff'i **onu doğuran konuşmayla** (hemen önceki istem ve ajan açıklaması) yan yana göstermek ve git'in görmediğini, yani **commit edilmemiş, sonra geri alınmış veya repo dışındaki** değişiklikleri göstermek. | M | ★★ |
 | K4 | **Oturum kimliği yerine oturum adı** | İlk kullanıcı istemi (kısaltılmış) + dal + süre + olay sayısı + (varsa) maliyet. Claude'un kendi `summary` kayıtları varsa onları kullan. Kenar çubuğunda tarihe göre ("Bugün / Dün / Bu hafta") gruplama. | M | ★★★ |
 | K5 | **Konuşma görünümü** | Olay akışını "tur" kartlarına böl: *Sen: "retry döngüsünü düzelt" → 12 eylem (3 düzenleme, 6 komut, 1 ⚠︎) → Ajan: "hatayı yüzeye çıkardım"*. Ham akış bir anahtar olarak kalsın. | M–L | ★★ |
 | K6 | **Ortak eylem fiilleri** | `canonicalTool` ile satırlarda simge + fiil (▶ Çalıştırdı, ✎ Düzenledi, 👁 Okudu, 💬 Dedi). Ajana özgü ad detayda. Yollar `cwd`'ye göre göreli. | S | ★★ |
 | K7 | **Arama** | Eşleşen pasajı vurgulu göster, mesajları ve istemleri de ara, `agent: project: rule: since:` sözdizimi, ⌘K ile "her yerden ara". | M | ★★ |
-| K8 | **"Geçmişin silinmez" özelliği** | (a) Kaynak transkripti silinmiş oturumlara rozet: "Kaynak silindi — Trailwarden'da saklı". (b) Bu oturumlarda resume komutunu devre dışı bırak ve nedenini söyle. (c) Claude Code'un `cleanupPeriodDays` değerini oku (yalnızca okuma) ve "Claude bu oturumları N gün içinde silecek; Trailwarden saklıyor" bilgisini ver. (d) Saklama ayarını "ne kadar süre saklayayım" olarak yeniden çerçevele, varsayılan sınırsız. (e) README'de bunu ilk 3 özellikten biri yap. | S–M | ★★★ |
+| K8 | **"Geçmişin silinmez" özelliği** | (a) Kaynak transkripti silinmiş oturumlara rozet: "Kaynak silindi — Trailwarden'da saklı". (b) Bu oturumlarda resume komutunu devre dışı bırak ve nedenini söyle. (c) Claude Code'un `cleanupPeriodDays` değerini oku (yalnızca okuma) ve "Claude bu oturumları N gün içinde silecek; Trailwarden saklıyor" bilgisini ver. (d) Saklama ayarını "ne kadar süre saklayayım" olarak yeniden çerçevele, varsayılan sınırsız. (e) README'de bunu ilk vaat yap. (f) **İsteğe bağlı tam kalitede arşiv:** ham transkriptlerin sıkıştırılmış kopyası (Apple Compression/LZFSE ile, ek bağımlılık olmadan), ajan temizliğine ve bağlam sıkıştırmasına (compaction) karşı. Disk kullanımı Ayarlar'da görünsün. *HN: bu konuya ayrılmış başlık ve ~20 mağdur; itiraz eden ~5 kişi "tek satırlık ayar" diyor, değer otomatik olmasında.* | M | ★★★ |
 | K9 | **Oturum/proje maliyeti** | Zaman çizelgesinde oturum başlığında "≈$0,84", raporda proje başına maliyet. Grafiği ajana göre yığılmış yap. "sayaç" jargonunu kaldır. | M | ★★ |
-| K10 | **Kota sinyalleri (ağsız)** | Codex `rate_limits` alanlarından 5 saatlik ve haftalık pencere doluluğu + sıfırlanma saati. Claude'un "usage limit reached · resets …" mesajlarından "Bu hafta 3 kez limite takıldın, son sıfırlanma 15:00". Açıkça **"transkriptten okunan, tahmini"** etiketiyle. Panelde tek satır, isteğe bağlı. | M | ★★ |
+| K10 | **Kota sinyalleri (ağsız)** | Codex `rate_limits` alanlarından 5 saatlik ve haftalık pencere doluluğu + sıfırlanma saati. Claude'un "usage limit reached · resets …" mesajlarından "Bu hafta 3 kez limite takıldın, son sıfırlanma 15:00". Açıkça **"transkriptten okunan, tahmini"** etiketiyle. Panelde tek satır, isteğe bağlı. *HN: kota/tempo yorumları dolar yorumlarından fazla; dolar rakamı karar girdisi değil, "aboneliğim ne kadar kârlı" övünmesi. Ama maliyet, kullanıcıların bu araç kategorisine ilk giriş kapısı.* | M | ★★★ |
+| K11 | **Repo dışı yan etkiler görünümü** | Oturum başına "proje klasörü dışında dokunulanlar": LaunchAgent/cron, shell başlangıç dosyaları, `~/.ssh`, `~/.aws`, ajan ayar dosyaları, global paket kurulumları. *HN'de karşılanmamış asıl ihtiyaç: "repo içi değişikliği diff gösteriyor; dışarıda ne yaptığını hiçbir şey göstermiyor."* | M | ★★★ |
+| K12 | **Sade dilde uyarılar** | Bildirim ve satırlarda ham komut yerine önce sonucu yaz: "Ev klasörünüzün tamamını siler", "AWS kimlik bilgilerinizi okudu". Ham komut ikinci satırda. *HN: ajanların ürettiği shell komutları "gördüğüm en okunaksız bash".* | S–M | ★★ |
+| K13 | **Ajan için geri çağırma (MCP)** | Mevcut MCP sunucusuna `recall` / `search_sessions` gibi araçlar (eşleşen pasaj + oturum başlığı + resume komutu), uygulamada tek tıkla MCP kurulum sihirbazı. *HN: kazanan anlatım "ajanın kendi geçmişini sorgulaması"; Trailwarden'da bu altyapı zaten var ama görünmüyor.* | M | ★★ |
+| K14 | **Ajan ayarlarında sır taraması** | Ajanların izin listelerine kaydettiği komutlarda parola/token var mı? (`.claude/settings.local.json` vb.). *HN'de 629 puanlık "Don't Ask Again parolaları açığa çıkarıyor" başlığı.* Mevcut maskeleme altyapısıyla yeni bir kural. | S | ★★ |
 
 ### 8.3 Orta vade (0.4–0.5 — stratejik bahisler)
 
-**S1. Kalkan (Shield) modu: isteğe bağlı önleme** *(L, ★★★)*
+**S1. Koruma doğrulayıcı ve bağımsız kayıt** *(M, ★★★)* — *HN doğrulamasından sonra "Kalkan" önerisinin yerini aldı*
 
-- Yeni bir alt komut, `trailwarden hook`: Claude Code `PreToolUse`, Codex, Gemini CLI, Copilot CLI ve Cursor kanca arayüzleri için aynı kural motorunu çalıştırır.
-- **Yalnızca dar ve yüksek güvenli bir "felaket" kümesini** engeller: ev/kök dizinine `rm -rf`, disk silme, `DROP DATABASE`, korumalı dala force‑push, `terraform destroy`, SIP/Gatekeeper kapatma. Geri kalanı yalnızca bildirime düşer. Böylece önleme yanlış alarmının maliyeti (işi durdurma) en aza iner.
-- Kurulum uygulama içinden, **önce gösterilen bir diff ile** (ayar dosyasına ne yazılacak), açık rızayla ve tek tıkla kaldırılabilir. "Salt okunur gözlemci" sözü varsayılan modda korunur; Kalkan ayrı ve açıkça adlandırılmış bir seçenektir.
-- **Bonus: kanca sağlığı denetimi.** Gözlemci, kanca kurulu olduğu halde engellenmesi gereken bir komutun çalıştığını görürse "Korumanız devreye girmedi" uyarısı verir (zincir komut, alt ajan, yanlış çıkış kodu vakaları). Bu, piyasada boş bir konum.
+İlk sürümde önerilen "Kalkan" (Trailwarden'ın kendi PreToolUse kancası) **geri çekildi**. Üç neden var:
+
+1. **Onaysız mod (YOLO) çok yaygın** ve bu modda kancalar eşzamansız çalışıyor; komut, kanca engelleyemeden yürütülüyor (`nah` geliştiricisinin açıklaması ve anthropics/claude-code#20946).
+2. **Kancalar atlatılabiliyor:** zincir komutlar, alt ajanlar, "izin ver" denince tekrar deneme.
+3. **Satıcı önleme alanını kendisi dolduruyor:** auto mode varsayılan oldu, sandbox ürünleşti.
+
+Trailwarden bu yarışa üçüncü bir kırılgan kanca olarak girerse farklılaşamaz. Bunun yerine bu katmanların **üstünde** durmalı:
+
+- **"Korumanız devreye girmedi" uyarısı.** Ajan ayarlarından kurulu kancaları, izin/engel listelerini ve modu (auto/YOLO/sandbox) yalnızca okuyarak çıkar. Engellenmesi gereken bir komut transkriptte **çalışmış** görünüyorsa bunu ayrı ve yüksek öncelikli bir bulgu türü olarak göster: "Engel listenizde `~/.env` var ama Claude 14:02'de okudu."
+- **Oturum güvenlik profili.** Her oturumun başında hangi modda çalıştığı (onaysız, sandbox, auto) rozet olarak görünsün. Rapor, "bu ay oturumların %62'si onaysız moddaydı" gibi bir içgörü versin.
+- **Konumlandırma:** "Ajanın özeti değil, gerçekte ne yaptığının bağımsız kaydı." HN'de en çok karşılık bulan dil bu ("Not the agent's summary, the actual sequence"; "the only way to know what the agent did is logs"). Her tanıtımda gelecek **"Neden sandbox kullanmıyorsunuz?"** sorusunun cevabı hazır olsun: *"Kullanın. Sandbox etki alanını daraltır, Trailwarden içinde ve dışında ne olduğunu söyler."*
+- Önleme isteyen kullanıcıya Trailwarden'ın kendi kancası yerine **mevcut araçları doğru kurdurmak**: ajanın sandbox/auto mode ayarına giden yol, deny-list önerisi (Trailwarden'ın bulgularından üretilmiş, kopyalanabilir).
 
 **S2. Kurtarma asistanı: "Şimdi ne yapmalıyım?" kartları** *(M, ★★★)*
 
@@ -324,7 +339,9 @@ Bu, "bildirim aldım ama ne yapacağım?" boşluğunu kapatır. Araştırmada ma
 - Oturum içi dizi kuralları: *sır okundu → ardından ağ komutu* (sızdırma deseni); *kısa sürede N'den fazla dosya silindi/üzerine yazıldı*; *aynı hedefe art arda `mv`* (Gemini olayı); *proje dışına yazma patlaması*.
 - Gürültüyü artırmamak için varsayılan olarak "uyarı" seviyesinde ve yalnızca raporda göster.
 
-**S4. Ekip/denetim katmanı (hâlâ tamamen yerel)** *(M, ★★)*
+**S4. Ekip/denetim katmanı (hâlâ tamamen yerel)** *(M, ★ — HN'de talep zayıf, ertelenebilir)*
+
+*HN doğrulaması: yaklaşık 15 "yönetişim" Show HN'i çoğunlukla 1–3 puan aldı; kurumsal ilgi sonradan okunan loglardan çok erişim kısıtlama ve kimlik tarafında. Bu katman, geçmiş/kota/gelen kutusu işleri bitmeden başlatılmamalı.*
 
 - `export --json`, `--csv`, **`--sarif`**. SARIF ile CI kapısı GitHub code scanning'e doğrudan bağlanır.
 - **Değiştirilemezlik kanıtı:** dışa aktarımlara hash zinciri veya imza; "bu kayıt sonradan değiştirilmedi" denetçiye gösterilebilir.
@@ -337,7 +354,7 @@ Bugün ↔ Rapor ↔ panel arasında örtüşme var. Görev odaklı 4 bölüm ö
 1. **Gelen kutusu**: incelenecek bulgular, bugünün özeti.
 2. **Oturumlar**: konuşma görünümü, arama, resume, diff.
 3. **İçgörüler**: rapor + kullanım + maliyet, tek dönem seçicisi.
-4. **Kurallar ve koruma**: kurallar, izin listesi, Kalkan.
+4. **Kurallar ve koruma**: kurallar, izin listesi, koruma doğrulayıcı.
 
 Ayarlar ayrı kalır. Bu, CodexBar'ın "şişkinlik" tuzağına karşı da bir sigorta: her yeni özelliğin hangi bölüme ait olduğu sorusu disiplini korur.
 
@@ -346,6 +363,8 @@ Ayarlar ayrı kalır. Bu, CodexBar'ın "şişkinlik" tuzağına karşı da bir s
 - **Sağlayıcı API'lerine, çerezlere veya keychain'e gidip kesin kota çekmeyin.** Rakiplerin en büyük şikâyet kaynağı (keychain istemleri, oturum kopmaları). Gizlilik sözünüzü bozar. Transkriptten okunan sinyallerle yetinin ve "tahmini" deyin.
 - **Menü çubuğu panelini büyütmeyin.** Panel 5 saniyelik cevap yeri olarak kalsın: koruma durumu, incelenecek bulgu sayısı, son 5 eylem, (isteğe bağlı) tek satır kota. Gerisi pencerede.
 - **Bulut senkronizasyonu eklemeyin.** Çoklu makine talebi var, ama ürünün kimliği yerellik. Bunun yerine "dizini dışa/içe aktar" (dosya) yeterli.
+- **Kendi önleme kancanızı yazmayın** (bkz. S1). Onaysız modda kancalar komutu durduramıyor ve bu alanı satıcılar dolduruyor; üçüncü bir kırılgan kanca farklılaşma getirmez.
+- **Kalabalık kategoride "slop" algısına dikkat.** HN'de yeni araçlara ilk tepki "CodexBar'dan farkı ne?" ve "AI ile üretilmiş gibi". README kısa, insan sesiyle yazılmış olsun ve rakiplerle bir karşılaştırma tablosu içersin.
 - **Kural sayısını pazarlama metriği yapmayın** ("27 kural"). Kullanıcı için anlamlı metrik **yanlış alarm oranı**dır.
 
 ---
@@ -372,6 +391,37 @@ Trailwarden telemetri toplamıyor (doğru karar). Yine de neyin işe yaradığı
 - İzlenecek başarı göstergeleri (kullanıcı beyanı + gönüllü özetler): ilk haftadan sonra canlı korumanın açık kalma oranı · incelenmeyen bulgu birikimi · kural başına yanlış alarm oranı · "geçmişimi kurtardı" anekdotları.
 
 ---
+
+## 11. Hacker News doğrulaması (23 Kasım 2026)
+
+İlk raporun hipotezleri Hacker News'te sınandı. Yöntem: Algolia API ile ~195 sorgu (Ocak 2025 sonrası), ~12.000 benzersiz kayıt, ~54 başlık baştan sona okundu. Sayımlar regex tahminidir ve araç yapımcılarının kendi tanıtımlarını da içerir. Alıntıların bir kısmı kaynaktan ayrıca kontrol edildi. Reddit'e erişilemedi.
+
+| Hipotez | Sonuç | Kanıt özeti |
+|---|---|---|
+| Geçmiş kaybı güçlü bir acı, kalıcı arşiv isteniyor | **Güçlendi (en güçlü)** | Konuya ayrılmış başlık ([48732846](https://news.ycombinator.com/item?id=48732846)), ~20 yazardan ~23 yorum, en az 5 arşiv aracı. "Some CLI startup paths don't load the config, use the 30 day default. Boom, your chats are gone… silently" ([48735074](https://news.ycombinator.com/item?id=48735074)). "Two of my projects lost their whole history that way" ([48921255](https://news.ycombinator.com/item?id=48921255)). İtiraz: "crontab ile kopyala" (~5 kişi). |
+| Tam metin arama, okunabilir oturum adları, resume | **Arama güçlendi, resume'a nüans** | Yerleşik seçici "yalnızca ilk mesaja veya isme göre filtreliyor" ([48012400](https://news.ycombinator.com/item?id=48012400)). Asıl iş **geri çağırma** ("geçen sefer nasıl çözmüştük"). Resume ise çoğunlukla kota dolunca veya yeniden başlatınca gerekiyor; bazıları hiç kullanmıyor. |
+| Değişiklik incelemesi (diff) | **Değişmedi, keskin nüans** | İnceleme `git diff` ile yapılıyor. "Bu dosyaya hangi ajan dokundu" için kendiliğinden gelen talep yok. Karşılanmamış ihtiyaç: **repo dışı yan etkiler** ve **neden**. |
+| Yerellik / telemetri yok önemli | **Güçlendi (giriş şartı)** | ~98 yorum. Oturum yükleyen araçlara sert tepki: "Your Claude Code sessions will now be uploaded automatically. No, thanks" ([47350914](https://news.ycombinator.com/item?id=47350914)). Yerellik tek başına çekim yaratmıyor ama yokluğu eliyor. |
+| Çoklu ajan kullanıcıları tek görünüm istiyor | **Güçlendi (orta)** | 2026'da en az 10 ajanlar arası geçmiş aracı çıktı. Kullanıcılar kota yüzünden ajan değiştiriyor ([48828332](https://news.ycombinator.com/item?id=48828332)). Risk: satıcıların masaüstü uygulamaları kendi birleşik geçmişini getiriyor. |
+| Abonelik kullanıcısı için kota > dolar | **Güçlendi** | Kota/tempo yorumları dolar yorumlarından fazla (~638'e ~536). "I want… 'you've used x% of your paid quota'" ([44714435](https://news.ycombinator.com/item?id=44714435)). Dolar rakamları karar girdisi değil, "aboneliğim ne kadar kârlı" övünmesi. Satıcının limitleri opak olduğu için doğruluk güvensizliği de var. |
+| Önleme > tespit; geri alma isteniyor | **Çoğunlukla doğrulandı + gerçek bir azınlık** | Baskın görüş sandbox ve önleme. Bir denetim aracına ilk yanıt: "Sounds like your solution comes too late, innit?" ([50382260](https://news.ycombinator.com/item?id=50382260)). Ama bağımsız kayıt savunucuları da var: "don't try to prevent, just have an independent record of what the agent actually did. Not the agent's summary" ([47364428](https://news.ycombinator.com/item?id=47364428)). Trailwarden'a en yakın örnek de bu çizgide: bir Claude Code oturumunun fark edilmeden LaunchAgent yazdığını anlatıyor ([48830674](https://news.ycombinator.com/item?id=48830674)). |
+| Onay/alarm yorgunluğu merkezi | **Güçlendi** | ~49 yorum; YOLO, sandbox ve auto mode araçlarının çıkış hikâyesi. İzin listeleri kırılgan: oturumdan oturuma küçük farklar listeye uymuyor ([49239569](https://news.ycombinator.com/item?id=49239569)). |
+| Menü çubuğu araçları hızlı ve sade olmalı | **Hafif güçlendi (zayıf kanıt)** | ~4 kendiliğinden gelen şikâyet. Keychain istemi yüzünden kaldırma: "prompted at least once a day… going to uninstall it" ([46827649](https://news.ycombinator.com/item?id=46827649)). |
+| Ekipler denetim/uyum istiyor | **Değişmedi ile zayıf arası** | ~15 yönetişim Show HN'i çoğunlukla 1–3 puan. Kurumsal ilgi erişim kısıtlama ve kimlik tarafında. |
+| YOLO modu yaygın mı? | **Güçlü biçimde doğrulandı** | ~194 birinci ağızdan kullanım anlatımı; ~72'si konteyner/VM/sandbox anıyor, bir kısmı açıkça kendi makinesinde. "alias claude='claude --dangerously-skip-permissions'… everyday for about a year" ([49240228](https://news.ycombinator.com/item?id=49240228)). **Sonradan okunan bir gözlemcinin değerini doğrudan büyüten bulgu.** |
+| Kanca tabanlı korumalar kırılgan | **Güçlendi** | YOLO modunda kancalar eşzamansız çalışıyor: "commands execute before nah can block them" ([47344639](https://news.ycombinator.com/item?id=47344639)). `~/.env` engeli "izin ver" denince aşıldı ([46417111](https://news.ycombinator.com/item?id=46417111)). |
+
+**HN'den çıkan yeni temalar ve rapora etkileri**
+
+1. **Kimlik bilgileri ve kalıcılık, `rm -rf`'ten daha çok yankı buluyor.** Geniş yetkili API token'ları, LaunchAgent, ayar dosyalarına sızan parolalar (629 puanlık "Don't Ask Again" başlığı). → Kural ağırlığı bu yöne kaymalı (K14, ilk adımlar #4).
+2. **Ajanın kendi anlatımına güvenilmiyor.** → "Bağımsız kayıt" konumlandırması (S1).
+3. **Ajan bir tüketici olarak.** Geçmişi ajanın sorgulaması en çok ilgi gören anlatım. → MCP geri çağırma (K13).
+4. **Maliyet giriş kapısı.** Kullanıcılar maliyet için gelip geçmiş için kalıyor. → Kullanım ekranı edinme kanalı olarak önemli; kota sinyali öncelik kazandı (K10).
+5. **Okunaksız komutlar.** → Sade dilde uyarılar (K12).
+6. **Bağlam sıkıştırması geçmişi değiştiriyor.** → Tam kalitede arşiv (K8-f).
+7. **Kategori doygunluğu ve "slop" yorgunluğu.** → README ve tanıtım dili (§8.4).
+
+**Önerilere net etkisi:** "Kalkan" geri çekildi, yerine "Koruma doğrulayıcı" geldi. Arşiv, kota sinyali, repo dışı yan etkiler ve sade dilde uyarılar yükseldi. Ekip/denetim katmanı ertelendi. Diff önerisi "neden" ve "git'in görmediği" yönüne çevrildi.
 
 ## Ek A — Muadil ürünlerden seçilmiş kaynaklar
 
