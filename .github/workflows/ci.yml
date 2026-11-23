@@ -68,6 +68,10 @@ jobs:
           set -euo pipefail
           strays=$(grep -RnE '\b(Text|Button|Toggle)\("[^"\\]*[A-Za-z]{2,}' Sources/TrailwardenApp \
             | grep -vF 'Text("Trailwarden")' || true)
+          # A ternary that returns a bare word is how a stray "0 olay" hid (SF Symbol names are fine).
+          ternaries=$(grep -RnE '\? "[a-z0-9 ]*[a-z]{3,}[a-z0-9 ]*"' Sources/TrailwardenApp \
+            | grep -vE 'system(Name|Image): ' || true)
+          strays="$strays$ternaries"
           if [ -n "$strays" ]; then
             echo "::error::Hardcoded interface text; use the string catalog."
             echo "$strays"

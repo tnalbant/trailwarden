@@ -44,7 +44,7 @@ struct UsageView: View {
         VStack(alignment: .leading, spacing: 3) {
             Text(L(.windowUsage))
                 .font(Tokens.Typography.serif(19, weight: .semibold))
-            Text(Lf(.usageSummary, [days, Self.tokens(total), model.dailyUsage.count]))
+            Text(Lf(.usageSummary, [days, Self.tokens(total), Lf(.activeDays, [model.dailyUsage.count])]))
                 .font(Tokens.Typography.mono(10))
                 .foregroundStyle(Tokens.Palette.secondary)
             if model.costEstimate.pricedTokens > 0 {
@@ -197,11 +197,11 @@ struct UsageView: View {
     /// The split behind a row, on hover: where the tokens (and the money) went.
     private func breakdown(_ tokens: TokenCount) -> String {
         [
-            "input \(Self.tokens(tokens.input))",
-            "cache read \(Self.tokens(tokens.cacheRead))",
-            "cache write \(Self.tokens(tokens.cacheWrite))",
-            "output \(Self.tokens(tokens.output))",
-            tokens.reasoning > 0 ? "reasoning \(Self.tokens(tokens.reasoning))" : nil
+            "\(L(.tokenInput)) \(Self.tokens(tokens.input))",
+            "\(L(.tokenCacheRead)) \(Self.tokens(tokens.cacheRead))",
+            "\(L(.tokenCacheWrite)) \(Self.tokens(tokens.cacheWrite))",
+            "\(L(.tokenOutput)) \(Self.tokens(tokens.output))",
+            tokens.reasoning > 0 ? "\(L(.tokenReasoning)) \(Self.tokens(tokens.reasoning))" : nil
         ].compactMap(\.self).joined(separator: " · ")
     }
 

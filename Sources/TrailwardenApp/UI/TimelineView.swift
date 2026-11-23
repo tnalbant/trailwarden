@@ -281,7 +281,7 @@ struct TimelineView: View {
                     .lineLimit(1)
             } else {
                 Text(model.events.isEmpty
-                    ? "0 olay"
+                    ? L(.eventsNone)
                     : Lf(.eventsRatio, [model.events.count, model.total]))
                     .font(Tokens.Typography.mono(9.5))
                     .foregroundStyle(Tokens.Palette.secondary)

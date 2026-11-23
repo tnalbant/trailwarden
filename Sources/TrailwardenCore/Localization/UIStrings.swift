@@ -81,6 +81,9 @@ public enum UIString: String, CaseIterable, Sendable {
     case reportShareFooter, reportOpen
     // File history in the detail pane
     case whoTouched, whoNone
+    // Last interface strings that were hardcoded
+    case eventsNone, range90Days, touchChanged, touchRead, touchNamed
+    case tokenInput, tokenCacheRead, tokenCacheWrite, tokenOutput, tokenReasoning, activeDays
     // Scheduled update check
     case updateSchedule, updateScheduleNever, updateScheduleWeekly, updateScheduleMonthly
     case updateScheduleHint, updateLastChecked, updateNeverChecked, updateNotificationTitle
@@ -207,7 +210,7 @@ public enum UITranslations {
         .privacyBadge: "A redacted audit record will be written",
         .settingsVersion: "v%@ · %d events · %d sessions",
 
-        .usageSummary: "Last %d days · %@ tokens · %d days",
+        .usageSummary: "Last %d days · %@ tokens · %@",
         .dailyTokens: "Daily tokens",
         .noTokenData: "No token counts yet. They appear here once an agent writes a counter during a session.",
         .token: "Token",
@@ -305,8 +308,19 @@ public enum UITranslations {
         .reportShareFindings: "%d critical, %d warnings",
         .reportShareFooter: "Audited locally with Trailwarden — github.com/tnalbant/trailwarden",
         .reportOpen: "Open in timeline",
-        .whoTouched: "Other agents on this file",
+        .whoTouched: "Other sessions on this file",
         .whoNone: "No other agent touched it.",
+        .eventsNone: "0 events",
+        .range90Days: "90 days",
+        .touchChanged: "changed",
+        .touchRead: "read",
+        .touchNamed: "in a command",
+        .tokenInput: "input",
+        .tokenCacheRead: "cache read",
+        .tokenCacheWrite: "cache write",
+        .tokenOutput: "output",
+        .tokenReasoning: "reasoning",
+        .activeDays: "%d active days",
 
         .updateSchedule: "Automatic update check",
         .updateScheduleNever: "Off",

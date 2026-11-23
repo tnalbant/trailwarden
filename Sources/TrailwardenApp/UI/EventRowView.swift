@@ -8,7 +8,7 @@ extension Severity {
     var tint: Color {
         switch self {
         case .critical: Tokens.Palette.accent
-        case .warn: Color(red: 0.72, green: 0.52, blue: 0.12)
+        case .warn: Tokens.Palette.severity(.warn)
         case .info: Tokens.Palette.secondary
         }
     }

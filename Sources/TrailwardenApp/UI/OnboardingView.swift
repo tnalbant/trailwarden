@@ -22,7 +22,7 @@ struct OnboardingView: View {
             ForEach(roots) { root in
                 VStack(alignment: .leading, spacing: 1) {
                     HStack {
-                        Text(root.agent.rawValue)
+                        Text(root.agent.displayName)
                             .font(Tokens.Typography.mono(9))
                         Spacer()
                         Text(root.exists ? Lf(.filesCount, [root.files]) : L(.missingFolder))

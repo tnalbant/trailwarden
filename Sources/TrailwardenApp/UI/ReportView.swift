@@ -86,13 +86,13 @@ struct ReportView: View {
             Picker("", selection: $days) {
                 Text(L(.rangeWeek)).tag(7)
                 Text(L(.rangeMonth)).tag(30)
-                Text("90").tag(90)
+                Text(L(.range90Days)).tag(90)
             }
             .pickerStyle(.segmented)
             .labelsHidden()
-            .frame(width: 170)
+            .frame(width: 210)
             .opacity(scrolls ? 1 : 0)
-            .frame(width: scrolls ? 170 : 0)
+            .frame(width: scrolls ? 210 : 0)
             Button {
                 copySummary()
             } label: {

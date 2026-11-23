@@ -304,7 +304,7 @@ private struct FileNeighborsView: View {
                         HStack(alignment: .firstTextBaseline, spacing: 6) {
                             Text(EventFormatting.agentLabel(touch.event.agent))
                                 .font(Tokens.Typography.mono(9, weight: .medium))
-                            Text(touch.action.rawValue)
+                            Text(touch.action.label(LocalizationStore.current))
                                 .font(Tokens.Typography.mono(9))
                                 .foregroundStyle(touch.action == .changed
                                     ? Tokens.Palette.accent
