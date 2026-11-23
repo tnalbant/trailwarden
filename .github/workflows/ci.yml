@@ -62,6 +62,19 @@ jobs:
           fi
           echo "OK: network APIs confined to the update check."
 
+      # Interface text lives in the string catalog, never inline in views.
+      - name: No hardcoded interface text
+        run: |
+          set -euo pipefail
+          strays=$(grep -RnE '\b(Text|Button|Toggle)\("[^"\\]*[A-Za-z]{2,}' Sources/TrailwardenApp \
+            | grep -vF 'Text("Trailwarden")' || true)
+          if [ -n "$strays" ]; then
+            echo "::error::Hardcoded interface text; use the string catalog."
+            echo "$strays"
+            exit 1
+          fi
+          echo "OK: no hardcoded interface text."
+
       # Real agent transcripts must never be committed; only synthetic fixtures.
       - name: No .jsonl outside fixtures
         run: |
@@ -73,6 +86,25 @@ jobs:
             exit 1
           fi
           echo "OK: no stray .jsonl files."
+
+  app-build:
+    name: App build
+    runs-on: macos-15
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate the Xcode project
+        run: xcodegen generate
+
+      - name: Build the app
+        run: |
+          set -o pipefail
+          xcodebuild -project Trailwarden.xcodeproj -scheme Trailwarden -configuration Debug \
+            -destination 'platform=macOS' CODE_SIGNING_ALLOWED=NO CODE_SIGN_IDENTITY="" build | tail -n 200
 
   # Every commit on every branch, with the repository's own allowlist
   # (.gitleaks.toml, .gitleaksignore). A pinned release, checked against its
