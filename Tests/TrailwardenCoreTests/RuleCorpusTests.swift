@@ -21,10 +21,10 @@ struct CorpusScore {
 /// credential-looking string is ever written into the repository.
 enum RuleCorpus {
     static let placeholders: [String: String] = {
-        let github: String = "ghp_" + String(repeating: "b", count: 36)
-        let openAI: String = "sk-" + String(repeating: "a", count: 32)
-        let anthropic: String = "sk-ant-" + "api03-" + String(repeating: "e", count: 32)
-        let aws: String = "AKIA" + String(repeating: "D", count: 16)
+        let github = "ghp_" + String(repeating: "b", count: 36)
+        let openAI = "sk-" + String(repeating: "a", count: 32)
+        let anthropic = "sk-ant-" + "api03-" + String(repeating: "e", count: 32)
+        let aws = "AKIA" + String(repeating: "D", count: 16)
         var table: [String: String] = [:]
         table["{{GITHUB_TOKEN}}"] = github
         table["{{OPENAI_KEY}}"] = openAI
@@ -105,14 +105,24 @@ final class RuleCorpusTests: XCTestCase {
 
         for command in corpus.benignBash {
             let hits = engine.hits(for: makeEvent(command: command))
-            if !hits.isEmpty { score.benignBashHits += 1 }
-            if hits.contains(where: { $0.severity == .critical }) { score.benignBashCritical += 1 }
-            for id in Set(hits.map(\.ruleId)) { score.falsePositivesByRule[id, default: 0] += 1 }
+            if !hits.isEmpty {
+                score.benignBashHits += 1
+            }
+            if hits.contains(where: { $0.severity == .critical }) {
+                score.benignBashCritical += 1
+            }
+            for id in Set(hits.map(\.ruleId)) {
+                score.falsePositivesByRule[id, default: 0] += 1
+            }
         }
         for file in corpus.benignFiles {
             let hits = engine.hits(for: makeEvent(command: nil, tool: file.tool, paths: [file.path]))
-            if !hits.isEmpty { score.benignFileHits += 1 }
-            for id in Set(hits.map(\.ruleId)) { score.falsePositivesByRule[id, default: 0] += 1 }
+            if !hits.isEmpty {
+                score.benignFileHits += 1
+            }
+            for id in Set(hits.map(\.ruleId)) {
+                score.falsePositivesByRule[id, default: 0] += 1
+            }
         }
         for item in corpus.risky where !engine.hits(for: makeEvent(command: item.command)).isEmpty {
             score.riskyCaught += 1
