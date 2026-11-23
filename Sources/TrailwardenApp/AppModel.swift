@@ -181,7 +181,11 @@ final class AppModel: ObservableObject {
         }
 
         let url = databaseURL
-        let outcome = await Task.detached(priority: .userInitiated) { [weak self] () -> (
+        // Built here, on the main actor, so the detached scan never captures `self`.
+        let publish: @MainActor @Sendable (ScanProgress) -> Void = { [weak self] progress in
+            self?.scanProgress = progress
+        }
+        let outcome = await Task.detached(priority: .userInitiated) { () -> (
             events: Int,
             failure: String?) in
             do {
@@ -195,7 +199,7 @@ final class AppModel: ObservableObject {
                         let percent = Int(progress.fraction * 100)
                         guard percent != shown else { return }
                         shown = percent
-                        Task { @MainActor in self?.scanProgress = progress }
+                        Task { @MainActor in publish(progress) }
                     }
                 return (report.eventsStored, report.failures.first)
             } catch {
