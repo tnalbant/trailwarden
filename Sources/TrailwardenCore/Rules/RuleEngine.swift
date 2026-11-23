@@ -153,8 +153,7 @@ public struct RuleEngine: Sendable {
     }
 
     /// The text of an event that rules match against: the command with heredoc
-    /// bodies and quoted prose (commit messages, `echo` text) removed. Preview is
-    /// only used for tool calls that have no command.
+    /// bodies removed. Preview is only used for tool calls that have no command.
     static func scannedTexts(for event: Event) -> [String] {
         if event.kind == .toolResult {
             return []
@@ -165,7 +164,7 @@ public struct RuleEngine: Sendable {
             event.preview
         }
         guard let source, !source.isEmpty else { return [] }
-        return [strippingQuotedArguments(withoutHeredocBodies(source))]
+        return [withoutHeredocBodies(source)]
     }
 
     /// Returns the events with `risk` filled in, one hit per situation.
@@ -315,8 +314,8 @@ public struct RuleEngine: Sendable {
 
     // MARK: - Quoted prose
 
-    private static let messageArgument = try? NSRegularExpression(
-        pattern: #"(?<![\w-])(-m|--message)(=|[ \t]+|(?=["']))("[^"\\]*(?:\\.[^"\\]*)*"|'[^']*')"#)
+    private static let messageFlagBefore = try? NSRegularExpression(
+        pattern: #"(?:^|\s)(?:-m|--message)(?:=|\s*)$"#)
     private static let echoPart = try? NSRegularExpression(pattern: #"^\s*(?:echo|printf)\b"#)
     private static let interpreterPart = try? NSRegularExpression(
         pattern: #"^\s*(?:sudo\s+(?:-\S+\s+)*)?(?:\S*/)?(?:sh|bash|zsh|dash|python3?|perl|ruby|node|eval|base64)\b"#)
@@ -328,20 +327,17 @@ public struct RuleEngine: Sendable {
     /// piped into a shell or interpreter, or redirected into a shell startup
     /// file, keeps its text because that text runs.
     static func strippingQuotedArguments(_ command: String) -> String {
-        var text = command
-        if text.contains("-m"), let messageArgument {
-            text = messageArgument.stringByReplacingMatches(
-                in: text,
-                range: NSRange(text.startIndex..., in: text),
-                withTemplate: "$1$2\"\"")
+        guard command.contains("-m") || command.contains("echo") || command.contains("printf") else {
+            return command
         }
-        guard text.contains("echo") || text.contains("printf") else { return text }
-        let parts = splitCommandParts(text)
+        let parts = splitCommandParts(command)
         var result = ""
         for (index, part) in parts.enumerated() {
             var body = part.body
-            if isMatch(echoPart, body), !runsItsText(parts, from: index, body: body) {
-                body = blankingQuotes(body)
+            // A command substitution runs, whatever quotes surround it.
+            if !body.contains("$("), !body.contains("`") {
+                let isEcho = isMatch(echoPart, body) && !runsItsText(parts, from: index, body: body)
+                body = blankingQuotes(body, allQuoted: isEcho)
             }
             result += body + part.delimiter
         }
@@ -426,9 +422,10 @@ public struct RuleEngine: Sendable {
         return parts
     }
 
-    /// Replaces each closed quoted string with an empty pair, unless it holds a
-    /// command substitution.
-    private static func blankingQuotes(_ body: String) -> String {
+    /// Replaces closed quoted strings with an empty pair: every one when
+    /// `allQuoted`, else only the argument of an unquoted `-m` / `--message`.
+    /// A redirect target (`> "file"`) is a path and is never blanked.
+    private static func blankingQuotes(_ body: String, allQuoted: Bool) -> String {
         var result = ""
         var index = body.startIndex
         while index < body.endIndex {
@@ -452,11 +449,12 @@ public struct RuleEngine: Sendable {
                 result += body[index...]
                 break
             }
-            let inner = body[body.index(after: index) ..< end]
-            if char == "\"", inner.contains("$(") || inner.contains("`") {
-                result += body[index ... end]
-            } else {
+            let lastSignificant = result.last { !$0.isWhitespace }
+            let isRedirectTarget = lastSignificant == ">" || lastSignificant == "<"
+            if !isRedirectTarget, allQuoted || isMatch(messageFlagBefore, result) {
                 result += "\(char)\(char)"
+            } else {
+                result += body[index ... end]
             }
             index = body.index(after: end)
         }
