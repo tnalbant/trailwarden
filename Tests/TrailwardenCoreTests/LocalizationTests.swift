@@ -150,6 +150,22 @@ final class LocalizationTests: XCTestCase {
 
     // MARK: - Helper
 
+    func testFileTouchActionsAreTranslated() {
+        let actions: [FileTouch.Action] = [.changed, .read, .command]
+        for language in languages {
+            let localizer = Localizer(language: language)
+            for action in actions {
+                let label = action.label(localizer)
+                XCTAssertFalse(label.isEmpty, "\(language.rawValue)/\(action.rawValue) is empty")
+                if language != .english {
+                    XCTAssertNotEqual(
+                        label, action.rawValue,
+                        "\(language.rawValue)/\(action.rawValue) is still the raw value")
+                }
+            }
+        }
+    }
+
     private static func specifiers(in text: String) -> [String] {
         // "%d", "%@", "%.2f" — capture the conversion but not the width/precision.
         var found: [String] = []
