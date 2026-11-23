@@ -80,6 +80,7 @@ public extension Rule {
             severity: severity,
             match: match,
             message: message,
-            enabled: enabled)
+            enabled: enabled,
+            examples: examples)
     }
 }
