@@ -82,7 +82,10 @@ final class TimelineModel: ObservableObject {
     }
 
     @Published var search = "" {
-        didSet { scheduleSearch() }
+        didSet {
+            guard search != oldValue else { return }
+            scheduleSearch()
+        }
     }
 
     @Published var selectedEventID: String?
@@ -163,6 +166,8 @@ final class TimelineModel: ObservableObject {
     /// the list (at most 20 pages). A page per main-actor turn keeps the UI live.
     func reveal(_ eventID: String) {
         revealTask?.cancel()
+        // A debounced search reload would reset the page and drop the selection.
+        searchTask?.cancel()
         scrollTarget = nil
         revealTask = Task { [weak self] in
             for _ in 0 ..< 20 {
@@ -181,6 +186,11 @@ final class TimelineModel: ObservableObject {
             selectedEventID = eventID
             scrollTarget = eventID
         }
+    }
+
+    /// Called once the list has scrolled, so a later remount does not scroll again.
+    func consumeScrollTarget() {
+        scrollTarget = nil
     }
 
     func sessions(inProject cwd: String) -> [SessionSummary] {

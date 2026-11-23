@@ -213,9 +213,10 @@ struct TimelineView: View {
     private var list: some View {
         ScrollViewReader { proxy in
             listContent
-                .onChange(of: model.scrollTarget) { _, target in
+                .onChange(of: model.scrollTarget, initial: true) { _, target in
                     guard let target else { return }
                     withAnimation { proxy.scrollTo(target, anchor: .center) }
+                    model.consumeScrollTarget()
                 }
         }
     }
