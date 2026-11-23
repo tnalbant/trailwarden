@@ -22,7 +22,7 @@ final class BuiltInRulesTests: XCTestCase {
 
     func testTheBuiltInCatalogLoadsWithoutAResourceBundle() throws {
         let rules = try RuleCatalog.builtIn()
-        XCTAssertEqual(rules.count, 27)
+        XCTAssertEqual(rules.count, 28, "R28 was added in 0.2.5")
         XCTAssertEqual(rules.first?.id, "R1")
     }
 }

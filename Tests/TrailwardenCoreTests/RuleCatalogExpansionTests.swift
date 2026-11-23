@@ -4,7 +4,7 @@
 @testable import TrailwardenCore
 import XCTest
 
-/// The rules added after v0.1 (R11–R27), and the false alarms the first ten
+/// The rules added after v0.1 (R11–R28), and the false alarms the first ten
 /// raised on a real index. Every row is one command and the exact set of rules
 /// it must trigger — an empty set is as much a promise as a full one.
 final class RuleCatalogExpansionTests: XCTestCase {
@@ -103,10 +103,11 @@ final class RuleCatalogExpansionTests: XCTestCase {
                 "python3 - <<'EOF'\nprint(open('/Users/demo/.ssh/id_rsa').read())\nEOF",
                 ["R4"],
                 "fed to python"),
-            Case("psql app <<'EOF'\nDROP TABLE users;\nEOF", ["R24"], "fed to a database shell"),
+            // DROP TABLE is R28 (warn) since 0.2.5; DROP DATABASE stays R24 (critical).
+            Case("psql app <<'EOF'\nDROP TABLE users;\nEOF", ["R28"], "fed to a database shell"),
             Case("mysql -u root shop <<EOF\nDROP DATABASE shop;\nEOF", ["R24"], "fed to mysql"),
-            Case("sqlite3 app.db <<'SQL'\nDROP TABLE events;\nSQL", ["R24"], "fed to sqlite3"),
-            Case("cat <<'EOF' | psql app\nDROP TABLE users;\nEOF", ["R24"], "piped into psql"),
+            Case("sqlite3 app.db <<'SQL'\nDROP TABLE events;\nSQL", ["R28"], "fed to sqlite3"),
+            Case("cat <<'EOF' | psql app\nDROP TABLE users;\nEOF", ["R28"], "piped into psql"),
             Case("cat > down.sql <<'EOF'\nDROP TABLE users;\nEOF", [], "a migration written to a file"),
             Case(
                 "cat > a.py <<'EOF'\nprint(open('/Users/demo/.ssh/id_rsa').read())\nEOF",
@@ -158,7 +159,8 @@ final class RuleCatalogExpansionTests: XCTestCase {
 
     func testKeychain() throws {
         try check([
-            Case("security dump-keychain | grep -i example-api", ["R4", "R12"], "dump"),
+            // `dump-keychain` is a subcommand, not a keychain file (R4 dropped `*keychain*`).
+            Case("security dump-keychain | grep -i example-api", ["R12"], "dump"),
             Case("security find-generic-password -s api -w", ["R12"], "-w prints the secret"),
             Case("security find-generic-password -l example-api", [], "metadata only")
         ])
@@ -260,7 +262,8 @@ final class RuleCatalogExpansionTests: XCTestCase {
             Case("diskutil eraseDisk APFS X disk4", ["R23"], "erase"),
             Case("diskutil list", [], "list"),
             Case("sudo dd if=image.iso of=/dev/disk4 bs=1m", ["R3", "R23"], "dd to device"),
-            Case("psql -c 'DROP TABLE users;'", ["R24"], "drop"),
+            Case("psql -c 'DROP TABLE users;'", ["R28"], "drop table is a warning"),
+            Case("psql -c 'DROP DATABASE shop;'", ["R24"], "drop database"),
             Case("sqlite3 app.db \"DELETE FROM sessions;\"", ["R24"], "delete without where"),
             Case("sqlite3 app.db \"DELETE FROM sessions WHERE ts < 1;\"", [], "delete with where"),
             Case("truncate -s 0 log.txt", [], "shell truncate is not SQL")

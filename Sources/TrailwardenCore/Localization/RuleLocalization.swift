@@ -112,22 +112,27 @@ public enum RuleLocalization {
         "R5": [
             .english: RuleText(
                 title: "Force push",
-                message: "Can rewrite remote history with no way back"),
+                message: "Rewrites or deletes a shared branch (main, release…) on the remote, with no way "
+                    + "back"),
             .turkish: RuleText(
                 title: "Force push",
-                message: "Uzak geçmişi geri dönüşsüz değiştirebilir"),
+                message: "Uzaktaki ortak bir dalı (main, release…) geri dönüşsüz yeniden yazıyor veya "
+                    + "siliyor"),
             .german: RuleText(
                 title: "Force-Push",
-                message: "Kann die Historie im Remote unwiderruflich überschreiben"),
+                message: "Überschreibt oder löscht einen gemeinsamen Branch (main, release…) im Remote "
+                    + "unwiderruflich"),
             .spanish: RuleText(
                 title: "Force push",
-                message: "Puede reescribir el historial remoto sin vuelta atrás"),
+                message: "Reescribe o borra una rama compartida (main, release…) en el remoto sin vuelta "
+                    + "atrás"),
             .italian: RuleText(
                 title: "Force push",
-                message: "Può riscrivere la cronologia remota senza ritorno"),
+                message: "Riscrive o elimina un ramo condiviso (main, release…) sul remoto senza ritorno"),
             .french: RuleText(
                 title: "Force push",
-                message: "Peut réécrire l'historique distant sans retour possible")
+                message: "Réécrit ou supprime une branche partagée (main, release…) sur le distant sans "
+                    + "retour possible")
         ],
         "R6": [
             .english: RuleText(
@@ -152,22 +157,22 @@ public enum RuleLocalization {
         "R7": [
             .english: RuleText(
                 title: "Data upload",
-                message: "Local file content is sent over the network"),
+                message: "A credential or secret file is sent over the network"),
             .turkish: RuleText(
                 title: "Veri gönderimi",
-                message: "Yerel dosya içeriği ağ üzerinden gönderiliyor"),
+                message: "Kimlik bilgisi veya sır içeren bir dosya ağ üzerinden gönderiliyor"),
             .german: RuleText(
                 title: "Datenupload",
-                message: "Lokaler Dateiinhalt wird über das Netz gesendet"),
+                message: "Eine Datei mit Zugangsdaten oder Geheimnissen wird über das Netz gesendet"),
             .spanish: RuleText(
                 title: "Envío de datos",
-                message: "El contenido de un archivo local se envía por la red"),
+                message: "Se envía por la red un archivo con credenciales o secretos"),
             .italian: RuleText(
                 title: "Invio di dati",
-                message: "Il contenuto di un file locale viene inviato sulla rete"),
+                message: "Un file con credenziali o segreti viene inviato sulla rete"),
             .french: RuleText(
                 title: "Envoi de données",
-                message: "Le contenu d'un fichier local est envoyé sur le réseau")
+                message: "Un fichier d'identifiants ou de secrets est envoyé sur le réseau")
         ],
         "R8": [
             .english: RuleText(
