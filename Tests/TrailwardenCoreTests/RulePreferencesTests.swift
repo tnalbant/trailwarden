@@ -42,6 +42,16 @@ final class RulePreferencesTests: XCTestCase {
         XCTAssertEqual(try RulePreferences.load(from: url), [])
     }
 
+    func testUserSeverityOverrideSurvivesPatternChange() throws {
+        let rules = try RuleCatalog.builtIn()
+
+        let applied = RulePreferences.apply([RulePreference(id: "R7", enabled: true, severity: .warn)], to: rules)
+
+        let r7 = try XCTUnwrap(applied.first { $0.id == "R7" })
+        XCTAssertEqual(r7.severity, .warn)
+        XCTAssertTrue(r7.isEnabled)
+    }
+
     func testApplyTouchesOnlyKnownRules() throws {
         let rules = try RuleCatalog.builtIn()
         let prefs = [

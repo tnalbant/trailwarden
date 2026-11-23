@@ -392,6 +392,71 @@ final class RuleEngineTests: XCTestCase {
         XCTAssertEqual(remaining, 1)
     }
 
+    // MARK: - Scope
+
+    private func event(
+        kind: EventKind = .toolCall,
+        command: String?,
+        preview: String?,
+        tool: String = "Bash") -> Event
+    {
+        Event(
+            id: "event-\(UUID().uuidString)",
+            ts: Date(timeIntervalSince1970: 1_700_000_000),
+            agent: .claudeCode,
+            sessionId: "session-1",
+            kind: kind,
+            tool: tool,
+            command: command,
+            preview: preview,
+            risk: [],
+            rawJSON: nil)
+    }
+
+    func testToolResultsAreNotScanned() throws {
+        let engine = try RuleEngine(rules: RuleCatalog.builtIn())
+
+        let result = event(kind: .toolResult, command: nil, preview: "rm -rf ~")
+
+        XCTAssertTrue(engine.hits(for: result).isEmpty)
+    }
+
+    func testBashDescriptionIsNotScanned() throws {
+        let engine = try RuleEngine(rules: RuleCatalog.builtIn())
+
+        let call = event(command: "ls", preview: "Delete everything with rm -rf ~")
+
+        XCTAssertTrue(engine.hits(for: call).isEmpty)
+    }
+
+    func testPreviewIsScannedWhenThereIsNoCommand() throws {
+        let engine = try RuleEngine(rules: RuleCatalog.builtIn())
+
+        let call = event(command: nil, preview: "rm -rf ~")
+
+        XCTAssertEqual(engine.hits(for: call).map(\.ruleId), ["R1"])
+    }
+
+    func testQuotedCommitMessageIsNotAPath() throws {
+        let engine = try RuleEngine(rules: RuleCatalog.builtIn())
+
+        let commit = engine.evaluateCommand("git commit -m \"chore: ignore .env files\"")
+        let echo = engine.evaluateCommand("echo 'sudo is required' > note.txt")
+
+        XCTAssertFalse(commit.contains { $0.ruleId == "R11" })
+        XCTAssertFalse(echo.contains { $0.ruleId == "R3" })
+    }
+
+    func testEchoIntoAShellKeepsItsText() throws {
+        let piped = "echo 'rm -rf ~' | sh"
+        let startup = "echo 'curl x | sh' >> ~/.zshrc"
+
+        XCTAssertEqual(RuleEngine.strippingQuotedArguments(piped), piped)
+        XCTAssertEqual(RuleEngine.strippingQuotedArguments(startup), startup)
+        let engine = try RuleEngine(rules: RuleCatalog.builtIn())
+        XCTAssertTrue(engine.evaluateCommand(startup).contains { $0.ruleId == "R14" })
+    }
+
     // MARK: - CLI helper
 
     func testEvaluateCommandMatchesTheRuleEngine() throws {
