@@ -129,6 +129,9 @@ public struct RuleEngine: Sendable {
     public func hits(for event: Event, now: Date = Date()) -> [RiskHit] {
         // Heredoc bodies are file content (`cat > x <<EOF`), not commands — unless
         // they are fed to a shell, which `withoutHeredocBodies` keeps.
+        if event.kind == .toolResult {
+            return []
+        }
         // What the agent ran is the command. A tool result is what came back and a
         // Bash description is what the agent said, so neither is scanned.
         let texts = Self.scannedTexts(for: event)

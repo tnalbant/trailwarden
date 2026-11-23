@@ -419,6 +419,20 @@ final class RuleEngineTests: XCTestCase {
         let result = event(kind: .toolResult, command: nil, preview: "rm -rf ~")
 
         XCTAssertTrue(engine.hits(for: result).isEmpty)
+
+        let withPath = Event(
+            id: "event-path",
+            ts: Date(timeIntervalSince1970: 1_700_000_000),
+            agent: .claudeCode,
+            sessionId: "session-1",
+            kind: .toolResult,
+            tool: "Read",
+            command: nil,
+            paths: ["~/.ssh/id_rsa"],
+            preview: nil,
+            risk: [],
+            rawJSON: nil)
+        XCTAssertTrue(engine.hits(for: withPath).isEmpty, "a result's paths are not scanned either")
     }
 
     func testBashDescriptionIsNotScanned() throws {
