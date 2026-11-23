@@ -167,8 +167,12 @@ final class TimelineModel: ObservableObject {
         revealTask = Task { [weak self] in
             for _ in 0 ..< 20 {
                 guard let self, !Task.isCancelled else { return }
-                if events.contains(where: { $0.id == eventID }) { break }
-                guard events.count < total else { return }
+                if events.contains(where: { $0.id == eventID }) {
+                    break
+                }
+                guard events.count < total else {
+                    return
+                }
                 loadMore()
                 await Task.yield()
             }
