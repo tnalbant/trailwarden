@@ -20,12 +20,18 @@ struct CorpusScore {
 /// placeholders are replaced with values built here from fragments, so no
 /// credential-looking string is ever written into the repository.
 enum RuleCorpus {
-    static let placeholders: [String: String] = [
-        "{{GITHUB_TOKEN}}": "ghp_" + String(repeating: "b", count: 36),
-        "{{OPENAI_KEY}}": "sk-" + String(repeating: "a", count: 32),
-        "{{ANTHROPIC_KEY}}": "sk-ant-" + "api03-" + String(repeating: "e", count: 32),
-        "{{AWS_KEY_ID}}": "AKIA" + String(repeating: "D", count: 16),
-    ]
+    static let placeholders: [String: String] = {
+        let github: String = "ghp_" + String(repeating: "b", count: 36)
+        let openAI: String = "sk-" + String(repeating: "a", count: 32)
+        let anthropic: String = "sk-ant-" + "api03-" + String(repeating: "e", count: 32)
+        let aws: String = "AKIA" + String(repeating: "D", count: 16)
+        var table: [String: String] = [:]
+        table["{{GITHUB_TOKEN}}"] = github
+        table["{{OPENAI_KEY}}"] = openAI
+        table["{{ANTHROPIC_KEY}}"] = anthropic
+        table["{{AWS_KEY_ID}}"] = aws
+        return table
+    }()
 
     static func load() throws -> (
         benignBash: [String],
@@ -129,7 +135,9 @@ final class RuleCorpusTests: XCTestCase {
         XCTAssertGreaterThan(score.riskyTotal, 200)
 
         let corpus = try RuleCorpus.load()
-        let everything = corpus.benignBash + corpus.benignFiles.map(\.path) + corpus.risky.map(\.command)
+        var everything: [String] = corpus.benignBash
+        everything.append(contentsOf: corpus.benignFiles.map(\.path))
+        everything.append(contentsOf: corpus.risky.map(\.command))
         XCTAssertFalse(everything.contains { $0.contains("{{") }, "a placeholder survived loading")
     }
 }
