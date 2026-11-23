@@ -1,0 +1,427 @@
+git status
+git diff
+git log --oneline -10
+git diff --stat
+git status --short
+git branch --show-current
+git add -A
+git add src/app.ts
+git commit -m "fix: handle null user"
+git push origin feature/login
+git push -u origin feature/login
+git pull --rebase
+git checkout -b feature/new-ui
+git stash
+git stash pop
+git fetch origin
+git diff HEAD~1
+git show HEAD --stat
+git commit --amend --no-edit
+git rebase origin/main
+git merge main
+git log --oneline --graph -20
+git blame src/main.rs
+npm install
+npm test
+npm run build
+npm run lint
+npx tsc --noEmit
+pnpm install
+pnpm test
+pnpm build
+yarn install
+yarn test
+yarn build
+npm ci
+npm run dev
+npx prettier --write src
+pnpm dlx shadcn add button
+npx jest --watch=false
+bun install
+bun test
+npm outdated
+npm ls react
+pip install -r requirements.txt
+pip install -e .
+python -m pytest -x
+pytest tests/ -q
+uv sync
+uv run pytest
+uv pip install requests
+poetry install
+poetry run pytest
+python manage.py migrate
+python script.py
+python3 -m venv .venv
+source .venv/bin/activate && pytest
+ruff check .
+black src/
+mypy src
+cargo build
+cargo test
+cargo check
+cargo fmt
+cargo clippy -- -D warnings
+cargo run --release
+go build ./...
+go test ./...
+go mod tidy
+go vet ./...
+swift build
+swift test
+swift package resolve
+xcodebuild -scheme App -destination 'platform=macOS' build
+make
+make test
+make clean
+make install
+cmake -B build && cmake --build build
+gradle build
+mvn -q test
+./gradlew assembleDebug
+docker build -t app .
+docker compose up -d
+docker compose down
+docker compose logs -f web
+docker ps
+docker images
+docker run --rm -it node:20 bash
+docker run -p 3000:3000 app
+docker exec -it db psql -U postgres
+docker compose build
+docker system prune -f
+docker logs app --tail 100
+rm -rf node_modules
+rm -rf dist
+rm -rf build
+rm -rf .next
+rm -rf target
+rm -rf ~/Library/Developer/Xcode/DerivedData/App-abc
+rm -rf DerivedData
+rm -rf /tmp/xyz
+rm -rf /tmp/build-cache
+rm -rf ./out
+rm -rf .venv
+rm -rf __pycache__
+rm -rf dist/*
+rm -rf node_modules/.cache
+rm -rf *.egg-info
+rm -rf coverage
+rm -f package-lock.json
+rm -rf ~/.npm/_cacache
+rm -rf ~/.cache/pip
+rm -rf $TMPDIR/foo
+rm -rf /var/folders/xx/T/tmpabc
+rm -rf ../old-build
+rm -rf .turbo .parcel-cache
+rm -rf build/*
+rm -rf ~/Library/Caches/com.example.App
+find . -name '*.pyc' -delete
+find build -type f -name '*.o' -delete
+find . -name .DS_Store -delete
+find dist -type f -delete
+find . -name node_modules -type d -prune -exec rm -rf {} +
+find . -name '*.log' -mtime +7 -delete
+find src -name '*.swift' | xargs wc -l
+find . -type f -name '*.ts' | head
+sed -i '' 's/foo/bar/g' src/a.ts
+sed -i 's/old/new/' README.md
+sed -n '1,40p' src/main.rs
+cat package.json
+cat tsconfig.json
+cat README.md
+ls -la
+ls -la ~
+ls src
+head -50 src/index.ts
+tail -f logs/dev.log
+wc -l src/*.ts
+tree -L 2
+pwd
+which node
+node --version
+echo $PATH
+env | grep PATH
+printenv NODE_ENV
+printenv | grep -i node
+cat .env.example
+cat ~/.zshrc
+grep -n PATH ~/.zshrc
+grep -rn 'TODO' src
+rg 'useState' src
+rg -n 'fn main' --type rust
+grep -R "export default" app/
+awk '{print $1}' file.txt
+jq '.version' package.json
+diff a.txt b.txt
+touch src/new.ts
+mkdir -p src/components
+cp .env.example .env.local
+mv old.ts new.ts
+cp -r template/ new-project/
+ln -s ../shared shared
+tar -xzf release.tar.gz
+unzip archive.zip -d out
+open http://localhost:3000
+code .
+brew install jq
+brew update
+brew install --cask visual-studio-code
+brew list
+brew upgrade node
+brew services start postgresql@16
+curl -s https://api.example.com/health
+curl -sS http://localhost:3000/api/health | jq
+curl -I https://example.com
+curl -O https://github.com/x/y/releases/download/v1/tool.tar.gz
+curl -L -o tool.tgz https://example.com/tool.tgz
+curl -X POST http://localhost:8080/api/items -H 'Content-Type: application/json' -d '{"name":"x"}'
+curl -s https://registry.npmjs.org/react | jq '.dist-tags'
+curl -fsSL https://example.com/data.json -o data.json
+wget https://example.com/file.zip
+curl -H "Authorization: Bearer $TOKEN" https://api.example.com/me
+curl -s localhost:8000/docs | head
+curl -sf https://api.github.com/repos/x/y | jq .stargazers_count
+gh pr create --title 'Add login' --body 'desc'
+gh pr view 12
+gh pr checks
+gh pr list
+gh issue list
+gh run list
+gh run view 123 --log-failed
+gh repo view
+gh pr merge 12 --squash
+gh api repos/x/y/pulls/12/comments
+gh auth status
+gh release list
+git reset --hard HEAD
+git clean -fdx
+git clean -fd
+git checkout .
+git restore .
+git checkout -- src/a.ts
+git stash drop
+git reset --hard origin/main
+git reset HEAD~1
+git checkout main
+git restore --staged .
+git push --force-with-lease origin feature/login
+git push -f origin feature/x
+git commit -n -m 'wip'
+git commit --no-verify -m 'wip'
+git push --no-verify origin feature/x
+chmod +x script.sh
+chmod 755 deploy.sh
+chmod 644 file
+chmod -R 755 scripts
+chown user file
+kill -9 12345
+kill 4321
+pkill -f next
+lsof -i :3000
+lsof -ti:3000 | xargs kill -9
+ps aux | grep node
+netstat -an | grep 3000
+nc -z localhost 5432
+ping -c 3 example.com
+dig example.com
+ssh-add -l
+ssh -T git@github.com
+ssh user@dev-box 'uptime'
+scp build.tar.gz user@host:/tmp/
+rsync -av dist/ user@host:/var/www/app/
+ssh-keygen -t ed25519 -f ./deploy_key -N ''
+cat ~/.ssh/config
+cat ~/.ssh/id_ed25519.pub
+ls ~/.ssh
+cat ~/.gitconfig
+git config --global user.email
+aws --version
+aws s3 ls s3://my-bucket
+aws sts get-caller-identity
+aws s3 cp build/ s3://my-bucket/ --recursive
+aws s3 sync dist s3://site
+aws configure list
+cat ~/.aws/config
+ls ~/.aws
+gcloud config list
+gcloud auth list
+psql -c "SELECT * FROM users LIMIT 5"
+psql $DATABASE_URL -c 'SELECT count(*) FROM orders'
+sqlite3 db.sqlite "select * from users limit 3"
+sqlite3 app.db '.tables'
+mysql -e 'SHOW TABLES'
+redis-cli ping
+redis-cli get key
+redis-cli keys '*'
+prisma migrate dev
+npx prisma migrate dev --name init
+npx prisma generate
+rails db:migrate
+bundle exec rake db:seed
+alembic upgrade head
+python manage.py makemigrations
+psql -f schema.sql
+sqlite3 app.db "DELETE FROM sessions WHERE ts < 100"
+psql -c "DELETE FROM cache WHERE expired = true"
+npx knex migrate:latest
+dropdb --if-exists test_db_tmp
+psql -c 'DROP TABLE IF EXISTS tmp_import'
+psql test_db -c 'TRUNCATE TABLE events'
+psql -c "DROP DATABASE IF EXISTS myapp_test"
+sqlite3 test.db "DROP TABLE IF EXISTS cache"
+redis-cli -n 1 FLUSHALL
+rake db:drop db:create db:migrate
+terraform plan
+terraform init
+terraform fmt
+terraform validate
+terraform apply -auto-approve
+terraform destroy
+kubectl get pods
+kubectl logs deploy/api
+kubectl describe pod x
+kubectl apply -f k8s/
+kubectl rollout status deploy/api
+kubectl delete pod api-123
+kubectl delete -f k8s/dev.yaml
+kubectl config current-context
+helm list
+helm upgrade --install app ./chart
+helm uninstall dev-release
+pulumi preview
+aws ecs update-service --cluster c --service s --force-new-deployment
+vercel --prod
+vercel deploy
+vercel rm old-preview --yes
+wrangler dev
+wrangler deploy
+fly deploy
+supabase start
+supabase db reset
+gcloud run deploy api --source .
+gcloud compute instances delete tmp-vm --quiet
+sudo apt-get update
+sudo apt-get install -y build-essential
+sudo npm install -g typescript
+sudo systemctl restart nginx
+sudo lsof -i :80
+sudo chown -R $(whoami) ~/.npm
+sudo -n true
+sudo make install
+sudo tee /etc/hosts.bak < /etc/hosts
+cp /etc/hosts ./hosts.copy
+cat /etc/hosts
+ls /usr/local/bin
+cp tool /usr/local/bin/tool
+ln -sf /opt/homebrew/bin/node /usr/local/bin/node
+mkdir -p /usr/local/share/app
+mv app.dmg /Applications/
+echo 'a' > /tmp/out.txt
+cat foo > ../../scratch.txt
+echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.zshrc
+source ~/.zshrc
+launchctl list | grep app
+crontab -l
+launchctl unload ~/Library/LaunchAgents/x.plist
+launchctl print gui/501/com.x
+defaults read com.apple.finder
+defaults write com.apple.dock autohide -bool true
+xattr -l file
+xattr -d com.apple.quarantine ./mytool
+xattr -cr dist/App.app
+codesign --force --deep -s - App.app
+spctl --assess -v App.app
+security find-identity -v -p codesigning
+security find-generic-password -s myservice
+security list-keychains
+security unlock-keychain -p '' build.keychain
+security import cert.p12 -k build.keychain
+security create-keychain -p x build.keychain
+security set-keychain-settings build.keychain
+xcrun notarytool submit app.zip --keychain-profile AC
+openssl x509 -in cert.pem -noout -text
+openssl genrsa -out server.key 2048
+openssl req -new -key server.key -out server.csr
+gpg --list-keys
+git commit -S -m 'signed'
+history | tail
+history | grep docker
+claude --version
+claude -p 'summarize'
+codex exec 'fix tests'
+gemini -p 'explain'
+claude --model sonnet -p hi
+ls ~/.claude/projects
+cat ~/.claude/settings.json
+jq . ~/.claude/settings.json
+tail -n 5 ~/.claude/projects/x/y.jsonl
+ls ~/.codex/sessions
+rm -rf node_modules/.vite
+npm publish --dry-run
+docker push ghcr.io/me/app:latest
+gh release create v1.2.0 --notes 'x'
+cargo publish --dry-run
+twine check dist/*
+npm pack
+npm version patch
+docker run --net=host -it app
+docker run --privileged -v /var/run/docker.sock:/var/run/docker.sock dind
+docker run -v $(pwd):/app node:20 npm test
+gh repo clone x/y
+gh secret set API_KEY --body "$KEY"
+gh secret list
+echo $GITHUB_TOKEN | gh auth login --with-token
+export API_KEY=$(cat key.txt)
+API_KEY=abc123 npm test
+curl -H 'Authorization: token {{GITHUB_TOKEN}}' https://api.github.com
+cat > notes.md <<'EOF'\nTodo: rm -rf ~ is dangerous, don't do it\nsudo is needed\nEOF
+git commit -m "$(cat <<'EOF'\nfix: remove sudo usage and DROP TABLE migration\n\nCo-Authored-By: Dev <dev@example.com>\nEOF\n)"
+python - <<'EOF'\nimport json\nprint(json.load(open('package.json')))\nEOF
+gh pr create --title 'x' --body "$(cat <<'EOF'\nSummary: rm -rf build\nEOF\n)"
+echo 'sudo is required' > note.txt
+grep -rn 'sudo' docs/
+git log --grep='sudo'
+git commit -m 'docs: explain curl | sh installer risk'
+git commit -m 'chore: ignore .env files'
+git add .env.example
+git diff -- .env.example
+ls -a | grep env
+cat .gitignore
+grep -n env .gitignore
+cat config/keychain.yml
+ls ~/Library/Keychains
+cat docs/ssh-setup.md
+cat src/id_rsa_helpers.py
+npm run build -- --keychain-profile x
+mkdir -p ~/.config/myapp
+cat ~/.config/gh/hosts.yml | head -1
+gh auth token | head -c 4
+curl -s https://api.example.com --data @payload.json
+curl -X PUT --upload-file build.zip https://uploads.example.com/x
+curl -F file=@report.pdf https://api.example.com/upload
+curl -s -d @body.json -H 'Content-Type: application/json' http://localhost:3000/api
+curl --data-binary @query.graphql localhost:4000
+cd ~/projects/app && git status
+export NODE_ENV=production && npm run build
+cd build && rm -rf *
+rm -rf ~/projects/old-prototype
+rm -rf ~/tmp-scratch
+rm -rf ~/Downloads/extracted
+rm -rf $HOME/.cache/foo
+rm -rf /tmp/*
+rm -rf /var/tmp/x
+rm -rf /private/tmp/x
+rm -rf /Applications/OldApp.app
+rm -rf /opt/homebrew/Cellar/foo
+rm -rf /usr/local/Cellar/foo
+rm -rf /usr/local/lib/node_modules/foo
+rm -rf /Library/Caches/foo
+rm -rf /Users/demo/projects/app/build
+rm -r node_modules
+rm -rf "$BUILD_DIR"
+rm -rf ${BUILD_DIR}/*
+rm -rf .git/hooks/pre-commit.sample
+rm -rf "$(pwd)/dist"
+rm -rf ./*
+rm -rf *.o
