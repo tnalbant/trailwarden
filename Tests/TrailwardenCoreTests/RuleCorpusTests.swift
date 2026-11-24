@@ -176,7 +176,8 @@ final class RuleCorpusTests: XCTestCase {
     func testCorpusDoesNotRegress() throws {
         let score = try measure()
         XCTAssertLessThanOrEqual(score.benignBashHits, maxBenignBashHits, "benign Bash false alarms rose")
-        XCTAssertLessThanOrEqual(score.benignBashCritical, maxBenignBashCritical, "critical false alarms rose")
+        XCTAssertLessThanOrEqual(
+            score.benignBashCritical, maxBenignBashCritical, "critical false alarms rose")
         XCTAssertLessThanOrEqual(score.benignFileHits, maxBenignFileHits, "benign file false alarms rose")
         XCTAssertGreaterThanOrEqual(score.riskyCaught, minRiskyCaught, "risky catch rate fell")
     }
