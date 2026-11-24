@@ -22,9 +22,9 @@ lets you export a redacted record.
 
 ## What it protects against
 
-- **Leaving the machine.** The app never sends anything about the agents. There is
-  exactly one network call in the codebase, `Sources/TrailwardenApp/Update/UpdateChecker.swift`:
-  a GET for one small JSON document (`version`, `notes`, `url`), no cookies, no
+- **Leaving the machine.** The app never sends anything about the agents. Exactly one
+  file in the codebase makes network calls, `Sources/TrailwardenApp/Update/UpdateChecker.swift`.
+  The first is a GET for one small JSON document (`version`, `notes`, `url`), no cookies, no
   identifiers, no query string. It runs when the reader clicks "Check for
   updates", or — only if the reader picks a schedule in Settings, which is off by
   default — at most once a week or once a month. The same file makes one more GET,

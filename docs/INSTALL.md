@@ -5,7 +5,8 @@
 
 Every method installs the menu bar app, the command line tools (`trailwarden`,
 `trailwarden-mcp`), or both. Nothing about your agents leaves the machine after
-installing; the only network call is the optional update check (see
+installing; the only network reads are the optional update check and, only
+when you click "Update prices", the public `prices.json` (see
 [Privacy](../README.md#privacy)).
 
 | # | Method | Installs | Available |

@@ -5,8 +5,9 @@
 
 Her yöntem menü çubuğu uygulamasını, komut satırı araçlarını (`trailwarden`,
 `trailwarden-mcp`) ya da ikisini birden kurar. Kurulumdan sonra ajanlarına dair
-hiçbir şey makineden çıkmaz; tek ağ çağrısı isteğe bağlı güncelleme denetimidir
-([Gizlilik](../README.tr.md#gizlilik) bölümüne bak).
+hiçbir şey makineden çıkmaz; ağ okumaları yalnızca isteğe bağlı güncelleme
+denetimi ve, yalnızca "Fiyatları güncelle"ye tıkladığında, herkese açık
+`prices.json` dosyasıdır ([Gizlilik](../README.tr.md#gizlilik) bölümüne bak).
 
 | # | Yöntem | Ne kurar | Ne zaman |
 |---|---|---|---|

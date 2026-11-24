@@ -24,8 +24,8 @@ maskelenmiş bir kaydı dışa aktarmana izin verir.
 ## Neye karşı korur
 
 - **Makineden çıkma.** Uygulama ajanlara dair hiçbir şey göndermez. Kod tabanında
-  tam olarak bir ağ çağrısı var: `Sources/TrailwardenApp/Update/UpdateChecker.swift`.
-  Küçük bir JSON belgesi (`version`, `notes`, `url`) için bir GET isteğidir; çerez
+  ağ çağrısı yapan tek dosya `Sources/TrailwardenApp/Update/UpdateChecker.swift`.
+  İlki küçük bir JSON belgesi (`version`, `notes`, `url`) için bir GET isteğidir; çerez
   yok, tanımlayıcı yok, sorgu dizesi yok. Okuyucu "Güncellemeleri denetle"ye
   tıkladığında çalışır. Ayrıca, yalnızca okuyucu Ayarlar'dan bir takvim seçerse
   (varsayılan olarak kapalı) en fazla haftada ya da ayda bir çalışır. Aynı dosya

@@ -3,11 +3,13 @@
 [English](SECURITY.md) · **Türkçe**
 
 Trailwarden yerel ajan transkriptlerini okur ve aynı makinede bir denetim indeksi
-oluşturur. Ajanlarına dair hiçbir şey makineden çıkmaz. Tek ağ çağrısı
-`Sources/TrailwardenApp/Update/UpdateChecker.swift` içindeki güncelleme denetimidir:
-küçük bir JSON dosyası için bir GET isteği. Bu istek, "Güncellemeleri denetle"ye
+oluşturur. Ajanlarına dair hiçbir şey makineden çıkmaz. Tüm ağ çağrıları tek bir
+dosyada: `Sources/TrailwardenApp/Update/UpdateChecker.swift`. İlki güncelleme
+denetimidir: küçük bir JSON dosyası için bir GET isteği; "Güncellemeleri denetle"ye
 tıkladığında ya da açabileceğin haftalık/aylık takvimde (varsayılan olarak kapalı)
-yapılır. `URLSession`, `NSURLConnection`, `URLRequest`, `CFNetwork` veya
+yapılır. İkincisi yalnızca "Fiyatları güncelle"ye tıkladığında yapılan, API maliyet
+tahmini için kullanılan herkese açık `prices.json` dosyasına bir GET isteğidir
+(takvimi yoktur). `URLSession`, `NSURLConnection`, `URLRequest`, `CFNetwork` veya
 `import Network` `Sources/` altındaki başka bir dosyada görünürse CI başarısız olur.
 
 ## Güvenlik açığı bildirmek
@@ -27,7 +29,8 @@ Kapsam içi:
   aktarımın 0600 izni olmadan yazılması
 - istemlerin, komutların veya dosya içeriklerinin indeksin dışındaki bir dosyada
   görünmesi
-- güncelleme isteği dışındaki herhangi bir verinin makineden çıkması
+- güncelleme ve fiyat listesi istekleri dışındaki herhangi bir verinin makineden
+  çıkması
 
 Kapsam dışı:
 
@@ -39,4 +42,5 @@ Kapsam dışı:
 - indeks: `~/Library/Application Support/Trailwarden/trailwarden.sqlite` (0600)
 - kural tercihleri: `~/Library/Application Support/Trailwarden/rule-preferences.json` (0600)
 - dışa aktarımlar: nereye kaydedersen oraya, 0600 ile atomik olarak yazılır
-- telemetri yok, çökme raporu yok, hesap yok; güncelleme denetimleri yalnızca yukarıdaki gibi
+- telemetri yok, çökme raporu yok, hesap yok; güncelleme ve fiyat listesi denetimleri
+  yalnızca yukarıdaki gibi
