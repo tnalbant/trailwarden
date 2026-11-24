@@ -39,15 +39,24 @@ enum RuleCorpus {
         risky: [(category: String, command: String)])
     {
         let benignBash = try lines("benign-bash.txt").map(decode)
-        let benignFiles = try lines("benign-files.txt").map { line -> (tool: String, path: String) in
-            let parts = line.split(separator: "\t", maxSplits: 1).map(String.init)
-            return (parts[0], decode(parts[1]))
-        }
-        let risky = try lines("risky.txt").map { line -> (category: String, command: String) in
-            let parts = line.split(separator: "\t", maxSplits: 1).map(String.init)
-            return (parts[0], decode(parts[1]))
-        }
+        let benignFiles = try tabSeparated("benign-files.txt").map { (tool: $0.0, path: $0.1) }
+        let risky = try tabSeparated("risky.txt").map { (category: $0.0, command: $0.1) }
         return (benignBash, benignFiles, risky)
+    }
+
+    /// Splits each line at the first TAB. A line without one is reported as a
+    /// test failure naming the file and line, then skipped.
+    private static func tabSeparated(_ name: String) throws -> [(String, String)] {
+        var result: [(String, String)] = []
+        for (index, line) in try lines(name).enumerated() {
+            let parts = line.split(separator: "\t", maxSplits: 1).map(String.init)
+            guard parts.count == 2 else {
+                XCTFail("\(name) line \(index + 1) has no TAB separator")
+                continue
+            }
+            result.append((parts[0], decode(parts[1])))
+        }
+        return result
     }
 
     private static func lines(_ name: String) throws -> [String] {
@@ -141,7 +150,8 @@ final class RuleCorpusTests: XCTestCase {
             print("RULE-CORPUS-FP \(id)=\(count)")
         }
 
-        XCTAssertGreaterThan(score.benignBashTotal + score.benignFileTotal, 400)
+        XCTAssertGreaterThan(score.benignBashTotal, 400)
+        XCTAssertGreaterThan(score.benignFileTotal, 0)
         XCTAssertGreaterThan(score.riskyTotal, 200)
 
         let corpus = try RuleCorpus.load()
@@ -149,5 +159,25 @@ final class RuleCorpusTests: XCTestCase {
         everything.append(contentsOf: corpus.benignFiles.map(\.path))
         everything.append(contentsOf: corpus.risky.map(\.command))
         XCTAssertFalse(everything.contains { $0.contains("{{") }, "a placeholder survived loading")
+    }
+
+    // Frozen after the Task 6-7 rule tuning, 2026-11-23.
+    // Baseline before tuning (CI run 45114571810):
+    //   RULE-CORPUS benignBash=73/427 benignBashCritical=36 benignFiles=28/66 risky=160/216
+    // Measured after tuning (CI run 45353727049):
+    //   RULE-CORPUS benignBash=48/427 benignBashCritical=11 benignFiles=25/66 risky=173/216
+    // Lower a ceiling or raise the floor when a rule change improves the score;
+    // never loosen them to make a change pass.
+    private let maxBenignBashHits = 48
+    private let maxBenignBashCritical = 11
+    private let maxBenignFileHits = 25
+    private let minRiskyCaught = 173
+
+    func testCorpusDoesNotRegress() throws {
+        let score = try measure()
+        XCTAssertLessThanOrEqual(score.benignBashHits, maxBenignBashHits, "benign Bash false alarms rose")
+        XCTAssertLessThanOrEqual(score.benignBashCritical, maxBenignBashCritical, "benign Bash critical alerts rose")
+        XCTAssertLessThanOrEqual(score.benignFileHits, maxBenignFileHits, "benign file false alarms rose")
+        XCTAssertGreaterThanOrEqual(score.riskyCaught, minRiskyCaught, "risky catch rate fell")
     }
 }

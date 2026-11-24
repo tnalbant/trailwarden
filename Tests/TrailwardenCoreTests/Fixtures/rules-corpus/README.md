@@ -18,3 +18,8 @@ assembles at runtime from fragments:
 - `{{OPENAI_KEY}}`
 - `{{ANTHROPIC_KEY}}`
 - `{{AWS_KEY_ID}}`
+
+The placeholder values are generated at test time and differ in shape from the
+original Python corpus this was derived from, so the frozen thresholds in
+`testCorpusDoesNotRegress` are this Swift corpus's own baseline, not numbers
+comparable with the Python measurements.
