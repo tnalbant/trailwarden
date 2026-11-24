@@ -12,6 +12,7 @@ import TrailwardenCore
 /// a reader, and with a database count nobody asked for. Rows are actions now:
 /// the tool, the thing it touched, the time.
 struct MenuBarView: View {
+    @AppStorage(TextSize.storageKey) private var textSize = TextSize.standard.rawValue
     @AppStorage(LocalizationStore.defaultsKey) private var language = AppLanguage.system.rawValue
     @ObservedObject var model: AppModel
     @ObservedObject var updates: UpdateChecker
@@ -62,6 +63,7 @@ struct MenuBarView: View {
             }
             footer
         }
+        .id(textSize)
         .frame(width: Tokens.Metrics.panelWidth)
         .background(Tokens.Palette.paper)
         .foregroundStyle(Tokens.Palette.ink)
@@ -70,7 +72,7 @@ struct MenuBarView: View {
     private var header: some View {
         HStack(alignment: .firstTextBaseline) {
             Text("Trailwarden")
-                .font(Tokens.Typography.serif(14, weight: .semibold))
+                .font(Tokens.Typography.font(.subtitle, weight: .semibold))
             Spacer()
             if model.onboardingDone {
                 // Is anyone watching right now? Click to open the switch.
@@ -82,7 +84,7 @@ struct MenuBarView: View {
                             .fill(live.isRunning ? Tokens.Palette.accent : Tokens.Palette.tertiary)
                             .frame(width: 6, height: 6)
                         Text(live.isRunning ? L(.liveOn) : L(.liveOff))
-                            .font(Tokens.Typography.text(9.5, weight: .medium))
+                            .font(Tokens.Typography.font(.caption, weight: .medium))
                             .foregroundStyle(live.isRunning ? Tokens.Palette.ink : Tokens.Palette.secondary)
                     }
                 }
@@ -103,13 +105,13 @@ struct MenuBarView: View {
                 .font(.system(size: 9))
                 .foregroundStyle(Tokens.Palette.accent)
             Text(L(.guardOffBanner))
-                .font(Tokens.Typography.text(9.5, weight: .medium))
+                .font(Tokens.Typography.font(.caption, weight: .medium))
             Spacer(minLength: 2)
             Button(L(.guardOffAction)) {
                 openMain(.settings)
             }
             .buttonStyle(.plain)
-            .font(Tokens.Typography.text(9.5, weight: .medium))
+            .font(Tokens.Typography.font(.caption, weight: .medium))
             .foregroundStyle(Tokens.Palette.accentText)
         }
         .padding(.horizontal, Tokens.Metrics.gutter)
@@ -124,7 +126,7 @@ struct MenuBarView: View {
                 .font(.system(size: 9))
                 .foregroundStyle(Tokens.Palette.accent)
             Text(message)
-                .font(Tokens.Typography.text(9.5, weight: .medium))
+                .font(Tokens.Typography.font(.caption, weight: .medium))
                 .lineLimit(2)
                 .fixedSize(horizontal: false, vertical: true)
             Spacer(minLength: 2)
@@ -132,7 +134,7 @@ struct MenuBarView: View {
                 openMain(.settings)
             }
             .buttonStyle(.plain)
-            .font(Tokens.Typography.text(9.5, weight: .medium))
+            .font(Tokens.Typography.font(.caption, weight: .medium))
             .foregroundStyle(Tokens.Palette.accentText)
         }
         .padding(.horizontal, Tokens.Metrics.gutter)
@@ -145,14 +147,14 @@ struct MenuBarView: View {
     private var updateBar: some View {
         HStack(spacing: 6) {
             Text("v\(TrailwardenVersion.installed)")
-                .font(Tokens.Typography.mono(9))
+                .font(Tokens.Typography.font(.codeSmall))
                 .foregroundStyle(Tokens.Palette.tertiary)
             if let line = updateLine {
                 Image(systemName: line.icon)
                     .font(.system(size: 9))
                     .foregroundStyle(line.tint)
                 Text(line.text)
-                    .font(Tokens.Typography.text(9.5, weight: line.weight))
+                    .font(Tokens.Typography.font(.caption, weight: line.weight))
                     .foregroundStyle(line.tint)
                     .lineLimit(1)
                     .truncationMode(.tail)
@@ -161,7 +163,7 @@ struct MenuBarView: View {
                         NSWorkspace.shared.open(link)
                     }
                     .buttonStyle(.plain)
-                    .font(Tokens.Typography.text(9.5, weight: .medium))
+                    .font(Tokens.Typography.font(.caption, weight: .medium))
                     .foregroundStyle(Tokens.Palette.accentText)
                 }
             }
@@ -170,7 +172,7 @@ struct MenuBarView: View {
                 Task { await updates.check() }
             } label: {
                 Text(L(.checkUpdates))
-                    .font(Tokens.Typography.text(9.5, weight: .medium))
+                    .font(Tokens.Typography.font(.caption, weight: .medium))
                     .foregroundStyle(updates.state == .checking ? Tokens.Palette.tertiary : Tokens.Palette
                         .accentText)
             }
@@ -196,13 +198,13 @@ struct MenuBarView: View {
                 } label: {
                     HStack(alignment: .firstTextBaseline, spacing: 5) {
                         Text("\(model.snapshot.criticalToday)")
-                            .font(Tokens.Typography.serif(20, weight: .semibold))
+                            .font(Tokens.Typography.font(.title, weight: .semibold))
                             .foregroundStyle(Tokens.Palette.accentText)
                         Text(L(.severityCritical))
-                            .font(Tokens.Typography.text(10))
+                            .font(Tokens.Typography.font(.callout))
                             .foregroundStyle(Tokens.Palette.secondary)
                         Text(time(critical.time))
-                            .font(Tokens.Typography.mono(9))
+                            .font(Tokens.Typography.font(.codeSmall))
                             .foregroundStyle(Tokens.Palette.tertiary)
                         Spacer(minLength: 0)
                         Image(systemName: "chevron.right")
@@ -215,34 +217,34 @@ struct MenuBarView: View {
                 .help(L(.whatHappened))
                 if let rule = critical.ruleLine(LocalizationStore.current) {
                     Text(rule)
-                        .font(Tokens.Typography.text(10))
+                        .font(Tokens.Typography.font(.callout))
                         .foregroundStyle(Tokens.Palette.secondary)
                         .lineLimit(1)
                 }
                 if !critical.detail.isEmpty {
                     Text(critical.detail)
-                        .font(Tokens.Typography.mono(9.5))
+                        .font(Tokens.Typography.font(.codeSmall))
                         .lineLimit(1)
                         .truncationMode(.middle)
                 }
             } else if model.snapshot.totalEvents == 0 {
                 Text(model.isScanning ? model.scanLabel : L(.noDataYet))
-                    .font(Tokens.Typography.text(10.5))
+                    .font(Tokens.Typography.font(.callout))
                     .foregroundStyle(Tokens.Palette.secondary)
             } else {
                 Text(L(.nothingRiskyToday))
-                    .font(Tokens.Typography.text(11))
+                    .font(Tokens.Typography.font(.body))
                     .foregroundStyle(Tokens.Palette.secondary)
             }
             if let error = model.errorMessage {
                 Text(error)
-                    .font(Tokens.Typography.text(10))
+                    .font(Tokens.Typography.font(.callout))
                     .foregroundStyle(Tokens.Palette.accentText)
                     .lineLimit(2)
             }
             if model.snapshot.messagesToday > 0 {
                 Text(Lf(.messagesToday, [model.snapshot.messagesToday]))
-                    .font(Tokens.Typography.text(9))
+                    .font(Tokens.Typography.font(.caption))
                     .foregroundStyle(Tokens.Palette.tertiary)
             }
         }
@@ -257,7 +259,7 @@ struct MenuBarView: View {
             SectionLabel(text: L(.whatHappened))
             if model.snapshot.recentActions.isEmpty {
                 Text(L(.noSessionsFound))
-                    .font(Tokens.Typography.text(10.5))
+                    .font(Tokens.Typography.font(.callout))
                     .foregroundStyle(Tokens.Palette.secondary)
             } else {
                 ForEach(model.snapshot.recentActions) { item in
@@ -278,14 +280,14 @@ struct MenuBarView: View {
         } label: {
             HStack(alignment: .firstTextBaseline, spacing: 6) {
                 Text(time(item.time))
-                    .font(Tokens.Typography.mono(8.5))
+                    .font(Tokens.Typography.font(.codeSmall))
                     .foregroundStyle(Tokens.Palette.tertiary)
                     .frame(width: 74, alignment: .leading)
                 Text(item.label)
-                    .font(Tokens.Typography.mono(9, weight: .medium))
+                    .font(Tokens.Typography.font(.codeSmall, weight: .medium))
                     .foregroundStyle(item.isMessage ? Tokens.Palette.secondary : Tokens.Palette.ink)
                 Text(item.detail)
-                    .font(Tokens.Typography.text(9.5))
+                    .font(Tokens.Typography.font(.caption))
                     .foregroundStyle(item.isMessage ? Tokens.Palette.tertiary : Tokens.Palette.secondary)
                     .lineLimit(1)
                     .truncationMode(.middle)
@@ -365,7 +367,7 @@ struct MenuBarView: View {
 
             if !model.liveSessions.isEmpty {
                 Text(Lf(.liveCount, [model.liveSessions.count]))
-                    .font(Tokens.Typography.mono(9, weight: .medium))
+                    .font(Tokens.Typography.font(.codeSmall, weight: .medium))
                     .foregroundStyle(Tokens.Palette.accentText)
             }
 
@@ -437,7 +439,7 @@ struct MenuBarView: View {
     private func destinationLabel(_ title: String) -> some View {
         HStack {
             Text(title)
-                .font(Tokens.Typography.text(11))
+                .font(Tokens.Typography.font(.body))
                 .foregroundStyle(Tokens.Palette.ink)
             Spacer(minLength: 0)
         }
@@ -467,7 +469,7 @@ struct MenuBarView: View {
             NSApp.activate(ignoringOtherApps: true)
         } label: {
             Text(title)
-                .font(Tokens.Typography.text(11, weight: weight))
+                .font(Tokens.Typography.font(.body, weight: weight))
                 .foregroundStyle(tint)
                 .lineLimit(1)
                 .fixedSize(horizontal: true, vertical: false)

@@ -82,25 +82,25 @@ struct EventDetailView: View {
         VStack(alignment: .leading, spacing: 7) {
             HStack(spacing: 7) {
                 Text(EventFormatting.agentLabel(event.agent))
-                    .font(Tokens.Typography.mono(9))
+                    .font(Tokens.Typography.font(.codeSmall))
                     .padding(.horizontal, 5)
                     .padding(.vertical, 1)
                     .background(Tokens.Palette.surface)
                     .clipShape(RoundedRectangle(cornerRadius: 3))
                 Text(event.tool ?? event.kind.rawValue)
-                    .font(Tokens.Typography.mono(10, weight: .medium))
+                    .font(Tokens.Typography.font(.code, weight: .medium))
                 Spacer(minLength: 6)
                 Text(EventFormatting.stamp(event.ts))
-                    .font(Tokens.Typography.mono(9.5))
+                    .font(Tokens.Typography.font(.codeSmall))
                     .foregroundStyle(Tokens.Palette.secondary)
             }
             VStack(alignment: .leading, spacing: 2) {
                 Text(Sessions.shortID(event.sessionId))
-                    .font(Tokens.Typography.mono(9))
+                    .font(Tokens.Typography.font(.codeSmall))
                     .foregroundStyle(Tokens.Palette.secondary)
                 if let cwd = event.cwd {
                     Text(ProjectName.display(cwd))
-                        .font(Tokens.Typography.mono(9))
+                        .font(Tokens.Typography.font(.codeSmall))
                         .foregroundStyle(Tokens.Palette.secondary)
                         .lineLimit(2)
                         .fixedSize(horizontal: false, vertical: true)
@@ -121,7 +121,7 @@ struct EventDetailView: View {
             SectionLabel(text: L(.resumeSession))
             HStack(alignment: .top, spacing: 8) {
                 Text(command)
-                    .font(Tokens.Typography.mono(9.5))
+                    .font(Tokens.Typography.font(.codeSmall))
                     .lineLimit(3)
                     .fixedSize(horizontal: false, vertical: true)
                     .textSelection(.enabled)
@@ -132,7 +132,7 @@ struct EventDetailView: View {
                     copiedResume = true
                 }
                 .buttonStyle(.plain)
-                .font(Tokens.Typography.text(10, weight: .medium))
+                .font(Tokens.Typography.font(.callout, weight: .medium))
                 .foregroundStyle(Tokens.Palette.accentText)
             }
         }
@@ -146,16 +146,16 @@ struct EventDetailView: View {
             ForEach(event.risk, id: \.ruleId) { hit in
                 HStack(alignment: .firstTextBaseline, spacing: 6) {
                     Text(hit.ruleId)
-                        .font(Tokens.Typography.mono(9.5, weight: .medium))
+                        .font(Tokens.Typography.font(.codeSmall, weight: .medium))
                         .foregroundStyle(hit.severity.textTint)
                     Text(hit.localizedMessage(LocalizationStore.current))
-                        .font(Tokens.Typography.text(10.5))
+                        .font(Tokens.Typography.font(.callout))
                         .fixedSize(horizontal: false, vertical: true)
                     Spacer(minLength: 4)
                     if let onMute {
                         Button(L(.muteThirtyDays)) { onMute(hit, event) }
                             .buttonStyle(.plain)
-                            .font(Tokens.Typography.text(9, weight: .medium))
+                            .font(Tokens.Typography.font(.caption, weight: .medium))
                             .foregroundStyle(Tokens.Palette.accentText)
                             .help(L(.muteThirtyDaysHint))
                     }
@@ -178,7 +178,7 @@ struct EventDetailView: View {
                 copyButton(field, text)
             }
             Text(text)
-                .font(Tokens.Typography.mono(10.5))
+                .font(Tokens.Typography.font(.code))
                 .lineSpacing(2.5)
                 .textSelection(.enabled)
                 .fixedSize(horizontal: false, vertical: true)
@@ -199,7 +199,7 @@ struct EventDetailView: View {
             VStack(alignment: .leading, spacing: 0) {
                 ForEach(Array(lines.enumerated()), id: \.offset) { _, line in
                     Text(prefix(for: line.kind) + line.text)
-                        .font(Tokens.Typography.mono(10))
+                        .font(Tokens.Typography.font(.code))
                         .foregroundStyle(color(for: line.kind))
                         .textSelection(.enabled)
                         .fixedSize(horizontal: false, vertical: true)
@@ -219,7 +219,7 @@ struct EventDetailView: View {
             SectionLabel(text: L(.labelPaths))
             ForEach(event.paths, id: \.self) { path in
                 Text(ProjectName.display(path))
-                    .font(Tokens.Typography.mono(9.5))
+                    .font(Tokens.Typography.font(.codeSmall))
                     .textSelection(.enabled)
                     .lineLimit(2)
                     .fixedSize(horizontal: false, vertical: true)
@@ -230,7 +230,7 @@ struct EventDetailView: View {
     private func rawSection(_ raw: String) -> some View {
         DisclosureGroup {
             Text(raw)
-                .font(Tokens.Typography.mono(9))
+                .font(Tokens.Typography.font(.codeSmall))
                 .textSelection(.enabled)
                 .fixedSize(horizontal: false, vertical: true)
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -253,7 +253,7 @@ struct EventDetailView: View {
             }
         } label: {
             Text(copiedField == field ? L(.copied) : L(.copy))
-                .font(Tokens.Typography.text(9.5, weight: .medium))
+                .font(Tokens.Typography.font(.caption, weight: .medium))
                 .foregroundStyle(Tokens.Palette.accentText)
         }
         .buttonStyle(.plain)
@@ -294,7 +294,7 @@ private struct FileNeighborsView: View {
             if let touches {
                 if touches.isEmpty {
                     Text(L(.whoNone))
-                        .font(Tokens.Typography.text(10))
+                        .font(Tokens.Typography.font(.callout))
                         .foregroundStyle(Tokens.Palette.secondary)
                 }
                 ForEach(touches) { touch in
@@ -303,14 +303,14 @@ private struct FileNeighborsView: View {
                     } label: {
                         HStack(alignment: .firstTextBaseline, spacing: 6) {
                             Text(EventFormatting.agentLabel(touch.event.agent))
-                                .font(Tokens.Typography.mono(9, weight: .medium))
+                                .font(Tokens.Typography.font(.codeSmall, weight: .medium))
                             Text(touch.action.label(LocalizationStore.current))
-                                .font(Tokens.Typography.mono(9))
+                                .font(Tokens.Typography.font(.codeSmall))
                                 .foregroundStyle(touch.action == .changed
                                     ? Tokens.Palette.accentText
                                     : Tokens.Palette.secondary)
                             Text(EventFormatting.stamp(touch.event.ts))
-                                .font(Tokens.Typography.mono(9))
+                                .font(Tokens.Typography.font(.codeSmall))
                                 .foregroundStyle(Tokens.Palette.tertiary)
                             Spacer(minLength: 0)
                             Image(systemName: "chevron.right")

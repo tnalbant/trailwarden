@@ -79,6 +79,19 @@ jobs:
           fi
           echo "OK: no hardcoded interface text."
 
+      # Text is set in named roles (Tokens.Typography.font) so the Text size
+      # setting reaches all of it; a literal point size would skip it.
+      - name: No literal font sizes
+        run: |
+          set -euo pipefail
+          strays=$(grep -RnE 'Typography\.(text|mono|serif)\(' Sources/TrailwardenApp || true)
+          if [ -n "$strays" ]; then
+            echo "::error::Literal font size; use Tokens.Typography.font(_:) with a text role."
+            echo "$strays"
+            exit 1
+          fi
+          echo "OK: no literal font sizes."
+
       # Real agent transcripts must never be committed; only synthetic fixtures.
       - name: No .jsonl outside fixtures
         run: |

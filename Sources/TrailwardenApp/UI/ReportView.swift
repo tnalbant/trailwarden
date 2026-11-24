@@ -49,7 +49,7 @@ struct ReportView: View {
             if let card {
                 if card.isEmpty {
                     Text(L(.reportEmpty))
-                        .font(Tokens.Typography.text(12))
+                        .font(Tokens.Typography.font(.body))
                         .foregroundStyle(Tokens.Palette.secondary)
                 } else {
                     content(card)
@@ -69,10 +69,10 @@ struct ReportView: View {
         HStack(alignment: .firstTextBaseline, spacing: 12) {
             VStack(alignment: .leading, spacing: 4) {
                 Text(Lf(.reportTitle, [days]))
-                    .font(Tokens.Typography.serif(24, weight: .semibold))
+                    .font(Tokens.Typography.font(.display, weight: .semibold))
                 if let card, !card.isEmpty {
                     Text(Lf(.reportWork, [card.toolCalls, card.sessions, card.projects]))
-                        .font(Tokens.Typography.text(13))
+                        .font(Tokens.Typography.font(.body))
                         .foregroundStyle(Tokens.Palette.secondary)
                 }
             }
@@ -80,7 +80,7 @@ struct ReportView: View {
             if !scrolls {
                 // Snapshot: the segmented control does not render off screen.
                 Text("\(days)d")
-                    .font(Tokens.Typography.mono(11))
+                    .font(Tokens.Typography.font(.code))
                     .foregroundStyle(Tokens.Palette.secondary)
             }
             Picker("", selection: $days) {
@@ -99,7 +99,7 @@ struct ReportView: View {
                 Label(
                     copied ? L(.copied) : L(.reportCopySummary),
                     systemImage: copied ? "checkmark" : "doc.on.doc")
-                    .font(Tokens.Typography.text(11, weight: .medium))
+                    .font(Tokens.Typography.font(.body, weight: .medium))
             }
             .disabled(card?.isEmpty ?? true)
             .help(L(.reportSummaryHint))
@@ -125,7 +125,7 @@ struct ReportView: View {
             rules(card)
         }
         Text(L(.reportSummaryHint))
-            .font(Tokens.Typography.text(10))
+            .font(Tokens.Typography.font(.callout))
             .foregroundStyle(Tokens.Palette.tertiary)
     }
 
@@ -147,11 +147,11 @@ struct ReportView: View {
     private func tile(_ value: Int, _ label: String, tint: Color? = nil) -> some View {
         VStack(alignment: .leading, spacing: 2) {
             Text(value.formatted())
-                .font(Tokens.Typography.serif(22, weight: .semibold))
+                .font(Tokens.Typography.font(.display, weight: .semibold))
                 .foregroundStyle(tint ?? Tokens.Palette.ink)
                 .monospacedDigit()
             Text(label)
-                .font(Tokens.Typography.text(10))
+                .font(Tokens.Typography.font(.callout))
                 .foregroundStyle(Tokens.Palette.secondary)
                 .lineLimit(1)
         }
@@ -170,10 +170,10 @@ struct ReportView: View {
                 VStack(alignment: .leading, spacing: 3) {
                     HStack(alignment: .firstTextBaseline) {
                         Text(share.agent.displayName)
-                            .font(Tokens.Typography.text(12, weight: .medium))
+                            .font(Tokens.Typography.font(.body, weight: .medium))
                         Spacer()
                         Text("\(share.toolCalls.formatted()) · \(share.sessions) \(L(.sessions))")
-                            .font(Tokens.Typography.mono(10))
+                            .font(Tokens.Typography.font(.code))
                             .foregroundStyle(Tokens.Palette.secondary)
                     }
                     GeometryReader { proxy in
@@ -193,21 +193,21 @@ struct ReportView: View {
             ForEach(card.hotFiles) { file in
                 HStack(alignment: .firstTextBaseline, spacing: 8) {
                     Text("\(file.changes)")
-                        .font(Tokens.Typography.mono(11, weight: .semibold))
+                        .font(Tokens.Typography.font(.code, weight: .semibold))
                         .frame(width: 30, alignment: .trailing)
                     VStack(alignment: .leading, spacing: 1) {
                         Text((file.path as NSString).lastPathComponent)
-                            .font(Tokens.Typography.mono(11))
+                            .font(Tokens.Typography.font(.code))
                             .lineLimit(1)
                         Text(ProjectName.display((file.path as NSString).deletingLastPathComponent))
-                            .font(Tokens.Typography.mono(9))
+                            .font(Tokens.Typography.font(.codeSmall))
                             .foregroundStyle(Tokens.Palette.tertiary)
                             .lineLimit(1)
                             .truncationMode(.head)
                     }
                     Spacer(minLength: 4)
                     Text(file.agents.map(EventFormatting.agentLabel).joined(separator: " · "))
-                        .font(Tokens.Typography.mono(9))
+                        .font(Tokens.Typography.font(.codeSmall))
                         .foregroundStyle(Tokens.Palette.secondary)
                 }
             }
@@ -219,7 +219,7 @@ struct ReportView: View {
             SectionLabel(text: L(.reportWorthALook))
             if card.worthALook.isEmpty {
                 Text(L(.reportNoFindings))
-                    .font(Tokens.Typography.text(12))
+                    .font(Tokens.Typography.font(.body))
                     .foregroundStyle(Tokens.Palette.secondary)
             }
             ForEach(card.worthALook) { event in
@@ -249,19 +249,19 @@ struct ReportView: View {
             VStack(alignment: .leading, spacing: 2) {
                 HStack(alignment: .firstTextBaseline, spacing: 6) {
                     Text(title)
-                        .font(Tokens.Typography.text(12, weight: .semibold))
+                        .font(Tokens.Typography.font(.body, weight: .semibold))
                     Text("\(event.agent.displayName) · \(EventFormatting.stamp(event.ts))")
-                        .font(Tokens.Typography.mono(9.5))
+                        .font(Tokens.Typography.font(.codeSmall))
                         .foregroundStyle(Tokens.Palette.secondary)
                     if let project = ActivityDigest.project(from: event.cwd) {
                         Text(project)
-                            .font(Tokens.Typography.mono(9.5))
+                            .font(Tokens.Typography.font(.codeSmall))
                             .foregroundStyle(Tokens.Palette.tertiary)
                     }
                 }
                 Text((event.command ?? event.paths.first ?? event.preview ?? "")
                     .replacingOccurrences(of: "\n", with: " ⏎ "))
-                    .font(Tokens.Typography.mono(10.5))
+                    .font(Tokens.Typography.font(.code))
                     .lineLimit(1)
                     .truncationMode(.tail)
             }
@@ -291,7 +291,7 @@ struct ReportView: View {
                             .fill(Tokens.Palette.severity(count.severity))
                             .frame(width: 6, height: 6)
                         Text("\(title) ×\(count.count)")
-                            .font(Tokens.Typography.text(10.5))
+                            .font(Tokens.Typography.font(.callout))
                     }
                     .padding(.horizontal, 8)
                     .padding(.vertical, 4)

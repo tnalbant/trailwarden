@@ -38,13 +38,13 @@ struct EventRowView: View {
 
             HStack(alignment: .top, spacing: 9) {
                 Text(EventFormatting.stamp(event.ts))
-                    .font(Tokens.Typography.mono(9.5))
+                    .font(Tokens.Typography.font(.codeSmall))
                     .foregroundStyle(Tokens.Palette.secondary)
                     .fixedSize()
                     .frame(width: 88, alignment: .leading)
 
                 Text(EventFormatting.agentLabel(event.agent))
-                    .font(Tokens.Typography.mono(8.5))
+                    .font(Tokens.Typography.font(.codeSmall))
                     .padding(.horizontal, 5)
                     .padding(.vertical, 1)
                     .background(Tokens.Palette.surface)
@@ -53,15 +53,15 @@ struct EventRowView: View {
                 VStack(alignment: .leading, spacing: 2) {
                     HStack(spacing: 6) {
                         Text(event.tool ?? event.kind.rawValue)
-                            .font(Tokens.Typography.mono(9.5, weight: .medium))
+                            .font(Tokens.Typography.font(.codeSmall, weight: .medium))
                         ForEach(event.risk, id: \.ruleId) { hit in
                             Text("\(hit.ruleId) \(LocalizationStore.current.severity(hit.severity))")
-                                .font(Tokens.Typography.text(8.5, weight: .medium))
+                                .font(Tokens.Typography.font(.caption, weight: .medium))
                                 .foregroundStyle(hit.severity.textTint)
                         }
                     }
                     Text(event.preview ?? event.command ?? "—")
-                        .font(Tokens.Typography.mono(10))
+                        .font(Tokens.Typography.font(.code))
                         .foregroundStyle(Tokens.Palette.ink.opacity(0.82))
                         .lineLimit(2)
                         .truncationMode(.middle)

@@ -19,20 +19,20 @@ struct OnboardingView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             Text(L(.onboardingTitle))
-                .font(Tokens.Typography.serif(13, weight: .semibold))
+                .font(Tokens.Typography.font(.subtitle, weight: .semibold))
 
             ForEach(roots) { root in
                 VStack(alignment: .leading, spacing: 1) {
                     HStack {
                         Text(root.agent.displayName)
-                            .font(Tokens.Typography.mono(9))
+                            .font(Tokens.Typography.font(.codeSmall))
                         Spacer()
                         Text(root.exists ? Lf(.filesCount, [root.files]) : L(.missingFolder))
-                            .font(Tokens.Typography.text(9))
+                            .font(Tokens.Typography.font(.caption))
                             .foregroundStyle(Tokens.Palette.secondary)
                     }
                     Text(shortPath(root.path))
-                        .font(Tokens.Typography.mono(8.5))
+                        .font(Tokens.Typography.font(.codeSmall))
                         .foregroundStyle(Tokens.Palette.secondary)
                         .lineLimit(1)
                         .truncationMode(.middle)
@@ -40,13 +40,13 @@ struct OnboardingView: View {
             }
 
             Text(L(.onboardingPrivacy))
-                .font(Tokens.Typography.text(10))
+                .font(Tokens.Typography.font(.callout))
                 .foregroundStyle(Tokens.Palette.secondary)
                 .fixedSize(horizontal: false, vertical: true)
 
             Toggle(isOn: $opensAtLogin) {
                 Text(L(.loginItemTitle))
-                    .font(Tokens.Typography.text(9.5))
+                    .font(Tokens.Typography.font(.caption))
                     .foregroundStyle(Tokens.Palette.secondary)
             }
             .toggleStyle(.switch)
@@ -66,7 +66,7 @@ struct OnboardingView: View {
                 }
             } label: {
                 Text(model.isScanning ? model.scanLabel : L(.startScan))
-                    .font(Tokens.Typography.text(11, weight: .semibold))
+                    .font(Tokens.Typography.font(.body, weight: .semibold))
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 6)
                     .background(Tokens.Palette.accentText)
@@ -93,14 +93,14 @@ private struct NotificationPermissionRow: View {
     var body: some View {
         HStack(alignment: .firstTextBaseline, spacing: 8) {
             Text(L(.onboardingNotifications))
-                .font(Tokens.Typography.text(9.5))
+                .font(Tokens.Typography.font(.caption))
                 .foregroundStyle(Tokens.Palette.secondary)
                 .fixedSize(horizontal: false, vertical: true)
             Spacer(minLength: 0)
             switch live.permission {
             case .allowed:
                 Text(L(.liveNotificationsAllowed))
-                    .font(Tokens.Typography.text(9.5, weight: .medium))
+                    .font(Tokens.Typography.font(.caption, weight: .medium))
                     .foregroundStyle(Tokens.Palette.accentText)
             case .unknown:
                 Button(L(.liveAllowNotifications)) { live.requestNotifications() }

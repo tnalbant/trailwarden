@@ -10,6 +10,7 @@ import TrailwardenCore
 /// It used to be five `Window` scenes, so Settings and Rules sat in the Window
 /// menu next to the dashboard and a reader had to keep track of six things.
 struct MainWindowView: View {
+    @AppStorage(TextSize.storageKey) private var textSize = TextSize.standard.rawValue
     @AppStorage(LocalizationStore.defaultsKey) private var language = AppLanguage.system.rawValue
     @ObservedObject var model: AppModel
     @ObservedObject var updates: UpdateChecker
@@ -35,6 +36,7 @@ struct MainWindowView: View {
             Hairline()
             content
         }
+        .id(textSize)
         // Three columns need 200 + 400 + 340 plus two dividers. Below that the
         // split view squeezed them and the panes clipped their own content — the
         // sidebar cut on the left, timestamps losing their first digit.
@@ -115,7 +117,7 @@ struct MainWindowView: View {
                 } label: {
                     HStack(spacing: 3) {
                         Text(Lf(.sessionCritical, [model.snapshot.criticalToday]))
-                            .font(Tokens.Typography.text(10, weight: .medium))
+                            .font(Tokens.Typography.font(.callout, weight: .medium))
                         Image(systemName: "chevron.right")
                             .font(.system(size: 7, weight: .semibold))
                     }
@@ -126,7 +128,7 @@ struct MainWindowView: View {
                 .help(L(.severityCritical))
             }
             Text(Lf(.eventCount, [model.snapshot.totalEvents]))
-                .font(Tokens.Typography.mono(10))
+                .font(Tokens.Typography.font(.code))
                 .foregroundStyle(Tokens.Palette.secondary)
 
             Button {
@@ -169,7 +171,7 @@ struct MainWindowView: View {
             router.tab = tab
         } label: {
             Text(tab.title)
-                .font(Tokens.Typography.text(11.5, weight: router.tab == tab ? .semibold : .regular))
+                .font(Tokens.Typography.font(.body, weight: router.tab == tab ? .semibold : .regular))
                 .foregroundStyle(router.tab == tab ? Tokens.Palette.ink : Tokens.Palette.secondary)
                 .padding(.horizontal, 9)
                 .padding(.vertical, 5)
@@ -189,7 +191,7 @@ struct MainWindowView: View {
                 .font(.system(size: 10))
                 .foregroundStyle(Tokens.Palette.tertiary)
             Text(timeline.selectionLabel)
-                .font(Tokens.Typography.text(11, weight: .medium))
+                .font(Tokens.Typography.font(.body, weight: .medium))
                 .foregroundStyle(Tokens.Palette.secondary)
                 .lineLimit(1)
         }
@@ -205,7 +207,7 @@ struct MainWindowView: View {
                 .foregroundStyle(Tokens.Palette.tertiary)
             TextField(L(.searchPlaceholder), text: $timeline.search)
                 .textFieldStyle(.plain)
-                .font(Tokens.Typography.text(11))
+                .font(Tokens.Typography.font(.body))
                 .focused($searchFocused)
         }
         .padding(.horizontal, 8)

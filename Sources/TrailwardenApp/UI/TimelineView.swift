@@ -19,7 +19,7 @@ private struct FilterChip: View {
                     .font(.system(size: 11))
                     .foregroundStyle(isOn ? Tokens.Palette.accent : Tokens.Palette.secondary)
                 Text(title)
-                    .font(Tokens.Typography.text(10.5, weight: isOn ? .medium : .regular))
+                    .font(Tokens.Typography.font(.callout, weight: isOn ? .medium : .regular))
                     .foregroundStyle(Tokens.Palette.ink)
                     .lineLimit(1)
                     .fixedSize(horizontal: true, vertical: false)
@@ -94,7 +94,7 @@ struct TimelineView: View {
                         }
                         if model.sessions(inProject: project.cwd).isEmpty {
                             Text(L(.noSessionSelected))
-                                .font(Tokens.Typography.text(10))
+                                .font(Tokens.Typography.font(.callout))
                                 .foregroundStyle(Tokens.Palette.secondary)
                         }
                     } label: {
@@ -116,10 +116,10 @@ struct TimelineView: View {
                 .foregroundStyle(Tokens.Palette.secondary)
             VStack(alignment: .leading, spacing: 1) {
                 Text(ProjectName.short(project.cwd))
-                    .font(Tokens.Typography.text(11.5, weight: .medium))
+                    .font(Tokens.Typography.font(.body, weight: .medium))
                     .lineLimit(1)
                 Text(Lf(.projectMeta, [project.sessionCount, project.eventCount]))
-                    .font(Tokens.Typography.text(9))
+                    .font(Tokens.Typography.font(.caption))
                     .foregroundStyle(Tokens.Palette.secondary)
             }
         }
@@ -128,13 +128,13 @@ struct TimelineView: View {
     private func sessionLabel(_ session: SessionSummary) -> some View {
         HStack(spacing: 6) {
             Text(EventFormatting.agentLabel(session.agent))
-                .font(Tokens.Typography.mono(8))
+                .font(Tokens.Typography.font(.codeSmall))
                 .padding(.horizontal, 4)
                 .padding(.vertical, 0.5)
                 .background(Tokens.Palette.surface)
                 .clipShape(RoundedRectangle(cornerRadius: 2.5))
             Text(Sessions.shortID(session.id))
-                .font(Tokens.Typography.mono(9))
+                .font(Tokens.Typography.font(.codeSmall))
                 .lineLimit(1)
             Spacer(minLength: 2)
             if liveSessionIDs.contains(session.id) {
@@ -145,7 +145,7 @@ struct TimelineView: View {
             }
             if session.criticalCount > 0 {
                 Text("\(session.criticalCount)")
-                    .font(Tokens.Typography.text(9, weight: .medium))
+                    .font(Tokens.Typography.font(.caption, weight: .medium))
                     .foregroundStyle(Tokens.Palette.accentText)
             }
         }
@@ -250,9 +250,9 @@ struct TimelineView: View {
     private var detailPlaceholder: some View {
         VStack(alignment: .leading, spacing: 6) {
             Text(L(.pickEvent))
-                .font(Tokens.Typography.serif(14))
+                .font(Tokens.Typography.font(.subtitle))
             Text(L(.pickEventHint))
-                .font(Tokens.Typography.text(11))
+                .font(Tokens.Typography.font(.body))
                 .foregroundStyle(Tokens.Palette.secondary)
         }
         .padding(20)
@@ -263,9 +263,9 @@ struct TimelineView: View {
     private var emptyState: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(L(.noEventsInRange))
-                .font(Tokens.Typography.serif(14))
+                .font(Tokens.Typography.font(.subtitle))
             Text(L(.noEventsHint))
-                .font(Tokens.Typography.text(11))
+                .font(Tokens.Typography.font(.body))
                 .foregroundStyle(Tokens.Palette.secondary)
             // A filter combination that matches nothing should not be a dead end.
             // Findings-only plus one session is the easy way to get here.
@@ -277,7 +277,7 @@ struct TimelineView: View {
                 model.window = .month
             }
             .buttonStyle(.plain)
-            .font(Tokens.Typography.text(11, weight: .medium))
+            .font(Tokens.Typography.font(.body, weight: .medium))
             .foregroundStyle(Tokens.Palette.accentText)
             .padding(.top, 2)
         }
@@ -288,21 +288,21 @@ struct TimelineView: View {
         HStack {
             if let error = model.errorMessage {
                 Text(error)
-                    .font(Tokens.Typography.text(10))
+                    .font(Tokens.Typography.font(.callout))
                     .foregroundStyle(Tokens.Palette.accentText)
                     .lineLimit(1)
             } else {
                 Text(model.events.isEmpty
                     ? L(.eventsNone)
                     : Lf(.eventsRatio, [model.events.count, model.total]))
-                    .font(Tokens.Typography.mono(9.5))
+                    .font(Tokens.Typography.font(.codeSmall))
                     .foregroundStyle(Tokens.Palette.secondary)
             }
             Spacer()
             if model.events.count < model.total {
                 Button(L(.loadMore)) { model.loadMore() }
                     .buttonStyle(.plain)
-                    .font(Tokens.Typography.text(10.5, weight: .medium))
+                    .font(Tokens.Typography.font(.callout, weight: .medium))
             }
         }
         .padding(.horizontal, 16)

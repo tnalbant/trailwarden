@@ -56,24 +56,26 @@ enum Tokens {
     }
 
     enum Typography {
-        /// New York, the system serif: headings keep the paper voice and still
-        /// inherit Dynamic Type and every script the system supports.
-        static func serif(_ size: CGFloat, weight: Font.Weight = .regular) -> Font {
-            .system(size: size, weight: weight, design: .serif)
-        }
-
-        static func text(_ size: CGFloat, weight: Font.Weight = .regular) -> Font {
-            .system(size: size, weight: weight)
-        }
-
-        static func mono(_ size: CGFloat, weight: Font.Weight = .regular) -> Font {
-            .system(size: size, weight: weight, design: .monospaced)
+        /// A named text role at the reader's chosen text size. Serif roles use New
+        /// York, the system serif, so headings keep the paper voice; code uses SF Mono.
+        static func font(_ style: TextStyle, weight: Font.Weight? = nil) -> Font {
+            .system(
+                size: style.baseSize * TextSize.current.factor,
+                weight: weight ?? style.weight,
+                design: style.design)
         }
     }
 
     /// An 8 pt grid, so every gap in the app is one of these.
     enum Metrics {
-        static let panelWidth: CGFloat = 340
+        static var panelWidth: CGFloat {
+            switch TextSize.current {
+            case .standard: 340
+            case .large: 380
+            case .larger: 420
+            }
+        }
+
         static let gutter: CGFloat = 14
         static let gap: CGFloat = 8
         static let radius: CGFloat = 10
@@ -103,13 +105,13 @@ struct SectionLabel: View {
     var body: some View {
         HStack(alignment: .firstTextBaseline, spacing: 6) {
             Text(text.uppercased())
-                .font(Tokens.Typography.text(10, weight: .semibold))
+                .font(Tokens.Typography.font(.label))
                 .kerning(0.7)
                 .foregroundStyle(Tokens.Palette.secondary)
             Spacer(minLength: 0)
             if let trailing {
                 Text(trailing)
-                    .font(Tokens.Typography.mono(9))
+                    .font(Tokens.Typography.font(.codeSmall))
                     .foregroundStyle(Tokens.Palette.tertiary)
             }
         }

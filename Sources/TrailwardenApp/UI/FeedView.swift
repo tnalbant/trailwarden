@@ -19,7 +19,7 @@ struct FeedView: View {
             Hairline()
             if let error = model.errorMessage {
                 Text(error)
-                    .font(Tokens.Typography.text(11))
+                    .font(Tokens.Typography.font(.body))
                     .foregroundStyle(Tokens.Palette.accentText)
                     .padding(.horizontal, Tokens.Metrics.gutter)
                     .padding(.vertical, 8)
@@ -44,7 +44,7 @@ struct FeedView: View {
     private var header: some View {
         HStack(alignment: .firstTextBaseline, spacing: 10) {
             Text(dateLabel)
-                .font(Tokens.Typography.serif(15, weight: .semibold))
+                .font(Tokens.Typography.font(.subtitle, weight: .semibold))
             Spacer()
             if model.isLoading {
                 ProgressView().controlSize(.small)
@@ -57,9 +57,9 @@ struct FeedView: View {
     private var emptyState: some View {
         VStack(alignment: .leading, spacing: 6) {
             Text(L(.noEventsInRange))
-                .font(Tokens.Typography.text(12))
+                .font(Tokens.Typography.font(.body))
             Text(L(.noEventsHint))
-                .font(Tokens.Typography.text(10.5))
+                .font(Tokens.Typography.font(.callout))
                 .foregroundStyle(Tokens.Palette.secondary)
         }
         .padding(.top, 40)
@@ -72,9 +72,9 @@ struct FeedView: View {
                     .font(.system(size: 10))
                     .foregroundStyle(Tokens.Palette.secondary)
                 Text(section.title)
-                    .font(Tokens.Typography.text(11.5, weight: .medium))
+                    .font(Tokens.Typography.font(.body, weight: .medium))
                 Text("\(section.items.count)")
-                    .font(Tokens.Typography.text(9))
+                    .font(Tokens.Typography.font(.caption))
                     .foregroundStyle(Tokens.Palette.secondary)
                 if section.criticalCount > 0 {
                     Circle()
@@ -98,13 +98,13 @@ struct FeedView: View {
         } label: {
             HStack(alignment: .firstTextBaseline, spacing: 10) {
                 Text(time(item.time))
-                    .font(Tokens.Typography.mono(9.5))
+                    .font(Tokens.Typography.font(.codeSmall))
                     .foregroundStyle(Tokens.Palette.tertiary)
                     .fixedSize()
                     .frame(width: 84, alignment: .leading)
 
                 Text(item.label)
-                    .font(Tokens.Typography.mono(9))
+                    .font(Tokens.Typography.font(.codeSmall))
                     .foregroundStyle(item.isMessage ? Tokens.Palette.secondary : Tokens.Palette.ink)
                     .padding(.horizontal, 5)
                     .padding(.vertical, 1)
@@ -114,7 +114,7 @@ struct FeedView: View {
 
                 VStack(alignment: .leading, spacing: 2) {
                     Text(item.detail)
-                        .font(Tokens.Typography.text(11))
+                        .font(Tokens.Typography.font(.body))
                         .foregroundStyle(item.isMessage ? Tokens.Palette.secondary : Tokens.Palette.ink)
                         .lineLimit(3)
                         .fixedSize(horizontal: false, vertical: true)
@@ -122,7 +122,7 @@ struct FeedView: View {
                         .frame(maxWidth: .infinity, alignment: .leading)
                     if let rule = item.ruleLine(LocalizationStore.current), let severity = item.severity {
                         Text(rule)
-                            .font(Tokens.Typography.text(9.5))
+                            .font(Tokens.Typography.font(.caption))
                             .foregroundStyle(Tokens.Palette.severity(severity))
                     }
                 }

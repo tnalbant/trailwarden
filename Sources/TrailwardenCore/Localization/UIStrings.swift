@@ -46,6 +46,7 @@ public enum UIString: String, CaseIterable, Sendable {
     case allAgents, onlyFindings, rawStream, showCountersHint
     // Settings
     case appearance, appearanceAutomatic, appearanceLight, appearanceDark, appearanceHint
+    case textSizeSection, textSizeStandard, textSizeLarge, textSizeLarger
     case languageSection, languageSystem, languageHint
     case scannedDirs, dirsHint, retention, retentionDays, cleanupNow, retentionHint
     case exportSection, exportAction, exportRange, exportHint
@@ -194,6 +195,10 @@ public enum UITranslations {
         .appearanceLight: "Light",
         .appearanceDark: "Dark",
         .appearanceHint: "Automatic follows the macOS light/dark setting.",
+        .textSizeSection: "Text size",
+        .textSizeStandard: "Standard",
+        .textSizeLarge: "Large",
+        .textSizeLarger: "Larger",
         .languageSection: "Language",
         .languageSystem: "System",
         .languageHint: "Interface language. A change applies immediately.",

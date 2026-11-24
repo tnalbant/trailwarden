@@ -22,12 +22,12 @@ struct PricesSection: View {
                     NSApp.activate(ignoringOtherApps: true)
                 }
                 Text(Lf(.pricesSummary, [book.rows.count, book.unpricedCount, book.userCount]))
-                    .font(Tokens.Typography.mono(9.5))
+                    .font(Tokens.Typography.font(.codeSmall))
                     .foregroundStyle(book.unpricedCount > 0 ? Tokens.Palette.accentText : Tokens.Palette
                         .secondary)
             }
             Text(L(.pricesHint))
-                .font(Tokens.Typography.text(9.5))
+                .font(Tokens.Typography.font(.caption))
                 .foregroundStyle(Tokens.Palette.secondary)
                 .fixedSize(horizontal: false, vertical: true)
         }
@@ -61,7 +61,7 @@ struct PricesWindow: View {
         VStack(alignment: .leading, spacing: 10) {
             VStack(alignment: .leading, spacing: 6) {
                 Text(L(.pricesSection))
-                    .font(Tokens.Typography.serif(18, weight: .semibold))
+                    .font(Tokens.Typography.font(.title, weight: .semibold))
                 PriceListLine(book: book, updates: updates)
                 HStack(spacing: 12) {
                     TextField(L(.searchModels), text: $search)
@@ -71,7 +71,7 @@ struct PricesWindow: View {
                         .toggleStyle(.checkbox)
                     Spacer()
                     Text(Lf(.pricesSummary, [book.rows.count, book.unpricedCount, book.userCount]))
-                        .font(Tokens.Typography.mono(9.5))
+                        .font(Tokens.Typography.font(.codeSmall))
                         .foregroundStyle(Tokens.Palette.secondary)
                 }
                 .controlSize(.small)
@@ -91,7 +91,7 @@ struct PricesWindow: View {
                     }
                     if shown.isEmpty {
                         Text(book.rows.isEmpty ? L(.noPriceModels) : Lf(.noPriceMatches, [search]))
-                            .font(Tokens.Typography.text(10))
+                            .font(Tokens.Typography.font(.callout))
                             .foregroundStyle(Tokens.Palette.secondary)
                     }
                 }
@@ -101,7 +101,7 @@ struct PricesWindow: View {
             addRow
             if let problem = book.problem {
                 Text(problem)
-                    .font(Tokens.Typography.text(9.5))
+                    .font(Tokens.Typography.font(.caption))
                     .foregroundStyle(Tokens.Palette.accentText)
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -118,7 +118,7 @@ struct PricesWindow: View {
         HStack(spacing: 8) {
             TextField(L(.addModelPlaceholder), text: $newModel)
                 .textFieldStyle(.roundedBorder)
-                .font(Tokens.Typography.mono(10))
+                .font(Tokens.Typography.font(.code))
                 .frame(width: 280)
                 .onSubmit(add)
             Button(L(.addModel), action: add)
@@ -148,7 +148,7 @@ private struct PriceListLine: View {
                 Text(Lf(
                     book.table.usesPublishedList ? .priceListDownloaded : .priceListBuiltIn,
                     [book.table.asOf]))
-                    .font(Tokens.Typography.mono(9.5))
+                    .font(Tokens.Typography.font(.codeSmall))
                     .foregroundStyle(Tokens.Palette.secondary)
                 Button(book.updateState == .checking ? L(.checkingPrices) : L(.checkPrices)) {
                     Task { await book.checkForNewList(using: updates) }
@@ -156,13 +156,13 @@ private struct PriceListLine: View {
                 .disabled(book.updateState == .checking)
                 if let status {
                     Text(status)
-                        .font(Tokens.Typography.mono(9.5))
+                        .font(Tokens.Typography.font(.codeSmall))
                         .foregroundStyle(statusTint)
                 }
             }
             if book.table.isStale() {
                 Text(L(.pricesStale))
-                    .font(Tokens.Typography.text(9.5, weight: .medium))
+                    .font(Tokens.Typography.font(.caption, weight: .medium))
                     .foregroundStyle(Tokens.Palette.accentText)
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -200,7 +200,7 @@ private struct PriceColumns: View {
             }
             Spacer()
         }
-        .font(Tokens.Typography.text(9, weight: .semibold))
+        .font(Tokens.Typography.font(.caption, weight: .semibold))
         .foregroundStyle(Tokens.Palette.secondary)
         .lineLimit(1)
     }
@@ -237,11 +237,11 @@ private struct PriceRowEditor: View {
         HStack(spacing: 6) {
             VStack(alignment: .leading, spacing: 1) {
                 Text(row.id)
-                    .font(Tokens.Typography.mono(10.5))
+                    .font(Tokens.Typography.font(.code))
                     .lineLimit(1)
                     .truncationMode(.middle)
                 Text(caption)
-                    .font(Tokens.Typography.text(9))
+                    .font(Tokens.Typography.font(.caption))
                     .foregroundStyle(price == nil ? Tokens.Palette.accentText : Tokens.Palette.secondary)
                     .lineLimit(1)
             }
@@ -253,7 +253,7 @@ private struct PriceRowEditor: View {
             field($cacheWrite)
             Toggle(L(.priceFreeToggle), isOn: $free)
                 .toggleStyle(.checkbox)
-                .font(Tokens.Typography.text(10))
+                .font(Tokens.Typography.font(.callout))
             Spacer(minLength: 6)
             if changed {
                 Button(L(.priceSave)) { onSave(draft) }
@@ -270,7 +270,7 @@ private struct PriceRowEditor: View {
     private func field(_ value: Binding<Double?>) -> some View {
         TextField("", value: value, format: .number.precision(.fractionLength(0 ... 4)), prompt: Text("—"))
             .textFieldStyle(.roundedBorder)
-            .font(Tokens.Typography.mono(10))
+            .font(Tokens.Typography.font(.code))
             .multilineTextAlignment(.trailing)
             .labelsHidden()
             .frame(width: PriceLayout.rate)
