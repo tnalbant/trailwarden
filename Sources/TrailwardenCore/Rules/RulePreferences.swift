@@ -66,6 +66,13 @@ public enum RulePreferences {
         }
     }
 
+    /// The built-in rules with the reader's stored preferences applied: the rule
+    /// set the app grades with.
+    public static func effectiveRules() throws -> [Rule] {
+        let stored = try (try? defaultURL()).map { try load(from: $0) } ?? []
+        return try apply(stored, to: RuleCatalog.builtIn())
+    }
+
     /// The preferences that describe a rule list, for writing back after an edit.
     public static func preferences(from rules: [Rule]) -> [RulePreference] {
         rules.map { RulePreference(id: $0.id, enabled: $0.isEnabled, severity: $0.severity) }

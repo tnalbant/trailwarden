@@ -66,7 +66,7 @@ public final class EventStore {
     }
 
     /// The schema `migrate()` brings an index to; `doctor` compares against it.
-    public static let schemaVersion = 7
+    public static let schemaVersion = 8
 
     public convenience init(url: URL) throws {
         let fileManager = FileManager.default
@@ -225,6 +225,9 @@ public final class EventStore {
         if try userVersion() < 7 {
             try forgetOldTokenEvents()
         }
+        // v8: a small key/value table for facts about the index itself, such as
+        // which built-in rule catalogue last graded it.
+        try database.execute("CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT NOT NULL)")
         try database.execute("PRAGMA user_version = \(Self.schemaVersion)")
     }
 

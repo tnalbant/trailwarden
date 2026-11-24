@@ -157,7 +157,10 @@ private final class LiveWorker: @unchecked Sendable {
         defer { lock.unlock() }
         do {
             let store = try EventStore(url: databaseURL)
-            let engine = try RuleEngine(rules: Self.effectiveRules(), mutes: store.mutes())
+            let engine = try RuleEngine(rules: RulePreferences.effectiveRules(), mutes: store.mutes())
+            // After an update that changed the built-in rules, the history is
+            // re-graded once, before the catch-up scan.
+            try store.reapplyRulesIfCatalogueChanged(engine: engine)
             _ = try TranscriptScanner(store: store, rules: engine)
                 .scan(roots: ScanRoot.standard(), databases: ScanRoot.standardDatabases())
             _ = try guardState.newFindings(in: store)
@@ -178,14 +181,6 @@ private final class LiveWorker: @unchecked Sendable {
     func stop() {
         watcher?.stop()
         watcher = nil
-    }
-
-    /// The rule set the reader configured: built-ins with their switches and
-    /// severities from the Rules window.
-    private static func effectiveRules() throws -> [Rule] {
-        let builtIn = try RuleCatalog.builtIn()
-        let stored = try (try? RulePreferences.defaultURL()).map { try RulePreferences.load(from: $0) } ?? []
-        return RulePreferences.apply(stored, to: builtIn)
     }
 
     private func pass(_ urls: [URL]) {

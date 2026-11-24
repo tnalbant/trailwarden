@@ -45,6 +45,10 @@ struct ScanCommand: ParsableCommand {
         let agents = agent.agents
         let database = try store.open()
         let engine = try RuleEngine.builtIn(mutes: database.mutes())
+        // After an update that changed the built-in rules, the history is
+        // re-graded once, with the reader's preferences, before the scan.
+        try database.reapplyRulesIfCatalogueChanged(
+            engine: RuleEngine(rules: RulePreferences.effectiveRules(), mutes: database.mutes()))
         let scanner = TranscriptScanner(store: database, rules: engine)
 
         // A progress line on a terminal only: scripts and CI read stdout and a

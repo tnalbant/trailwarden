@@ -37,3 +37,11 @@ public enum RuleCatalog {
         return merged
     }
 }
+
+public extension RuleCatalog {
+    /// SHA-256 of the built-in catalogue, in hex. It changes whenever a release
+    /// changes a built-in rule, which is when the stored hits go stale.
+    static let builtInFingerprint: String = SHA256Hasher.hash(Data(BuiltInRules.json.utf8))
+        .map { String(format: "%02x", $0) }
+        .joined()
+}

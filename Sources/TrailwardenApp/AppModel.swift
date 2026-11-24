@@ -111,6 +111,11 @@ final class AppModel: ObservableObject {
         if onboardingDone, liveAllowed {
             live.sync()
         }
+        // The live guard re-grades the history after an update that changed the
+        // built-in rules; without it running, the app does it here.
+        if onboardingDone, !(liveAllowed && LiveMonitor.isEnabled) {
+            Task { await reapplyIfCatalogueChanged() }
+        }
     }
 
     /// Jumps to one event: the window opens on its session with it selected.
@@ -286,6 +291,27 @@ final class AppModel: ObservableObject {
             return
         }
         await reapplyRules()
+    }
+
+    /// Re-runs the rules over the whole index once after an update changed the
+    /// built-in catalogue, with the reader's preferences and mutes.
+    func reapplyIfCatalogueChanged() async {
+        let rulesCopy = rules
+        let mutesCopy = mutes
+        let url = databaseURL
+        let changed = await Task.detached(priority: .utility) { () -> Bool in
+            do {
+                let store = try EventStore(url: url)
+                let engine = try RuleEngine(rules: rulesCopy, mutes: mutesCopy)
+                return try store.reapplyRulesIfCatalogueChanged(engine: engine)
+            } catch {
+                NSLog("Trailwarden could not re-apply the rules: %@", String(describing: error))
+                return false
+            }
+        }.value
+        if changed {
+            refresh()
+        }
     }
 
     /// Re-runs the rules over the stored index. Runs off the main actor because
