@@ -110,7 +110,7 @@ public struct RuleEngine: Sendable {
             // Paths first: they are cheap, and most commands name no matching path.
             let matched = segments.contains { segment in
                 (segment.candidates.contains { pathMatches(match, $0) }
-                    || segment.directories.contains { secretDirectoryMatches(match, $0) })
+                    || segment.directories.contains { pathMatches(match, $0) || isSecretDirectory($0) })
                     && regex.firstMatch(in: segment.line, range: segment.range) != nil
             }
             guard matched else { return false }
@@ -133,18 +133,6 @@ public struct RuleEngine: Sendable {
     private static func pathMatches(_ match: CompiledMatch, _ candidate: String) -> Bool {
         match.globs.contains { Glob.matches($0, candidate) }
             && !match.excludes.contains { Glob.matches($0, candidate) }
-    }
-
-    /// Folders whose files are secret by their place: a command that runs after
-    /// `cd` into one of them reads files by relative name.
-    private static let secretDirectories: [NSRegularExpression] = [
-        "**/.ssh", "**/.ssh/**", "**/.aws", "**/.aws/**", "**/.gnupg", "**/.gnupg/**",
-        "**/.config/gh", "**/.config/gh/**", "**/.kube", "**/.kube/**",
-        "**/.docker", "**/.docker/**"
-    ].compactMap { Glob.regex(for: normalizeGlob($0)) }
-
-    private static func secretDirectoryMatches(_ match: CompiledMatch, _ directory: String) -> Bool {
-        pathMatches(match, directory) || secretDirectories.contains { Glob.matches($0, directory) }
     }
 
     /// Built-in catalogue with no mutes. Used by the CLI and by tests.
@@ -356,23 +344,6 @@ public struct RuleEngine: Sendable {
                 limitedBy: line.endIndex) ?? line.endIndex
         }
         return result
-    }
-
-    private static let changeDirectory = try? NSRegularExpression(
-        pattern: #"^\s*[({]?\s*(?:pushd|cd)\b"#)
-
-    /// The folders in force after one command: a `cd`/`pushd` to an absolute or
-    /// `~` path replaces them, a relative one adds to them (it can only go
-    /// deeper), `cd -` clears them; any other command leaves them alone.
-    private static func directoriesAfter(_ body: String, previous: [String]) -> [String] {
-        guard isMatch(changeDirectory, body) else { return previous }
-        let targets = tokens(in: body).dropFirst().filter { !$0.hasPrefix("-") }
-            .map(normalizePathToken).filter { !$0.isEmpty }
-        guard let target = targets.first else { return [] }
-        if target.hasPrefix("/") || target.hasPrefix("~") || target.hasPrefix("$") {
-            return [target]
-        }
-        return target == ".." ? previous : previous + [target]
     }
 
     /// `cat > x.py <<'EOF' … EOF` carries a file's content, and content that
