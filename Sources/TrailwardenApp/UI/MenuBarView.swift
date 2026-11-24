@@ -24,6 +24,9 @@ struct MenuBarView: View {
     /// The places menu unfolds inside the panel: a `Menu` renders as an
     /// unsupported control inside a menu bar window.
     @State private var showsDestinations = false
+    /// "Up to date" is shown only for a check started in this panel session;
+    /// an old result is not news.
+    @State private var showsUpToDate = false
 
     init(model: AppModel, updates: UpdateChecker, router: DashboardRouter, loginItem: LoginItem) {
         self.model = model
@@ -48,7 +51,9 @@ struct MenuBarView: View {
             if model.onboardingDone, let message = loginItem.status.failureText(technical: technical) {
                 loginFailedStrip(message)
             }
-            updateBar
+            if updateBarVisible {
+                updateBar
+            }
             Hairline()
             if model.onboardingDone {
                 status
@@ -142,14 +147,23 @@ struct MenuBarView: View {
         .padding(.bottom, 4)
     }
 
-    /// The version and the one network call the reader can start, on the row
-    /// under the title. A version number that hides in Settings is a version
-    /// number nobody reads, and the check belongs next to it.
+    /// The bar appears only when there is something to say: an update, a
+    /// failure, a check in progress, or a check the reader just started.
+    private var updateBarVisible: Bool {
+        switch updates.state {
+        case .idle:
+            false
+        case .upToDate:
+            showsUpToDate
+        case .checking, .available, .failed:
+            true
+        }
+    }
+
+    /// The result of the check on the row under the title; the version number
+    /// and the check itself live in the places list.
     private var updateBar: some View {
         HStack(spacing: 6) {
-            Text("v\(TrailwardenVersion.installed)")
-                .font(Tokens.Typography.font(.codeSmall))
-                .foregroundStyle(Tokens.Palette.tertiary)
             if let line = updateLine {
                 Image(systemName: line.icon)
                     .font(.system(size: 9))
@@ -169,16 +183,6 @@ struct MenuBarView: View {
                 }
             }
             Spacer(minLength: 2)
-            Button {
-                Task { await updates.check() }
-            } label: {
-                Text(L(.checkUpdates))
-                    .font(Tokens.Typography.font(.caption, weight: .medium))
-                    .foregroundStyle(updates.state == .checking ? Tokens.Palette.tertiary : Tokens.Palette
-                        .accentText)
-            }
-            .buttonStyle(.plain)
-            .disabled(updates.state == .checking)
         }
         .padding(.horizontal, Tokens.Metrics.gutter)
         .padding(.bottom, 9)
@@ -433,12 +437,17 @@ struct MenuBarView: View {
                 .padding(.vertical, 4)
             Button {
                 showsDestinations = false
+                showsUpToDate = true
                 Task { await updates.check() }
             } label: {
                 destinationLabel(L(.checkUpdates))
             }
             .buttonStyle(.plain)
             .disabled(updates.state == .checking)
+            Text("v\(TrailwardenVersion.installed)")
+                .font(Tokens.Typography.font(.codeSmall))
+                .foregroundStyle(Tokens.Palette.tertiary)
+                .padding(.vertical, 4)
             Button {
                 NSApp.terminate(nil)
             } label: {

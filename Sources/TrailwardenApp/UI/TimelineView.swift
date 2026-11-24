@@ -242,6 +242,7 @@ struct TimelineView: View {
         ScrollViewReader { proxy in
             listContent
                 .focusable()
+                .focusEffectDisabled()
                 .focused($focusedPane, equals: .list)
                 .onKeyPress(.upArrow) { moveSelection(-1, proxy: proxy) }
                 .onKeyPress(.downArrow) { moveSelection(1, proxy: proxy) }
@@ -259,13 +260,14 @@ struct TimelineView: View {
         }
     }
 
-    /// Moves the selection one row, loading the next page at the end, and keeps
+    /// Moves the selection one row (↓ with nothing selected picks the first row),
+    /// loading the next page when moving down from the last row, and keeps
     /// the new row on screen.
     private func moveSelection(_ delta: Int, proxy: ScrollViewProxy) -> KeyPress.Result {
         guard !model.events.isEmpty else { return .ignored }
         var events = model.events
         let current = events.firstIndex { $0.id == model.selectedEventID }
-        if delta > 0, current == nil || current == events.count - 1 {
+        if delta > 0, let current, current == events.count - 1 {
             model.loadMore()
             events = model.events
         }
@@ -291,7 +293,10 @@ struct TimelineView: View {
                 ForEach(model.events) { event in
                     EventRowView(event: event, selected: model.selectedEventID == event.id)
                         .id(event.id)
-                        .onTapGesture { model.selectedEventID = event.id }
+                        .onTapGesture {
+                            model.selectedEventID = event.id
+                            focusedPane = .list
+                        }
                         .accessibilityAddTraits(
                             model.selectedEventID == event.id ? [.isButton, .isSelected] : .isButton)
                         .onAppear {

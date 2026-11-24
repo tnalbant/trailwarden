@@ -113,7 +113,8 @@ final class PriceBook: ObservableObject {
             try PriceTable.setUserPrice(price, for: model, at: PriceTable.userPricesURL())
             problem = nil
         } catch {
-            problem = Lf(.priceSaveFailed, [String(describing: error)])
+            let plain = L(.priceSaveFailed)
+            problem = TechnicalDetails.isOn ? "\(plain)\n\(String(describing: error))" : plain
         }
         await reload()
         onChange?()

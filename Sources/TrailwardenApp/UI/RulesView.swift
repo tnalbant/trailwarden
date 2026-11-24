@@ -27,7 +27,9 @@ struct RulesView: View {
         .tint(Tokens.Palette.accent)
         .onAppear {
             model.loadRules()
-            Task { await model.reapplyRules() }
+            if model.rulesDirty {
+                Task { await model.reapplyRules() }
+            }
         }
     }
 

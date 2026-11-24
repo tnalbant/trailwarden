@@ -21,7 +21,7 @@ auf die öffentliche `prices.json` in diesem Repository, für die Kostenschätzu
 und nur per Klick. Die CI schlägt fehl, sobald irgendwo sonst in `Sources/` eine
 Netzwerk-API auftaucht.
 
-> Status: **v0.2.4** – Live-Wächter, 27 Regeln, Agent-Blame, Bericht, CI-Gate.
+> Status: **v0.2.5** – Live-Wächter, 28 Regeln, Agent-Blame, Bericht, CI-Gate.
 > Oberfläche auf Englisch (US), Türkisch, Deutsch, Spanisch, Italienisch und Französisch.
 
 ![Bericht](docs/screenshots/report-light.png)
@@ -60,7 +60,7 @@ sodass darin kein echtes Projekt zu sehen ist.
   wird zu einer macOS-Benachrichtigung. Ein Klick darauf öffnet die Zeitleiste an diesem Ereignis.
   Kein Polling, kein Daemon, und nichts wird irgendwohin gesendet. Derselbe Strom ist im
   Terminal verfügbar: `trailwarden watch`.
-- **27 Risikoregeln** – zerstörerische Löschbefehle, `curl … | sh`, Zugriffe auf Geheimnisse und den Schlüsselbund,
+- **28 Risikoregeln** – zerstörerische Löschbefehle, `curl … | sh`, Zugriffe auf Geheimnisse und den Schlüsselbund,
   in einen Befehl eingefügte API-Schlüssel, `--dangerously-skip-permissions`,
   `git commit --no-verify`, launchd-/cron-Persistenz, Änderungen an Shell-Startdateien und Agent-
   Einstellungen, Änderungen an CI-Workflows, `DROP TABLE`, `terraform destroy`, Datenträger-
@@ -92,6 +92,7 @@ sodass darin kein echtes Projekt zu sehen ist.
   dieselben Fragen stellen können (`search_events`, `list_sessions`, `get_event`,
   `file_history`, `audit_summary`). Mit `file_history` kann ein Agent prüfen, wer sonst
   an einer Datei arbeitet, bevor er sie bearbeitet.
+- **Für den Alltag** – Start bei der Anmeldung (ein Fehlschlag wird angezeigt, nicht verschwiegen), Textgröße Standard, Groß oder Größer und standardmäßig schlichte Zeilen: Mit „Technische Details anzeigen“ erscheinen Regel-IDs, rohe Tool-Namen und rohe Fehlertexte. VoiceOver liest jede Zeile als einen Satz, und die Zeitleiste lässt sich mit ↑/↓, ⏎, Esc und ⌘C bedienen.
 
 Der neuere „Code Mode“ von Codex verpackt jeden Aufruf in ein kleines JavaScript-Programm;
 Trailwarden liest die Shell-Befehle und gepatchten Dateien daraus, sodass die

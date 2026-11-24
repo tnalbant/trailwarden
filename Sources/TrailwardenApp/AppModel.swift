@@ -236,6 +236,7 @@ final class AppModel: ObservableObject {
     /// index is re-run so the timeline reflects it immediately.
     func updateRule(_ ruleId: String, enabled: Bool? = nil, severity: Severity? = nil) async {
         guard let index = rules.firstIndex(where: { $0.id == ruleId }) else { return }
+        rulesDirty = true
         let current = rules[index]
         rules[index] = current.with(
             enabled: enabled ?? current.isEnabled,
@@ -250,6 +251,7 @@ final class AppModel: ObservableObject {
             ruleId: ruleId,
             target: target,
             until: Date().addingTimeInterval(Double(days) * 86400))
+        rulesDirty = true
         do {
             let store = try EventStore(url: databaseURL)
             try store.addMute(mute)
@@ -262,6 +264,7 @@ final class AppModel: ObservableObject {
     }
 
     func removeMute(_ mute: Mute) async {
+        rulesDirty = true
         do {
             let store = try EventStore(url: databaseURL)
             try store.removeMute(mute)
@@ -291,6 +294,7 @@ final class AppModel: ObservableObject {
         guard !isReapplying else { return }
         isReapplying = true
         defer { isReapplying = false }
+        rulesDirty = false
 
         let rulesCopy = rules
         let mutesCopy = mutes
@@ -314,6 +318,10 @@ final class AppModel: ObservableObject {
         refresh()
     }
 
+    /// Set when a rule or a mute changed and the stored events have not been
+    /// re-run yet (true at launch, so the first visit fills the hit counts);
+    /// the Rules tab reapplies on appear only then.
+    private(set) var rulesDirty = true
     @Published private(set) var ruleHitCounts: [String: Int] = [:]
     @Published private(set) var maintenanceStatus: String?
     @Published private(set) var usage: [Agent: TokenTotals] = [:]
