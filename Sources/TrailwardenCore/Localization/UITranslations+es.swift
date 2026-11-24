@@ -257,6 +257,15 @@ extension UITranslations {
         .updateScheduleHint: "Desactivada por defecto. Si la activas, Trailwarden lee con esta frecuencia un archivo pequeño de la última versión en GitHub. No se envía nada: ni identificadores ni datos de tus agentes.",
         .updateLastChecked: "Última comprobación %@",
         .updateNeverChecked: "Aún no comprobado",
-        .updateNotificationTitle: "Trailwarden %@ está disponible"
+        .updateNotificationTitle: "Trailwarden %@ está disponible",
+
+        .verbRan: "Ejecutó",
+        .verbEdited: "Editó",
+        .verbWrote: "Escribió",
+        .verbRead: "Leyó",
+        .verbSearched: "Buscó",
+        .verbSaid: "Dijo",
+        .verbThought: "Pensó",
+        .verbOther: "Otro"
     ]
 }

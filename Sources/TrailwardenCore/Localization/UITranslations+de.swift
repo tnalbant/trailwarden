@@ -257,6 +257,15 @@ extension UITranslations {
         .updateScheduleHint: "Standardmäßig aus. Wenn aktiv, liest Trailwarden in diesem Abstand eine kleine Datei aus dem neuesten GitHub-Release. Es wird nichts gesendet: keine Kennungen, nichts über deine Agenten.",
         .updateLastChecked: "Zuletzt geprüft %@",
         .updateNeverChecked: "Noch nicht geprüft",
-        .updateNotificationTitle: "Trailwarden %@ ist verfügbar"
+        .updateNotificationTitle: "Trailwarden %@ ist verfügbar",
+
+        .verbRan: "Ausgeführt",
+        .verbEdited: "Bearbeitet",
+        .verbWrote: "Geschrieben",
+        .verbRead: "Gelesen",
+        .verbSearched: "Gesucht",
+        .verbSaid: "Gesagt",
+        .verbThought: "Gedacht",
+        .verbOther: "Sonstiges"
     ]
 }

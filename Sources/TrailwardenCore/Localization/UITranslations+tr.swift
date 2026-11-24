@@ -257,6 +257,15 @@ extension UITranslations {
         .updateScheduleHint: "Varsayılan olarak kapalı. Açıksa Trailwarden bu aralıkla son GitHub sürümündeki küçük bir dosyayı okur. Hiçbir şey gönderilmez: kimlik yok, ajanlarınla ilgili hiçbir bilgi yok.",
         .updateLastChecked: "Son denetim %@",
         .updateNeverChecked: "Henüz denetlenmedi",
-        .updateNotificationTitle: "Trailwarden %@ çıktı"
+        .updateNotificationTitle: "Trailwarden %@ çıktı",
+
+        .verbRan: "Çalıştırdı",
+        .verbEdited: "Düzenledi",
+        .verbWrote: "Yazdı",
+        .verbRead: "Okudu",
+        .verbSearched: "Aradı",
+        .verbSaid: "Söyledi",
+        .verbThought: "Düşündü",
+        .verbOther: "Diğer"
     ]
 }

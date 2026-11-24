@@ -37,6 +37,8 @@ public enum UIString: String, CaseIterable, Sendable {
     // Severity
     case severityCritical, severityWarning, severityInfo
     // Event detail
+    /// Plain verbs for what an event did
+    case verbRan, verbEdited, verbWrote, verbRead, verbSearched, verbSaid, verbThought, verbOther
     case labelCommand, labelText, labelDiff, labelPaths, labelRaw
     case resumeSession, copy, copied, whyFlagged, muteThirtyDays, muteThirtyDaysHint
     // Rules
@@ -344,6 +346,15 @@ public enum UITranslations {
         .updateScheduleHint: "Off by default. When on, Trailwarden reads one small file from the latest GitHub release on this schedule. Nothing is sent: no identifiers, nothing about your agents.",
         .updateLastChecked: "Last checked %@",
         .updateNeverChecked: "Not checked yet",
-        .updateNotificationTitle: "Trailwarden %@ is available"
+        .updateNotificationTitle: "Trailwarden %@ is available",
+
+        .verbRan: "Ran",
+        .verbEdited: "Edited",
+        .verbWrote: "Wrote",
+        .verbRead: "Read",
+        .verbSearched: "Searched",
+        .verbSaid: "Said",
+        .verbThought: "Thought",
+        .verbOther: "Other"
     ]
 }
