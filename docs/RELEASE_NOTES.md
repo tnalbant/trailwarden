@@ -6,18 +6,22 @@ Fewer false alarms, an interface that reads plainly and can be made larger, and 
 ## New
 
 - **Launch at login.** A switch in the first-run screen and in Settings. If macOS refuses (a copy run from Downloads, say), the reason shows in Settings and as a strip in the panel, instead of the switch silently snapping back.
-- **Text size.** Settings › Appearance: Standard, Large or Larger. The panel grows with it (340, 380 or 420 pt wide).
-- **Plain rows, and "Show technical details".** Rows, the panel and notifications now say what happened in a sentence, with no rule ids or raw tool names. Turn on "Show technical details" in Settings to get them back, along with the regex, the session id, the raw JSON and the token breakdown.
-- **Rule examples.** Each rule in the Rules tab shows a command it flags and one it leaves alone.
+- **Text size.** Settings › Text size: Standard, Large or Larger. The panel grows with it (340, 380 or 420 pt wide).
+- **Plain rows, and "Show technical details".** Rows, the panel and notifications now say what happened in a sentence, with no rule ids or raw tool names. Turn on "Show technical details" in Settings, under Text size, to get them back, along with the regex, the session id, the raw JSON and the token breakdown.
+- **Rule examples.** With technical details off, each rule in the Rules tab shows commands it flags and commands it leaves alone.
 - **28 rules.** R28 warns on a risky database or deploy command.
 - **Keyboard in the timeline.** Click a row, then ↑/↓ moves the selection (and loads more at the end), ⏎ moves to the detail pane, Esc comes back, ⌘C copies the command.
 - **VoiceOver.** A row is read as one sentence: severity, summary, agent, time. Pickers announce their names and the active tab says "selected".
 
 ## Fixed
 
-- **Fewer false alarms.** Measured on the synthetic corpus in the repository (`Tests/TrailwardenCoreTests/Fixtures/rules-corpus`): harmless shell commands flagged went from 73 of 427 to 48 of 427, and those flagged critical from 36 to 11. Risky commands caught went from 160 of 216 to 173 of 216. The CI test now holds these numbers, so they cannot slip back unnoticed. On a day heavy with infrastructure work, expect about half as many critical alerts.
+- **Fewer false alarms.** Measured on the synthetic corpus in the repository (`Tests/TrailwardenCoreTests/Fixtures/rules-corpus`): harmless shell commands flagged went from 73 of 427 to 52 of 427, and those flagged critical from 36 to 15. Risky commands caught went from 160 of 216 to 194 of 237 (21 risky commands were added to the corpus; all are caught). The CI test now holds these numbers, so they cannot slip back unnoticed.
 - **Tool output and descriptions are no longer scanned.** A command's result, or the sentence an agent wrote about it, could trigger a rule that the command itself did not.
-- **Wrapped commands are checked.** `bash -c "…"`, `env …` and `VAR=… command` were passed over; the command inside is now looked at.
+- **Wrapped commands are checked.** `bash -c "…"` (quoted or not), `env …` and `VAR=… command` were passed over; the command inside is now looked at. Codex's `["bash", "-lc", "…"]` calls are stored as the script they run.
+- **Secret files.** Reading a private key or a credentials file is flagged whatever the command (an upload with `aws s3 cp`, `gsutil`, `rclone` or `gh gist`, `tee`, `mv`, `jq`, `gpg`, `7z`, a `docker -v` mount, a path handed to `xargs`), except commands that cannot read a file's content, such as `ls`, `stat`, `chmod` or `test`.
+- **Your history is re-checked after the update.** The first start after an update that changed the built-in rules re-runs them over the whole index once (the app, `trailwarden scan` and the MCP server), with your rule settings and mutes. The index moves to schema 8.
+- **Kept severities.** `kubectl delete pvc …` and `kubectl delete deployment.apps/…` stay critical, `find ~/Documents -delete` and `find /Users/demo -delete` are flagged, and so is `git push --force origin HEAD`.
+- **Launch at login, unticked in the first-run screen,** no longer shows "Could not change the login item" for an app that was never registered.
 - **Contrast.** Every text role is at least 4.5:1 (AA) on both backgrounds, in light and dark. Small links, timestamps and critical counts were the weak spots.
 - **Untranslated strings.** Text that stayed in English in the other five languages is translated.
 - **Deep links open the event.** A click on a row in Today or in the panel opens the timeline on that event, selected and scrolled into view, even when it is several pages down.
@@ -29,9 +33,9 @@ Fewer false alarms, an interface that reads plainly and can be made larger, and 
 
 None of this can run in CI. Go through it once on a real Mac.
 
-- **Launch at login.** Toggle it in onboarding and in Settings. Run the app once from ~/Downloads (not /Applications) and confirm the failure text appears in Settings and as a strip in the panel. With "Show technical details" on, the raw error is appended.
+- **Launch at login.** Toggle it in onboarding and in Settings. Untick it in onboarding on a fresh install: no failure strip appears. Run the app once from ~/Downloads (not /Applications) and confirm the failure text appears in Settings and as a strip in the panel. With "Show technical details" on, the raw error is appended.
 - **Deep links.** Click a row in Today and in the menu bar panel. The timeline opens on that event, selected and scrolled into view, also for an event several pages down.
-- **Text size.** Settings › Appearance › Text size = Larger. Check the menu bar panel (420 pt wide), the timeline, Today, Usage, Rules (the severity picker) and Settings (the 120 pt control near the agent folders): nothing clipped or overlapping. Also the main window at its minimum width (960) at Larger.
+- **Text size.** Settings › Text size = Larger. Check the menu bar panel (420 pt wide), the timeline, Today, Usage, Rules (the severity picker) and Settings (the 120 pt control near the agent folders): nothing clipped or overlapping. Also the main window at its minimum width (960) at Larger.
 - **Contrast.** In light and dark mode, small links (Copy, Mute, Reapply), timestamps and critical counts are readable.
 - **Technical details.** Off: no rule ids (R12) or raw tool names in rows, panel or notifications. On: the raw tool name, rule id, regex, session id, raw JSON and token breakdown are all reachable.
 - **VoiceOver.** A panel row and a timeline row are read as one sentence (severity, summary, agent, time). Pickers announce their names. The active tab announces "selected".
