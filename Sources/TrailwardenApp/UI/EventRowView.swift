@@ -24,7 +24,7 @@ extension Severity {
 enum RowAccessibility {
     static func label(severity: Severity?, summary: String, agent: String, time: String) -> String {
         [severity.map { LocalizationStore.current.severity($0) }, summary, agent, time]
-            .compactMap { $0 }
+            .compactMap(\.self)
             .joined(separator: ", ")
     }
 }

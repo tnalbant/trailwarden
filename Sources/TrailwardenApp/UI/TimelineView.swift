@@ -292,7 +292,8 @@ struct TimelineView: View {
                     EventRowView(event: event, selected: model.selectedEventID == event.id)
                         .id(event.id)
                         .onTapGesture { model.selectedEventID = event.id }
-                        .accessibilityAddTraits(model.selectedEventID == event.id ? [.isButton, .isSelected] : .isButton)
+                        .accessibilityAddTraits(
+                            model.selectedEventID == event.id ? [.isButton, .isSelected] : .isButton)
                         .onAppear {
                             if event.id == model.events.last?.id {
                                 model.loadMore()
