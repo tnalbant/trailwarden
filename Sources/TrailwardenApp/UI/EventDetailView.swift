@@ -147,7 +147,7 @@ struct EventDetailView: View {
                 HStack(alignment: .firstTextBaseline, spacing: 6) {
                     Text(hit.ruleId)
                         .font(Tokens.Typography.mono(9.5, weight: .medium))
-                        .foregroundStyle(hit.severity.tint)
+                        .foregroundStyle(hit.severity.textTint)
                     Text(hit.localizedMessage(LocalizationStore.current))
                         .font(Tokens.Typography.text(10.5))
                         .fixedSize(horizontal: false, vertical: true)
