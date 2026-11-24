@@ -308,7 +308,7 @@ public struct CodexParser: AgentParser {
         if let string = dict["command"] as? String {
             command = string
         } else if let parts = dict["command"] as? [String], !parts.isEmpty {
-            command = parts.joined(separator: " ")
+            command = shellScript(parts) ?? parts.joined(separator: " ")
         } else if let string = dict["cmd"] as? String {
             command = string
         }
@@ -327,6 +327,17 @@ public struct CodexParser: AgentParser {
             ?? (dict["title"] as? String)
             ?? command
         return (nil, command, paths, preview)
+    }
+
+    /// `["bash", "-lc", "rm -rf ~"]` runs the script `rm -rf ~`, and that script
+    /// is the command: joined with spaces it would read `bash -lc rm -rf ~`, and
+    /// rules that look for a command's start would miss its first command.
+    static func shellScript(_ parts: [String]) -> String? {
+        guard parts.count == 3,
+              ["sh", "bash", "zsh"].contains((parts[0] as NSString).lastPathComponent),
+              ["-c", "-lc"].contains(parts[1])
+        else { return nil }
+        return parts[2]
     }
 
     static func arguments(_ value: Any?) -> [String: Any]? {
