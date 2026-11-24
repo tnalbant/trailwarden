@@ -51,6 +51,9 @@ public enum UIString: String, CaseIterable, Sendable {
     case textSizeSection, textSizeStandard, textSizeLarge, textSizeLarger
     case technicalDetailsToggle, technicalDetailsHint, ruleExamplesMatch, ruleExamplesIgnore
     case outsideProject, genericError
+    /// Spoken names for controls that show no visible label
+    case rangePickerLabel, agentPickerLabel, severityPickerLabel, languagePickerLabel
+    case exportFormatLabel, updateSchedulePickerLabel, liveThresholdLabel, selected
     case languageSection, languageSystem, languageHint
     case scannedDirs, dirsHint, retention, retentionDays, cleanupNow, retentionHint
     case exportSection, exportAction, exportRange, exportHint
@@ -363,6 +366,15 @@ public enum UITranslations {
         .verbSearched: "Searched",
         .verbSaid: "Said",
         .verbThought: "Thought",
-        .verbOther: "Other"
+        .verbOther: "Other",
+
+        .rangePickerLabel: "Time range",
+        .agentPickerLabel: "Agent",
+        .severityPickerLabel: "Severity",
+        .languagePickerLabel: "Language",
+        .exportFormatLabel: "Export format",
+        .updateSchedulePickerLabel: "Update check frequency",
+        .liveThresholdLabel: "Notify for severity",
+        .selected: "Selected"
     ]
 }

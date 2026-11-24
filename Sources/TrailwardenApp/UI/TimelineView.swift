@@ -26,6 +26,7 @@ private struct FilterChip: View {
             }
         }
         .buttonStyle(.plain)
+        .accessibilityValue(isOn ? L(.selected) : "")
     }
 }
 
@@ -36,6 +37,11 @@ struct TimelineView: View {
     @ObservedObject var model: TimelineModel
     var onMute: ((RiskHit, Event) -> Void)?
     var liveSessionIDs: Set<String> = []
+    @FocusState private var focusedPane: Pane?
+
+    private enum Pane: Hashable {
+        case list, detail
+    }
 
     private var selectionBinding: Binding<TimelineSelection?> {
         Binding(
@@ -73,6 +79,12 @@ struct TimelineView: View {
                 }
             }
             .frame(minWidth: 340, idealWidth: 460, maxWidth: 720)
+            .focusable()
+            .focused($focusedPane, equals: .detail)
+            .onKeyPress(.escape) {
+                focusedPane = .list
+                return .handled
+            }
         }
         .background(Tokens.Palette.paper)
     }
@@ -198,7 +210,7 @@ struct TimelineView: View {
     }
 
     private var rangePicker: some View {
-        Picker("", selection: $model.window) {
+        Picker(L(.rangePickerLabel), selection: $model.window) {
             ForEach(TimelineWindow.allCases) { window in
                 Text(window.shortLabel).tag(window)
             }
@@ -208,7 +220,7 @@ struct TimelineView: View {
     }
 
     private var agentPicker: some View {
-        Picker("", selection: $model.agentFilter) {
+        Picker(L(.agentPickerLabel), selection: $model.agentFilter) {
             Text(L(.allAgents)).tag(Agent?.none)
             ForEach(Agent.allCases, id: \.self) { agent in
                 Text(EventFormatting.agentLabel(agent)).tag(Agent?.some(agent))
@@ -229,12 +241,48 @@ struct TimelineView: View {
     private var list: some View {
         ScrollViewReader { proxy in
             listContent
+                .focusable()
+                .focused($focusedPane, equals: .list)
+                .onKeyPress(.upArrow) { moveSelection(-1, proxy: proxy) }
+                .onKeyPress(.downArrow) { moveSelection(1, proxy: proxy) }
+                .onKeyPress(.return) {
+                    guard model.selectedEvent != nil else { return .ignored }
+                    focusedPane = .detail
+                    return .handled
+                }
+                .onCopyCommand { copySelection() }
                 .onChange(of: model.scrollTarget, initial: true) { _, target in
                     guard let target else { return }
                     withAnimation { proxy.scrollTo(target, anchor: .center) }
                     model.consumeScrollTarget()
                 }
         }
+    }
+
+    /// Moves the selection one row, loading the next page at the end, and keeps
+    /// the new row on screen.
+    private func moveSelection(_ delta: Int, proxy: ScrollViewProxy) -> KeyPress.Result {
+        guard !model.events.isEmpty else { return .ignored }
+        var events = model.events
+        let current = events.firstIndex { $0.id == model.selectedEventID }
+        if delta > 0, current == nil || current == events.count - 1 {
+            model.loadMore()
+            events = model.events
+        }
+        let start = current ?? (delta > 0 ? -1 : events.count)
+        let next = min(max(start + delta, 0), events.count - 1)
+        let id = events[next].id
+        model.selectedEventID = id
+        proxy.scrollTo(id)
+        return .handled
+    }
+
+    /// ⌘C on the list copies what the detail pane would: the command, else the preview.
+    private func copySelection() -> [NSItemProvider] {
+        guard let event = model.selectedEvent,
+              let text = event.command ?? event.preview, !text.isEmpty
+        else { return [] }
+        return [NSItemProvider(object: text as NSString)]
     }
 
     private var listContent: some View {
@@ -244,6 +292,7 @@ struct TimelineView: View {
                     EventRowView(event: event, selected: model.selectedEventID == event.id)
                         .id(event.id)
                         .onTapGesture { model.selectedEventID = event.id }
+                        .accessibilityAddTraits(model.selectedEventID == event.id ? [.isButton, .isSelected] : .isButton)
                         .onAppear {
                             if event.id == model.events.last?.id {
                                 model.loadMore()

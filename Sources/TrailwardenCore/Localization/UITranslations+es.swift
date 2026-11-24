@@ -272,6 +272,15 @@ extension UITranslations {
         .verbSearched: "Buscó",
         .verbSaid: "Dijo",
         .verbThought: "Pensó",
-        .verbOther: "Otro"
+        .verbOther: "Otro",
+
+        .rangePickerLabel: "Intervalo de tiempo",
+        .agentPickerLabel: "Agente",
+        .severityPickerLabel: "Gravedad",
+        .languagePickerLabel: "Idioma",
+        .exportFormatLabel: "Formato de exportación",
+        .updateSchedulePickerLabel: "Frecuencia de búsqueda de actualizaciones",
+        .liveThresholdLabel: "Avisar según la gravedad",
+        .selected: "Seleccionado"
     ]
 }

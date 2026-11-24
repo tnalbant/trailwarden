@@ -83,7 +83,7 @@ struct ReportView: View {
                     .font(Tokens.Typography.font(.code))
                     .foregroundStyle(Tokens.Palette.secondary)
             }
-            Picker("", selection: $days) {
+            Picker(L(.rangePickerLabel), selection: $days) {
                 Text(L(.rangeWeek)).tag(7)
                 Text(L(.rangeMonth)).tag(30)
                 Text(L(.range90Days)).tag(90)

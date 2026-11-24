@@ -272,6 +272,15 @@ extension UITranslations {
         .verbSearched: "Aradı",
         .verbSaid: "Söyledi",
         .verbThought: "Düşündü",
-        .verbOther: "Diğer"
+        .verbOther: "Diğer",
+
+        .rangePickerLabel: "Zaman aralığı",
+        .agentPickerLabel: "Ajan",
+        .severityPickerLabel: "Önem derecesi",
+        .languagePickerLabel: "Dil",
+        .exportFormatLabel: "Dışa aktarma biçimi",
+        .updateSchedulePickerLabel: "Güncelleme denetimi sıklığı",
+        .liveThresholdLabel: "Bildirim önem derecesi",
+        .selected: "Seçili"
     ]
 }

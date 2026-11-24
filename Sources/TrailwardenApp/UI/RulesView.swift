@@ -108,7 +108,7 @@ struct RulesView: View {
                 Text(Lf(.ruleHits, [model.ruleHitCounts[rule.id] ?? 0]))
                     .font(Tokens.Typography.font(.codeSmall))
                     .foregroundStyle(Tokens.Palette.secondary)
-                Picker("", selection: severityBinding(rule)) {
+                Picker(L(.severityPickerLabel), selection: severityBinding(rule)) {
                     ForEach([Severity.info, Severity.warn, Severity.critical], id: \.self) { severity in
                         Text(LocalizationStore.current.severity(severity)).tag(severity)
                     }

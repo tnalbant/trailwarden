@@ -291,6 +291,7 @@ struct MenuBarView: View {
                 Image(systemName: item.verb.symbolName)
                     .font(Tokens.Typography.font(.caption))
                     .foregroundStyle(item.isMessage ? Tokens.Palette.secondary : Tokens.Palette.ink)
+                    .accessibilityHidden(true)
                 if technical {
                     Text(item.label)
                         .font(Tokens.Typography.font(.codeSmall, weight: .medium))
@@ -312,9 +313,16 @@ struct MenuBarView: View {
                     Circle()
                         .fill(Tokens.Palette.severity(severity))
                         .frame(width: 5, height: 5)
+                        .accessibilityHidden(true)
                 }
             }
             .contentShape(Rectangle())
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel(RowAccessibility.label(
+                severity: item.severity,
+                summary: item.summary(LocalizationStore.current),
+                agent: EventFormatting.agentLabel(item.agent),
+                time: time(item.time)))
         }
         .buttonStyle(.plain)
         .help(item.ruleLine(LocalizationStore.current) ?? item.summary(LocalizationStore.current))

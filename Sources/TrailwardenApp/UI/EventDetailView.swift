@@ -86,6 +86,7 @@ struct EventDetailView: View {
                 Image(systemName: verb.symbolName)
                     .font(Tokens.Typography.font(.callout))
                     .foregroundStyle(Tokens.Palette.secondary)
+                    .accessibilityHidden(true)
                 Text("\(verb.label(LocalizationStore.current)) · \(event.agent.displayName)")
                     .font(Tokens.Typography.font(.heading))
                 if technical {

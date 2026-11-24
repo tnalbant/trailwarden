@@ -56,7 +56,7 @@ struct UsageView: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .overlay(alignment: .topTrailing) {
-            Picker("", selection: $days) {
+            Picker(L(.rangePickerLabel), selection: $days) {
                 ForEach(ranges, id: \.self) { value in
                     Text(Lf(.daysLeft, [value])).tag(value)
                 }

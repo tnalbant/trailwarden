@@ -19,6 +19,16 @@ extension Severity {
     }
 }
 
+/// The one sentence VoiceOver reads for a row: severity word (if any), summary,
+/// agent, time. The visible severity strip and dot carry no extra information.
+enum RowAccessibility {
+    static func label(severity: Severity?, summary: String, agent: String, time: String) -> String {
+        [severity.map { LocalizationStore.current.severity($0) }, summary, agent, time]
+            .compactMap { $0 }
+            .joined(separator: ", ")
+    }
+}
+
 /// One line of the event stream: time, agent, tool, the command or text, and the
 /// worst rule hit as a coloured strip on the left.
 struct EventRowView: View {
@@ -36,6 +46,7 @@ struct EventRowView: View {
             Rectangle()
                 .fill(worst?.tint ?? Color.clear)
                 .frame(width: 2.5)
+                .accessibilityHidden(true)
 
             HStack(alignment: .top, spacing: 9) {
                 Text(EventFormatting.stamp(event.ts))
@@ -56,6 +67,7 @@ struct EventRowView: View {
                         Image(systemName: EventPresentation.verb(for: event).symbolName)
                             .font(Tokens.Typography.font(.caption))
                             .foregroundStyle(Tokens.Palette.secondary)
+                            .accessibilityHidden(true)
                         if technical {
                             Text(event.tool ?? event.kind.rawValue)
                                 .font(Tokens.Typography.font(.codeSmall, weight: .medium))
@@ -87,6 +99,12 @@ struct EventRowView: View {
         }
         .background(selected ? Tokens.Palette.surface : Color.clear)
         .contentShape(Rectangle())
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(RowAccessibility.label(
+            severity: worst,
+            summary: EventPresentation.summary(for: event, localizer: LocalizationStore.current),
+            agent: EventFormatting.agentLabel(event.agent),
+            time: EventFormatting.stamp(event.ts)))
     }
 
     private func badge(for hit: RiskHit) -> String {

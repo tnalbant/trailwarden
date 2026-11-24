@@ -108,6 +108,7 @@ struct FeedView: View {
                     Image(systemName: item.verb.symbolName)
                         .font(Tokens.Typography.font(.caption))
                         .foregroundStyle(item.isMessage ? Tokens.Palette.secondary : Tokens.Palette.ink)
+                        .accessibilityHidden(true)
                     if technical {
                         Text(item.label)
                             .font(Tokens.Typography.font(.codeSmall))
@@ -149,10 +150,17 @@ struct FeedView: View {
                         .fill(Tokens.Palette.severity(severity))
                         .frame(width: 6, height: 6)
                         .padding(.top, 3)
+                        .accessibilityHidden(true)
                 }
             }
             .padding(.vertical, 3)
             .contentShape(Rectangle())
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel(RowAccessibility.label(
+                severity: item.severity,
+                summary: item.summary(LocalizationStore.current),
+                agent: EventFormatting.agentLabel(item.agent),
+                time: time(item.time)))
         }
         .buttonStyle(.plain)
         .help(item.ruleLine(LocalizationStore.current) ?? item.summary(LocalizationStore.current))

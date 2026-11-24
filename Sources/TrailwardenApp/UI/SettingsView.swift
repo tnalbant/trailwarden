@@ -131,7 +131,7 @@ struct SettingsView: View {
     private var languageSection: some View {
         VStack(alignment: .leading, spacing: 7) {
             SectionLabel(text: L(.languageSection))
-            Picker("", selection: $language) {
+            Picker(L(.languagePickerLabel), selection: $language) {
                 Text(L(.languageSystem)).tag(AppLanguage.system.rawValue)
                 ForEach(AppLanguage.translated) { option in
                     Text(option.endonym).tag(option.rawValue)
@@ -196,7 +196,7 @@ struct SettingsView: View {
         VStack(alignment: .leading, spacing: 7) {
             SectionLabel(text: L(.exportSection))
             HStack(spacing: 10) {
-                Picker("", selection: $exportFormat) {
+                Picker(L(.exportFormatLabel), selection: $exportFormat) {
                     ForEach(AuditFormat.allCases) { f in
                         Text(f.label).tag(f.rawValue)
                     }
@@ -293,7 +293,7 @@ private struct LiveSection: View {
                 Text(L(.liveNotifyFor))
                     .font(Tokens.Typography.font(.callout))
                     .foregroundStyle(Tokens.Palette.secondary)
-                Picker("", selection: $threshold) {
+                Picker(L(.liveThresholdLabel), selection: $threshold) {
                     Text(L(.liveCriticalOnly)).tag(Severity.critical.rawValue)
                     Text(L(.liveWarnAndCritical)).tag(Severity.warn.rawValue)
                 }
@@ -377,7 +377,7 @@ private struct UpdateSection: View {
         VStack(alignment: .leading, spacing: 7) {
             SectionLabel(text: L(.updateSchedule))
             HStack(spacing: 10) {
-                Picker("", selection: $schedule) {
+                Picker(L(.updateSchedulePickerLabel), selection: $schedule) {
                     Text(L(.updateScheduleNever)).tag(UpdateSchedule.never.rawValue)
                     Text(L(.updateScheduleWeekly)).tag(UpdateSchedule.weekly.rawValue)
                     Text(L(.updateScheduleMonthly)).tag(UpdateSchedule.monthly.rawValue)

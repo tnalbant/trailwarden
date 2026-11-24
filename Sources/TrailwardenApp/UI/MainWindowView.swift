@@ -182,6 +182,7 @@ struct MainWindowView: View {
                 .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        .accessibilityAddTraits(router.tab == tab ? .isSelected : [])
         .help(tab.title)
     }
 
