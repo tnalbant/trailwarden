@@ -143,22 +143,21 @@ public enum EventPresentation {
     /// the event carries nothing to show.
     public static func object(for event: Event) -> String {
         let verb = verb(for: event)
-        let object: String?
-        switch verb {
+        let object: String? = switch verb {
         case .said, .thought:
-            object = event.preview ?? event.command
+            event.preview ?? event.command
         case .ran:
-            object = event.command ?? event.paths.first ?? event.preview
+            event.command ?? event.paths.first ?? event.preview
         case .read, .edited, .wrote, .searched:
             if let path = event.paths.first {
-                object = displayPath(path, cwd: event.cwd).text
+                displayPath(path, cwd: event.cwd).text
             } else if verb == .searched {
-                object = event.command ?? event.preview
+                event.command ?? event.preview
             } else {
-                object = event.command
+                event.command
             }
         case .other:
-            object = event.command ?? event.paths.first ?? event.preview
+            event.command ?? event.paths.first ?? event.preview
         }
         return oneLine(object ?? "")
     }
