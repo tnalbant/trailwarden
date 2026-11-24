@@ -199,12 +199,25 @@ struct TimelineView: View {
     private var filters: some View {
         // The search field moved to the window row, where there was empty space and
         // room to breathe; four controls fit in this column at its minimum width.
-        HStack(spacing: 10) {
-            rangePicker
-            agentPicker
-            toggles
-            Spacer(minLength: 0)
+        // At larger text sizes the four controls outgrow the column's minimum
+        // width and clipped both edges, so they fall back to two rows.
+        ViewThatFits(in: .horizontal) {
+            HStack(spacing: 10) {
+                rangePicker
+                agentPicker
+                toggles
+                Spacer(minLength: 0)
+            }
+            VStack(alignment: .leading, spacing: 6) {
+                HStack(spacing: 10) {
+                    rangePicker
+                    agentPicker
+                    Spacer(minLength: 0)
+                }
+                toggles
+            }
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.horizontal, 12)
         .padding(.vertical, 9)
     }

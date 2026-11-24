@@ -119,13 +119,13 @@ final class LiveMonitor: ObservableObject {
 
     /// The current answer, without asking for anything.
     func readNotificationSettings() {
-        UNUserNotificationCenter.current().getNotificationSettings { settings in
+        UNUserNotificationCenter.current().getNotificationSettings { [weak self] settings in
             let state: NotificationPermission = switch settings.authorizationStatus {
             case .authorized, .provisional, .ephemeral: .allowed
             case .denied: .denied
             default: .unknown
             }
-            Task { @MainActor [weak self] in self?.permission = state }
+            Task { @MainActor in self?.permission = state }
         }
     }
 }

@@ -130,6 +130,9 @@ struct MainWindowView: View {
             Text(Lf(.eventCount, [model.snapshot.totalEvents]))
                 .font(Tokens.Typography.font(.code))
                 .foregroundStyle(Tokens.Palette.secondary)
+                .lineLimit(1)
+                .fixedSize()
+                .layoutPriority(1)
 
             Button {
                 Task {
@@ -164,6 +167,7 @@ struct MainWindowView: View {
                 .padding(.horizontal, 4)
             tabButton(.settings)
         }
+        .layoutPriority(2)
     }
 
     private func tabButton(_ tab: DashboardTab) -> some View {
@@ -173,6 +177,8 @@ struct MainWindowView: View {
             Text(tab.title)
                 .font(Tokens.Typography.font(.body, weight: router.tab == tab ? .semibold : .regular))
                 .foregroundStyle(router.tab == tab ? Tokens.Palette.ink : Tokens.Palette.secondary)
+                .lineLimit(1)
+                .fixedSize()
                 .padding(.horizontal, 9)
                 .padding(.vertical, 5)
                 .background {
@@ -195,7 +201,9 @@ struct MainWindowView: View {
                 .font(Tokens.Typography.font(.body, weight: .medium))
                 .foregroundStyle(Tokens.Palette.secondary)
                 .lineLimit(1)
+                .truncationMode(.middle)
         }
+        .frame(minWidth: 0)
         .help(selectionHelp)
     }
 
@@ -215,7 +223,7 @@ struct MainWindowView: View {
         .padding(.vertical, 4)
         .background(Tokens.Palette.surface)
         .clipShape(RoundedRectangle(cornerRadius: 5))
-        .frame(minWidth: 140, idealWidth: 200, maxWidth: 240)
+        .frame(minWidth: 90, idealWidth: 200, maxWidth: 240)
         .background {
             Button("") { searchFocused = true }
                 .keyboardShortcut("f", modifiers: .command)
