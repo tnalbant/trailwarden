@@ -32,6 +32,7 @@ private struct FilterChip: View {
 /// Sidebar (project → session) plus the paged event stream.
 struct TimelineView: View {
     @AppStorage(LocalizationStore.defaultsKey) private var language = AppLanguage.system.rawValue
+    @AppStorage(TechnicalDetails.storageKey) private var technical = false
     @ObservedObject var model: TimelineModel
     var onMute: ((RiskHit, Event) -> Void)?
     var liveSessionIDs: Set<String> = []
@@ -127,15 +128,30 @@ struct TimelineView: View {
 
     private func sessionLabel(_ session: SessionSummary) -> some View {
         HStack(spacing: 6) {
-            Text(EventFormatting.agentLabel(session.agent))
-                .font(Tokens.Typography.font(.codeSmall))
-                .padding(.horizontal, 4)
-                .padding(.vertical, 0.5)
-                .background(Tokens.Palette.surface)
-                .clipShape(RoundedRectangle(cornerRadius: 2.5))
-            Text(Sessions.shortID(session.id))
-                .font(Tokens.Typography.font(.codeSmall))
-                .lineLimit(1)
+            if technical {
+                Text(EventFormatting.agentLabel(session.agent))
+                    .font(Tokens.Typography.font(.codeSmall))
+                    .padding(.horizontal, 4)
+                    .padding(.vertical, 0.5)
+                    .background(Tokens.Palette.surface)
+                    .clipShape(RoundedRectangle(cornerRadius: 2.5))
+                Text(Sessions.shortID(session.id))
+                    .font(Tokens.Typography.font(.codeSmall))
+                    .lineLimit(1)
+            } else {
+                VStack(alignment: .leading, spacing: 1) {
+                    Text("\(session.agent.displayName) · \(EventFormatting.stamp(session.startedAt))")
+                        .font(Tokens.Typography.font(.callout))
+                        .lineLimit(1)
+                    if let branch = session.gitBranch, !branch.isEmpty {
+                        Text(branch)
+                            .font(Tokens.Typography.font(.caption))
+                            .foregroundStyle(Tokens.Palette.secondary)
+                            .lineLimit(1)
+                            .truncationMode(.middle)
+                    }
+                }
+            }
             Spacer(minLength: 2)
             if liveSessionIDs.contains(session.id) {
                 Circle()

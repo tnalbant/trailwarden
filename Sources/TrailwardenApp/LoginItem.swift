@@ -10,7 +10,17 @@ import TrailwardenCore
 @MainActor
 final class LoginItem: ObservableObject {
     enum Status: Equatable {
-        case enabled, disabled, requiresApproval, failed(String)
+        case enabled, disabled, requiresApproval
+        /// `message` is the localized sentence; `detail` is the system's own error
+        /// description, shown only with technical details on.
+        case failed(message: String, detail: String)
+
+        /// What to show for a failed change: the sentence, then the system's own
+        /// words when technical details are on.
+        func failureText(technical: Bool) -> String? {
+            guard case let .failed(message, detail) = self else { return nil }
+            return technical ? "\(message) \(detail)" : message
+        }
     }
 
     @Published private(set) var status: Status
@@ -40,7 +50,7 @@ final class LoginItem: ObservableObject {
             }
             status = Self.current()
         } catch {
-            status = .failed(Lf(.loginItemFailed, [error.localizedDescription]))
+            status = .failed(message: L(.loginItemFailed), detail: error.localizedDescription)
         }
     }
 

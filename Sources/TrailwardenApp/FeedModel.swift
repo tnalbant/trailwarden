@@ -52,7 +52,7 @@ final class FeedModel: ObservableObject {
             criticalCount = items.filter { $0.severity == .critical }.count
             errorMessage = nil
         } catch {
-            errorMessage = String(describing: error)
+            errorMessage = TechnicalDetails.errorText(error)
         }
     }
 

@@ -9,6 +9,7 @@ import TrailwardenCore
 /// thing the reader came for.
 struct FeedView: View {
     @AppStorage(LocalizationStore.defaultsKey) private var language = AppLanguage.system.rawValue
+    @AppStorage(TechnicalDetails.storageKey) private var technical = false
     @ObservedObject var model: FeedModel
     /// Clicking a row hands the event to the timeline, which shows it in full.
     var onOpen: (ActivityItem) -> Void
@@ -103,28 +104,43 @@ struct FeedView: View {
                     .fixedSize()
                     .frame(minWidth: Tokens.Metrics.scaled(84), alignment: .leading)
 
-                Text(item.label)
-                    .font(Tokens.Typography.font(.codeSmall))
-                    .foregroundStyle(item.isMessage ? Tokens.Palette.secondary : Tokens.Palette.ink)
-                    .padding(.horizontal, 5)
-                    .padding(.vertical, 1)
-                    .background(Tokens.Palette.surface)
-                    .clipShape(RoundedRectangle(cornerRadius: 3))
-                    .fixedSize()
-                    .frame(minWidth: Tokens.Metrics.scaled(96), alignment: .leading)
+                HStack(spacing: 4) {
+                    Image(systemName: item.verb.symbolName)
+                        .font(Tokens.Typography.font(.caption))
+                        .foregroundStyle(item.isMessage ? Tokens.Palette.secondary : Tokens.Palette.ink)
+                    if technical {
+                        Text(item.label)
+                            .font(Tokens.Typography.font(.codeSmall))
+                            .foregroundStyle(item.isMessage ? Tokens.Palette.secondary : Tokens.Palette.ink)
+                            .padding(.horizontal, 5)
+                            .padding(.vertical, 1)
+                            .background(Tokens.Palette.surface)
+                            .clipShape(RoundedRectangle(cornerRadius: 3))
+                    }
+                }
+                .fixedSize()
+                .frame(minWidth: Tokens.Metrics.scaled(technical ? 110 : 20), alignment: .leading)
 
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(item.detail)
+                    Text(item.summary(LocalizationStore.current))
                         .font(Tokens.Typography.font(.body))
                         .foregroundStyle(item.isMessage ? Tokens.Palette.secondary : Tokens.Palette.ink)
                         .lineLimit(3)
                         .fixedSize(horizontal: false, vertical: true)
                         .multilineTextAlignment(.leading)
                         .frame(maxWidth: .infinity, alignment: .leading)
-                    if let rule = item.ruleLine(LocalizationStore.current), let severity = item.severity {
-                        Text(rule)
+                    if let severity = item.severity, let title = item.ruleTitle(LocalizationStore.current) {
+                        Text(TechnicalDetails.badge(
+                            title: title,
+                            ruleId: item.ruleId ?? "",
+                            technical: technical))
+                            .font(Tokens.Typography.font(.caption, weight: .medium))
+                            .foregroundStyle(severity.textTint)
+                    }
+                    if item.outsideProject {
+                        Text(L(.outsideProject))
                             .font(Tokens.Typography.font(.caption))
-                            .foregroundStyle(Tokens.Palette.severity(severity))
+                            .foregroundStyle(Tokens.Palette.secondary)
                     }
                 }
 
@@ -139,7 +155,7 @@ struct FeedView: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .help(item.ruleLine(LocalizationStore.current) ?? item.detail)
+        .help(item.ruleLine(LocalizationStore.current) ?? item.summary(LocalizationStore.current))
     }
 
     private var dateLabel: String {

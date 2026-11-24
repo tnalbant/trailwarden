@@ -110,7 +110,7 @@ final class TimelineModel: ObservableObject {
         do {
             store = try EventStore(url: databaseURL)
         } catch {
-            errorMessage = String(describing: error)
+            errorMessage = TechnicalDetails.errorText(error)
         }
         #if DEBUG
             if ProcessInfo.processInfo.environment["TRAILWARDEN_SELECT_FINDING"] == "1" {
@@ -146,7 +146,7 @@ final class TimelineModel: ObservableObject {
             }
             errorMessage = nil
         } catch {
-            errorMessage = String(describing: error)
+            errorMessage = TechnicalDetails.errorText(error)
         }
     }
 
@@ -158,7 +158,7 @@ final class TimelineModel: ObservableObject {
             let more = try store.events(matching: makeQuery(offset: events.count))
             events.append(contentsOf: more)
         } catch {
-            errorMessage = String(describing: error)
+            errorMessage = TechnicalDetails.errorText(error)
         }
     }
 

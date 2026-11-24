@@ -129,7 +129,7 @@ final class AppModel: ObservableObject {
             liveSessions = try Self.loadLiveSessions(at: databaseURL)
             errorMessage = nil
         } catch {
-            errorMessage = String(describing: error)
+            errorMessage = TechnicalDetails.errorText(error)
         }
     }
 
@@ -201,9 +201,10 @@ final class AppModel: ObservableObject {
                         shown = percent
                         Task { @MainActor in publish(progress) }
                     }
-                return (report.eventsStored, report.failures.first)
+                let failure = report.failures.first.map { TechnicalDetails.errorText(raw: $0) }
+                return (report.eventsStored, failure)
             } catch {
-                return (0, String(describing: error))
+                return (0, TechnicalDetails.errorText(error))
             }
         }.value
 
@@ -227,7 +228,7 @@ final class AppModel: ObservableObject {
             rules = RulePreferences.apply(stored, to: builtIn)
             mutes = try EventStore(url: databaseURL).mutes()
         } catch {
-            errorMessage = String(describing: error)
+            errorMessage = TechnicalDetails.errorText(error)
         }
     }
 
@@ -254,7 +255,7 @@ final class AppModel: ObservableObject {
             try store.addMute(mute)
             mutes = try store.mutes()
         } catch {
-            errorMessage = String(describing: error)
+            errorMessage = TechnicalDetails.errorText(error)
             return
         }
         await reapplyRules()
@@ -266,7 +267,7 @@ final class AppModel: ObservableObject {
             try store.removeMute(mute)
             mutes = try store.mutes()
         } catch {
-            errorMessage = String(describing: error)
+            errorMessage = TechnicalDetails.errorText(error)
             return
         }
         await reapplyRules()
@@ -278,7 +279,7 @@ final class AppModel: ObservableObject {
                 try RulePreferences.save(RulePreferences.preferences(from: rules), to: url)
             }
         } catch {
-            errorMessage = String(describing: error)
+            errorMessage = TechnicalDetails.errorText(error)
             return
         }
         await reapplyRules()

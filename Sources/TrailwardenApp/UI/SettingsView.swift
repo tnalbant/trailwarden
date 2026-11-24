@@ -12,6 +12,7 @@ struct SettingsView: View {
     @ObservedObject var updates: UpdateChecker
     @ObservedObject var loginItem: LoginItem
 
+    @AppStorage(TechnicalDetails.storageKey) private var technicalDetails = false
     @AppStorage(AppearanceMode.storageKey) private var appearance = AppearanceMode.system.rawValue
     @AppStorage(TextSize.storageKey) private var textSize = TextSize.standard.rawValue
     @AppStorage(LocalizationStore.defaultsKey) private var language = AppLanguage.system.rawValue
@@ -113,6 +114,17 @@ struct SettingsView: View {
             .pickerStyle(.segmented)
             .labelsHidden()
             .frame(width: 260)
+            Toggle(isOn: $technicalDetails) {
+                Text(L(.technicalDetailsToggle))
+                    .font(Tokens.Typography.font(.callout))
+            }
+            .toggleStyle(.switch)
+            .controlSize(.small)
+            .padding(.top, 4)
+            Text(L(.technicalDetailsHint))
+                .font(Tokens.Typography.font(.caption))
+                .foregroundStyle(Tokens.Palette.secondary)
+                .fixedSize(horizontal: false, vertical: true)
         }
     }
 
@@ -240,6 +252,7 @@ struct SettingsView: View {
 private struct LiveSection: View {
     @ObservedObject var live: LiveMonitor
     @ObservedObject var loginItem: LoginItem
+    @AppStorage(TechnicalDetails.storageKey) private var technical = false
     @Binding var enabled: Bool
     @Binding var threshold: String
 
@@ -259,7 +272,7 @@ private struct LiveSection: View {
         case .enabled: L(.loginItemOn)
         case .disabled: L(.loginItemOff)
         case .requiresApproval: L(.loginItemNeedsApproval)
-        case let .failed(message): message
+        case .failed: loginItem.status.failureText(technical: technical) ?? ""
         }
     }
 

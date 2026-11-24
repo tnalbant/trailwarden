@@ -23,6 +23,7 @@ extension Severity {
 /// worst rule hit as a coloured strip on the left.
 struct EventRowView: View {
     @AppStorage(LocalizationStore.defaultsKey) private var language = AppLanguage.system.rawValue
+    @AppStorage(TechnicalDetails.storageKey) private var technical = false
     let event: Event
     var selected = false
 
@@ -52,16 +53,26 @@ struct EventRowView: View {
 
                 VStack(alignment: .leading, spacing: 2) {
                     HStack(spacing: 6) {
-                        Text(event.tool ?? event.kind.rawValue)
-                            .font(Tokens.Typography.font(.codeSmall, weight: .medium))
+                        Image(systemName: EventPresentation.verb(for: event).symbolName)
+                            .font(Tokens.Typography.font(.caption))
+                            .foregroundStyle(Tokens.Palette.secondary)
+                        if technical {
+                            Text(event.tool ?? event.kind.rawValue)
+                                .font(Tokens.Typography.font(.codeSmall, weight: .medium))
+                        }
                         ForEach(event.risk, id: \.ruleId) { hit in
-                            Text("\(hit.ruleId) \(LocalizationStore.current.severity(hit.severity))")
+                            Text(badge(for: hit))
                                 .font(Tokens.Typography.font(.caption, weight: .medium))
                                 .foregroundStyle(hit.severity.textTint)
                         }
+                        if EventPresentation.touchesOutsideProject(event) {
+                            Text(L(.outsideProject))
+                                .font(Tokens.Typography.font(.caption))
+                                .foregroundStyle(Tokens.Palette.secondary)
+                        }
                     }
-                    Text(event.preview ?? event.command ?? "—")
-                        .font(Tokens.Typography.font(.code))
+                    Text(EventPresentation.summary(for: event, localizer: LocalizationStore.current))
+                        .font(Tokens.Typography.font(.body))
                         .foregroundStyle(Tokens.Palette.ink.opacity(0.82))
                         .lineLimit(2)
                         .truncationMode(.middle)
@@ -76,5 +87,12 @@ struct EventRowView: View {
         }
         .background(selected ? Tokens.Palette.surface : Color.clear)
         .contentShape(Rectangle())
+    }
+
+    private func badge(for hit: RiskHit) -> String {
+        TechnicalDetails.badge(
+            title: EventPresentation.ruleTitle(hit, localizer: LocalizationStore.current),
+            ruleId: hit.ruleId,
+            technical: technical)
     }
 }

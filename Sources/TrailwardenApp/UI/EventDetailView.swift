@@ -13,6 +13,7 @@ import TrailwardenCore
 /// below it sat empty.
 struct EventDetailView: View {
     @AppStorage(LocalizationStore.defaultsKey) private var language = AppLanguage.system.rawValue
+    @AppStorage(TechnicalDetails.storageKey) private var technical = false
     let event: Event
     var onMute: ((RiskHit, Event) -> Void)?
     /// Where to look up other agents' work on the same file.
@@ -54,7 +55,7 @@ struct EventDetailView: View {
                         FileNeighborsView(event: event, path: path, databaseURL: databaseURL, onOpen: onOpen)
                             .id(event.id)
                     }
-                    if let raw = event.rawJSON {
+                    if technical, let raw = event.rawJSON {
                         rawSection(raw)
                     }
                 }
@@ -81,23 +82,31 @@ struct EventDetailView: View {
     private var header: some View {
         VStack(alignment: .leading, spacing: 7) {
             HStack(spacing: 7) {
-                Text(EventFormatting.agentLabel(event.agent))
-                    .font(Tokens.Typography.font(.codeSmall))
-                    .padding(.horizontal, 5)
-                    .padding(.vertical, 1)
-                    .background(Tokens.Palette.surface)
-                    .clipShape(RoundedRectangle(cornerRadius: 3))
-                Text(event.tool ?? event.kind.rawValue)
-                    .font(Tokens.Typography.font(.code, weight: .medium))
+                let verb = EventPresentation.verb(for: event)
+                Image(systemName: verb.symbolName)
+                    .font(Tokens.Typography.font(.callout))
+                    .foregroundStyle(Tokens.Palette.secondary)
+                Text("\(verb.label(LocalizationStore.current)) · \(event.agent.displayName)")
+                    .font(Tokens.Typography.font(.heading))
+                if technical {
+                    Text(event.tool ?? event.kind.rawValue)
+                        .font(Tokens.Typography.font(.codeSmall))
+                        .padding(.horizontal, 5)
+                        .padding(.vertical, 1)
+                        .background(Tokens.Palette.surface)
+                        .clipShape(RoundedRectangle(cornerRadius: 3))
+                }
                 Spacer(minLength: 6)
                 Text(EventFormatting.stamp(event.ts))
                     .font(Tokens.Typography.font(.codeSmall))
                     .foregroundStyle(Tokens.Palette.secondary)
             }
             VStack(alignment: .leading, spacing: 2) {
-                Text(Sessions.shortID(event.sessionId))
-                    .font(Tokens.Typography.font(.codeSmall))
-                    .foregroundStyle(Tokens.Palette.secondary)
+                if technical {
+                    Text(Sessions.shortID(event.sessionId))
+                        .font(Tokens.Typography.font(.codeSmall))
+                        .foregroundStyle(Tokens.Palette.secondary)
+                }
                 if let cwd = event.cwd {
                     Text(ProjectName.display(cwd))
                         .font(Tokens.Typography.font(.codeSmall))
@@ -145,8 +154,11 @@ struct EventDetailView: View {
             SectionLabel(text: L(.whyFlagged))
             ForEach(event.risk, id: \.ruleId) { hit in
                 HStack(alignment: .firstTextBaseline, spacing: 6) {
-                    Text(hit.ruleId)
-                        .font(Tokens.Typography.font(.codeSmall, weight: .medium))
+                    Text(TechnicalDetails.badge(
+                        title: EventPresentation.ruleTitle(hit, localizer: LocalizationStore.current),
+                        ruleId: hit.ruleId,
+                        technical: technical))
+                        .font(Tokens.Typography.font(.callout, weight: .medium))
                         .foregroundStyle(hit.severity.textTint)
                     Text(hit.localizedMessage(LocalizationStore.current))
                         .font(Tokens.Typography.font(.callout))
@@ -218,11 +230,26 @@ struct EventDetailView: View {
         VStack(alignment: .leading, spacing: 5) {
             SectionLabel(text: L(.labelPaths))
             ForEach(event.paths, id: \.self) { path in
-                Text(ProjectName.display(path))
-                    .font(Tokens.Typography.font(.codeSmall))
-                    .textSelection(.enabled)
-                    .lineLimit(2)
-                    .fixedSize(horizontal: false, vertical: true)
+                pathLine(path)
+            }
+        }
+    }
+
+    /// Inside the project the path is relative to it; the full path is for
+    /// technical details.
+    @ViewBuilder
+    private func pathLine(_ path: String) -> some View {
+        let shown = EventPresentation.displayPath(path, cwd: event.cwd)
+        HStack(alignment: .firstTextBaseline, spacing: 6) {
+            Text(technical ? ProjectName.display(path) : shown.text)
+                .font(Tokens.Typography.font(.codeSmall))
+                .textSelection(.enabled)
+                .lineLimit(2)
+                .fixedSize(horizontal: false, vertical: true)
+            if shown.outsideProject {
+                Text(L(.outsideProject))
+                    .font(Tokens.Typography.font(.caption))
+                    .foregroundStyle(Tokens.Palette.secondary)
             }
         }
     }

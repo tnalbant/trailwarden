@@ -10,6 +10,7 @@ import TrailwardenCore
 /// API prices, labelled as such, and a model without a price shows none.
 struct UsageView: View {
     @AppStorage(LocalizationStore.defaultsKey) private var language = AppLanguage.system.rawValue
+    @AppStorage(TechnicalDetails.storageKey) private var technical = false
     @ObservedObject var model: AppModel
     @State private var days = 30
     private let ranges = [7, 30, 90]
@@ -131,11 +132,13 @@ struct UsageView: View {
                             .font(Tokens.Typography.font(.code))
                             .fixedSize()
                             .frame(minWidth: Tokens.Metrics.scaled(96), alignment: .trailing)
-                        Text(Lf(.counterCount, [totals.events]))
-                            .font(Tokens.Typography.font(.caption))
-                            .foregroundStyle(Tokens.Palette.secondary)
-                            .fixedSize()
-                            .frame(minWidth: Tokens.Metrics.scaled(72), alignment: .trailing)
+                        if technical {
+                            Text(Lf(.counterCount, [totals.events]))
+                                .font(Tokens.Typography.font(.caption))
+                                .foregroundStyle(Tokens.Palette.secondary)
+                                .fixedSize()
+                                .frame(minWidth: Tokens.Metrics.scaled(72), alignment: .trailing)
+                        }
                     }
                 }
             }
@@ -178,7 +181,7 @@ struct UsageView: View {
                         .fixedSize()
                         .frame(minWidth: Tokens.Metrics.scaled(88), alignment: .trailing)
                 }
-                .help(breakdown(row.tokens))
+                .help(technical ? breakdown(row.tokens) : "")
             }
             if model.costEstimate.unpricedTokens > 0 {
                 Text(Lf(.unpricedNote, [

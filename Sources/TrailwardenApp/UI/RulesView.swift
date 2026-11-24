@@ -8,6 +8,7 @@ import TrailwardenCore
 /// fires, how many events it currently hits, plus the mutes that silence it.
 struct RulesView: View {
     @AppStorage(LocalizationStore.defaultsKey) private var language = AppLanguage.system.rawValue
+    @AppStorage(TechnicalDetails.storageKey) private var technical = false
     @ObservedObject var model: AppModel
 
     var body: some View {
@@ -72,21 +73,28 @@ struct RulesView: View {
             .buttonStyle(.plain)
             .help(rule.isEnabled ? L(.disableRule) : L(.enableRule))
 
-            Text(rule.id)
-                .font(Tokens.Typography.font(.code, weight: .medium))
-                .foregroundStyle(rule.isEnabled ? Tokens.Palette.ink : Tokens.Palette.secondary)
-                .fixedSize()
-                .frame(minWidth: Tokens.Metrics.scaled(26), alignment: .leading)
+            if technical {
+                Text(rule.id)
+                    .font(Tokens.Typography.font(.code, weight: .medium))
+                    .foregroundStyle(rule.isEnabled ? Tokens.Palette.ink : Tokens.Palette.secondary)
+                    .fixedSize()
+                    .frame(minWidth: Tokens.Metrics.scaled(26), alignment: .leading)
+            }
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(rule.localizedTitle(LocalizationStore.current))
                     .font(Tokens.Typography.font(.body, weight: .medium))
                     .foregroundStyle(rule.isEnabled ? Tokens.Palette.ink : Tokens.Palette.secondary)
-                Text(ruleMatchSummary(rule))
-                    .font(Tokens.Typography.font(.codeSmall))
-                    .foregroundStyle(Tokens.Palette.secondary)
-                    .lineLimit(1)
-                    .truncationMode(.middle)
+                if let examples = rule.examples, !technical {
+                    exampleLine(L(.ruleExamplesMatch), examples.matches)
+                    exampleLine(L(.ruleExamplesIgnore), examples.ignores)
+                } else {
+                    Text(ruleMatchSummary(rule))
+                        .font(Tokens.Typography.font(.codeSmall))
+                        .foregroundStyle(Tokens.Palette.secondary)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                }
                 Text(rule.localizedMessage(LocalizationStore.current))
                     .font(Tokens.Typography.font(.callout))
                     .foregroundStyle(Tokens.Palette.secondary)
@@ -113,6 +121,19 @@ struct RulesView: View {
         .padding(.horizontal, 20)
         .padding(.vertical, 9)
         .opacity(rule.isEnabled ? 1 : 0.62)
+    }
+
+    /// Examples are shown as written; a rule's placeholders (`{{NAME}}`) stay
+    /// placeholders.
+    @ViewBuilder
+    private func exampleLine(_ title: String, _ samples: [String]) -> some View {
+        if !samples.isEmpty {
+            Text("\(title): \(samples.prefix(2).joined(separator: " · "))")
+                .font(Tokens.Typography.font(.codeSmall))
+                .foregroundStyle(Tokens.Palette.secondary)
+                .lineLimit(1)
+                .truncationMode(.middle)
+        }
     }
 
     private func severityBinding(_ rule: Rule) -> Binding<Severity> {
@@ -157,7 +178,7 @@ struct RulesView: View {
             } else {
                 ForEach(model.mutes) { mute in
                     HStack(spacing: 8) {
-                        Text(mute.ruleId)
+                        Text(muteName(mute))
                             .font(Tokens.Typography.font(.codeSmall, weight: .medium))
                             .foregroundStyle(Tokens.Palette.accentText)
                         Text(mute.target)
@@ -181,6 +202,12 @@ struct RulesView: View {
         .padding(.horizontal, 20)
         .padding(.vertical, 11)
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private func muteName(_ mute: Mute) -> String {
+        guard !technical else { return mute.ruleId }
+        let rule = model.rules.first { $0.id == mute.ruleId }
+        return rule?.localizedTitle(LocalizationStore.current) ?? mute.ruleId
     }
 
     private func remainingDays(_ mute: Mute) -> String {

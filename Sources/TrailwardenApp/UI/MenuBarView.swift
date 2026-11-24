@@ -14,6 +14,7 @@ import TrailwardenCore
 struct MenuBarView: View {
     @AppStorage(TextSize.storageKey) private var textSize = TextSize.standard.rawValue
     @AppStorage(LocalizationStore.defaultsKey) private var language = AppLanguage.system.rawValue
+    @AppStorage(TechnicalDetails.storageKey) private var technical = false
     @ObservedObject var model: AppModel
     @ObservedObject var updates: UpdateChecker
     @ObservedObject var live: LiveMonitor
@@ -44,7 +45,7 @@ struct MenuBarView: View {
             if model.onboardingDone, !live.isRunning {
                 guardOffStrip
             }
-            if model.onboardingDone, case let .failed(message) = loginItem.status {
+            if model.onboardingDone, let message = loginItem.status.failureText(technical: technical) {
                 loginFailedStrip(message)
             }
             updateBar
@@ -215,15 +216,18 @@ struct MenuBarView: View {
                 }
                 .buttonStyle(.plain)
                 .help(L(.whatHappened))
-                if let rule = critical.ruleLine(LocalizationStore.current) {
-                    Text(rule)
+                if let title = critical.ruleTitle(LocalizationStore.current) {
+                    Text(TechnicalDetails.badge(
+                        title: title,
+                        ruleId: critical.ruleId ?? "",
+                        technical: technical))
                         .font(Tokens.Typography.font(.callout))
                         .foregroundStyle(Tokens.Palette.secondary)
                         .lineLimit(1)
                 }
-                if !critical.detail.isEmpty {
-                    Text(critical.detail)
-                        .font(Tokens.Typography.font(.codeSmall))
+                if !critical.object.isEmpty {
+                    Text(critical.summary(LocalizationStore.current))
+                        .font(Tokens.Typography.font(technical ? .codeSmall : .caption))
                         .lineLimit(1)
                         .truncationMode(.middle)
                 }
@@ -284,14 +288,25 @@ struct MenuBarView: View {
                     .foregroundStyle(Tokens.Palette.tertiary)
                     .fixedSize()
                     .frame(minWidth: Tokens.Metrics.scaled(80), alignment: .leading)
-                Text(item.label)
-                    .font(Tokens.Typography.font(.codeSmall, weight: .medium))
+                Image(systemName: item.verb.symbolName)
+                    .font(Tokens.Typography.font(.caption))
                     .foregroundStyle(item.isMessage ? Tokens.Palette.secondary : Tokens.Palette.ink)
-                Text(item.detail)
+                if technical {
+                    Text(item.label)
+                        .font(Tokens.Typography.font(.codeSmall, weight: .medium))
+                        .foregroundStyle(item.isMessage ? Tokens.Palette.secondary : Tokens.Palette.ink)
+                }
+                Text(item.summary(LocalizationStore.current))
                     .font(Tokens.Typography.font(.caption))
                     .foregroundStyle(item.isMessage ? Tokens.Palette.tertiary : Tokens.Palette.secondary)
                     .lineLimit(1)
                     .truncationMode(.middle)
+                if item.outsideProject {
+                    Text(L(.outsideProject))
+                        .font(Tokens.Typography.font(.caption))
+                        .foregroundStyle(Tokens.Palette.secondary)
+                        .lineLimit(1)
+                }
                 Spacer(minLength: 2)
                 if let severity = item.severity {
                     Circle()
@@ -302,7 +317,7 @@ struct MenuBarView: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .help(item.ruleLine(LocalizationStore.current) ?? item.detail)
+        .help(item.ruleLine(LocalizationStore.current) ?? item.summary(LocalizationStore.current))
     }
 
     // MARK: - Updates
