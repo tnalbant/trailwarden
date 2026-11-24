@@ -41,7 +41,7 @@ struct EventRowView: View {
                     .font(Tokens.Typography.font(.codeSmall))
                     .foregroundStyle(Tokens.Palette.secondary)
                     .fixedSize()
-                    .frame(width: 88, alignment: .leading)
+                    .frame(minWidth: Tokens.Metrics.scaled(88), alignment: .leading)
 
                 Text(EventFormatting.agentLabel(event.agent))
                     .font(Tokens.Typography.font(.codeSmall))

@@ -75,7 +75,8 @@ struct RulesView: View {
             Text(rule.id)
                 .font(Tokens.Typography.font(.code, weight: .medium))
                 .foregroundStyle(rule.isEnabled ? Tokens.Palette.ink : Tokens.Palette.secondary)
-                .frame(width: 26, alignment: .leading)
+                .fixedSize()
+                .frame(minWidth: Tokens.Metrics.scaled(26), alignment: .leading)
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(rule.localizedTitle(LocalizationStore.current))

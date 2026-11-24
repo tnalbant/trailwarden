@@ -194,7 +194,8 @@ struct ReportView: View {
                 HStack(alignment: .firstTextBaseline, spacing: 8) {
                     Text("\(file.changes)")
                         .font(Tokens.Typography.font(.code, weight: .semibold))
-                        .frame(width: 30, alignment: .trailing)
+                        .fixedSize()
+                        .frame(minWidth: Tokens.Metrics.scaled(30), alignment: .trailing)
                     VStack(alignment: .leading, spacing: 1) {
                         Text((file.path as NSString).lastPathComponent)
                             .font(Tokens.Typography.font(.code))

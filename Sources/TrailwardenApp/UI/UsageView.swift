@@ -116,7 +116,8 @@ struct UsageView: View {
                     HStack(spacing: 10) {
                         Text(EventFormatting.agentLabel(agent))
                             .font(Tokens.Typography.font(.body, weight: .medium))
-                            .frame(width: 92, alignment: .leading)
+                            .fixedSize()
+                            .frame(minWidth: Tokens.Metrics.scaled(92), alignment: .leading)
                         GeometryReader { geometry in
                             ZStack(alignment: .leading) {
                                 Capsule().fill(Tokens.Palette.hairline)
@@ -128,11 +129,13 @@ struct UsageView: View {
                         .frame(height: 6)
                         Text(Self.tokens(totals.processed))
                             .font(Tokens.Typography.font(.code))
-                            .frame(width: 96, alignment: .trailing)
+                            .fixedSize()
+                            .frame(minWidth: Tokens.Metrics.scaled(96), alignment: .trailing)
                         Text(Lf(.counterCount, [totals.events]))
                             .font(Tokens.Typography.font(.caption))
                             .foregroundStyle(Tokens.Palette.secondary)
-                            .frame(width: 72, alignment: .trailing)
+                            .fixedSize()
+                            .frame(minWidth: Tokens.Metrics.scaled(72), alignment: .trailing)
                     }
                 }
             }
@@ -166,12 +169,14 @@ struct UsageView: View {
                     Spacer(minLength: 8)
                     Text(Self.tokens(row.tokens.processed))
                         .font(Tokens.Typography.font(.code))
-                        .frame(width: 80, alignment: .trailing)
+                        .fixedSize()
+                        .frame(minWidth: Tokens.Metrics.scaled(80), alignment: .trailing)
                     Text(priceLabel(row))
                         .font(Tokens.Typography.font(.code, weight: .semibold))
                         .foregroundStyle(model.prices.price(for: row.model) == nil
                             ? Tokens.Palette.secondary : Tokens.Palette.ink)
-                        .frame(width: 88, alignment: .trailing)
+                        .fixedSize()
+                        .frame(minWidth: Tokens.Metrics.scaled(88), alignment: .trailing)
                 }
                 .help(breakdown(row.tokens))
             }

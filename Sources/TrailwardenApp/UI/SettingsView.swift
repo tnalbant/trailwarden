@@ -140,7 +140,8 @@ struct SettingsView: View {
                 HStack(alignment: .firstTextBaseline) {
                     Text(EventFormatting.agentLabel(root.agent))
                         .font(Tokens.Typography.font(.codeSmall))
-                        .frame(width: 70, alignment: .leading)
+                        .fixedSize()
+                        .frame(minWidth: Tokens.Metrics.scaled(90), alignment: .leading)
                     Text(ProjectName.display(root.path))
                         .font(Tokens.Typography.font(.codeSmall))
                         .lineLimit(1)

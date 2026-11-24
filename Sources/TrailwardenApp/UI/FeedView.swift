@@ -101,7 +101,7 @@ struct FeedView: View {
                     .font(Tokens.Typography.font(.codeSmall))
                     .foregroundStyle(Tokens.Palette.tertiary)
                     .fixedSize()
-                    .frame(width: 84, alignment: .leading)
+                    .frame(minWidth: Tokens.Metrics.scaled(84), alignment: .leading)
 
                 Text(item.label)
                     .font(Tokens.Typography.font(.codeSmall))
@@ -110,7 +110,8 @@ struct FeedView: View {
                     .padding(.vertical, 1)
                     .background(Tokens.Palette.surface)
                     .clipShape(RoundedRectangle(cornerRadius: 3))
-                    .frame(width: 86, alignment: .leading)
+                    .fixedSize()
+                    .frame(minWidth: Tokens.Metrics.scaled(96), alignment: .leading)
 
                 VStack(alignment: .leading, spacing: 2) {
                     Text(item.detail)

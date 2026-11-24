@@ -76,6 +76,11 @@ enum Tokens {
             }
         }
 
+        /// A fixed column width grown with the text size; a floor, never a clip.
+        static func scaled(_ base: CGFloat) -> CGFloat {
+            base * TextSize.current.factor
+        }
+
         static let gutter: CGFloat = 14
         static let gap: CGFloat = 8
         static let radius: CGFloat = 10
