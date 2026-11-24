@@ -41,7 +41,15 @@ final class LoginItem: ObservableObject {
         status = current
     }
 
+    /// Asks the system for a change, unless it already says so: unregistering an
+    /// app that was never registered throws, and that is not a failure to show.
     func setEnabled(_ on: Bool) {
+        let current = Self.current()
+        let alreadyOn = current == .enabled || current == .requiresApproval
+        if on == alreadyOn {
+            status = current
+            return
+        }
         do {
             if on {
                 try SMAppService.mainApp.register()
