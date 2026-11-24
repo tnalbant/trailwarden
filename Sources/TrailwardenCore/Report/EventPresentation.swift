@@ -59,6 +59,7 @@ public enum EventPresentation {
         "glob_file_search", "file_search", "ripgrep", "rg", "codebase_search",
         "search_file_content", "web_search", "websearch", "find"
     ]
+    private static let runTools: Set<String> = ["execute"]
 
     private static let maxSummaryLength = 200
 
@@ -73,6 +74,9 @@ public enum EventPresentation {
         guard let tool = event.tool else { return .other }
         if searchTools.contains(tool.lowercased()) {
             return .searched
+        }
+        if runTools.contains(tool.lowercased()) {
+            return .ran
         }
         if tool == "apply_patch" {
             return .edited
@@ -117,15 +121,17 @@ public enum EventPresentation {
         case .said, .thought:
             return oneLine(event.preview ?? event.command ?? "")
         case .ran:
-            object = event.command ?? event.paths.first
+            object = event.command ?? event.paths.first ?? event.preview
         case .read, .edited, .wrote, .searched:
             if let path = event.paths.first {
                 object = displayPath(path, cwd: event.cwd).text
+            } else if verb == .searched {
+                object = event.command ?? event.preview
             } else {
                 object = event.command
             }
         case .other:
-            object = event.command ?? event.paths.first
+            object = event.command ?? event.paths.first ?? event.preview
         }
         let text = oneLine(object ?? "")
         return text.isEmpty ? label : "\(label) \(text)"

@@ -60,7 +60,7 @@ final class EventPresentationTests: XCTestCase {
         let tmp = EventPresentation.displayPath("/private/tmp/x", cwd: "/tmp", home: home)
         XCTAssertEqual(tmp, DisplayPath(text: "x", outsideProject: false))
         let sibling = EventPresentation.displayPath("/Users/demo/app2/a.ts", cwd: "/Users/demo/app", home: home)
-        XCTAssertTrue(sibling.outsideProject)
+        XCTAssertEqual(sibling, DisplayPath(text: "~/app2/a.ts", outsideProject: true))
     }
 
     func testSummary() {
@@ -72,6 +72,19 @@ final class EventPresentationTests: XCTestCase {
         XCTAssertEqual(EventPresentation.summary(for: edit, localizer: english), "Edited src/retry.ts")
         let said = makeEvent(kind: .message, preview: "All done.")
         XCTAssertEqual(EventPresentation.summary(for: said, localizer: english), "All done.")
+    }
+
+    func testSummaryFallsBackToPreview() {
+        let english = Localizer(language: .english)
+        let execute = makeEvent(tool: "execute", preview: "print(1 + 1)")
+        XCTAssertEqual(EventPresentation.verb(for: execute), .ran)
+        XCTAssertEqual(EventPresentation.summary(for: execute, localizer: english), "Ran print(1 + 1)")
+        let grep = makeEvent(tool: "grep", preview: "grep TODO")
+        XCTAssertEqual(EventPresentation.summary(for: grep, localizer: english), "Searched grep TODO")
+        let fetch = makeEvent(tool: "webfetch", preview: "https://example.com/a")
+        XCTAssertEqual(
+            EventPresentation.summary(for: fetch, localizer: english),
+            "Other https://example.com/a")
     }
 
     func testRuleTitleFallsBackToId() {
