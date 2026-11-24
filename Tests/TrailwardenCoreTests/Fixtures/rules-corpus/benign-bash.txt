@@ -425,3 +425,6 @@ rm -rf .git/hooks/pre-commit.sample
 rm -rf "$(pwd)/dist"
 rm -rf ./*
 rm -rf *.o
+cd ~/.ssh && ls
+cd ~/.ssh; pwd
+cd ~/projects/app && cat README.md

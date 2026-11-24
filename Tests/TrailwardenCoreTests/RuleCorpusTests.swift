@@ -172,12 +172,16 @@ final class RuleCorpusTests: XCTestCase {
     // (key uploads and copies, pvc, find on a home folder, force push of HEAD,
     // unquoted `bash -lc`), all caught:
     //   RULE-CORPUS benignBash=52/427 benignBashCritical=15 benignFiles=25/66 risky=194/237
+    // Re-frozen after N1 (`cd` into a secret folder, then a reader by relative
+    // name is R4), 2026-11-24: 4 risky rows added, all caught; 3 benign rows added
+    // (`cd ~/.ssh && ls`, `cd ~/.ssh; pwd`, `cd ~/projects/app && cat README.md`), quiet:
+    //   RULE-CORPUS benignBash=52/430 benignBashCritical=15 benignFiles=25/66 risky=198/241
     // Lower a ceiling or raise the floor when a rule change improves the score;
     // never loosen them to make a change pass.
     private let maxBenignBashHits = 52
     private let maxBenignBashCritical = 15
     private let maxBenignFileHits = 25
-    private let minRiskyCaught = 194
+    private let minRiskyCaught = 198
 
     func testCorpusDoesNotRegress() throws {
         let score = try measure()
