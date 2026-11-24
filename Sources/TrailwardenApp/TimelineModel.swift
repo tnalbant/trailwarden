@@ -82,7 +82,10 @@ final class TimelineModel: ObservableObject {
     }
 
     @Published var search = "" {
-        didSet { scheduleSearch() }
+        didSet {
+            guard search != oldValue else { return }
+            scheduleSearch()
+        }
     }
 
     @Published var selectedEventID: String?
@@ -95,6 +98,10 @@ final class TimelineModel: ObservableObject {
 
     private var store: EventStore?
     private var searchTask: Task<Void, Never>?
+    private var revealTask: Task<Void, Never>?
+
+    /// Set once a revealed event is in the loaded page; the list scrolls to it.
+    @Published private(set) var scrollTarget: String?
 
     let databaseURL: URL
 
@@ -103,7 +110,7 @@ final class TimelineModel: ObservableObject {
         do {
             store = try EventStore(url: databaseURL)
         } catch {
-            errorMessage = String(describing: error)
+            errorMessage = TechnicalDetails.errorText(error)
         }
         #if DEBUG
             if ProcessInfo.processInfo.environment["TRAILWARDEN_SELECT_FINDING"] == "1" {
@@ -139,7 +146,7 @@ final class TimelineModel: ObservableObject {
             }
             errorMessage = nil
         } catch {
-            errorMessage = String(describing: error)
+            errorMessage = TechnicalDetails.errorText(error)
         }
     }
 
@@ -151,8 +158,39 @@ final class TimelineModel: ObservableObject {
             let more = try store.events(matching: makeQuery(offset: events.count))
             events.append(contentsOf: more)
         } catch {
-            errorMessage = String(describing: error)
+            errorMessage = TechnicalDetails.errorText(error)
         }
+    }
+
+    /// Selects an event from a deep link, loading further pages until it is in
+    /// the list (at most 20 pages). A page per main-actor turn keeps the UI live.
+    func reveal(_ eventID: String) {
+        revealTask?.cancel()
+        // A debounced search reload would reset the page and drop the selection.
+        searchTask?.cancel()
+        scrollTarget = nil
+        revealTask = Task { [weak self] in
+            for _ in 0 ..< 20 {
+                guard let self, !Task.isCancelled else { return }
+                if events.contains(where: { $0.id == eventID }) {
+                    break
+                }
+                guard events.count < total else {
+                    return
+                }
+                loadMore()
+                await Task.yield()
+            }
+            guard let self, !Task.isCancelled,
+                  events.contains(where: { $0.id == eventID }) else { return }
+            selectedEventID = eventID
+            scrollTarget = eventID
+        }
+    }
+
+    /// Called once the list has scrolled, so a later remount does not scroll again.
+    func consumeScrollTarget() {
+        scrollTarget = nil
     }
 
     func sessions(inProject cwd: String) -> [SessionSummary] {

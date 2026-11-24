@@ -21,7 +21,7 @@ défaut). « Mettre à jour les prix » est un GET pour le `prices.json` public 
 dépôt, utilisé pour l'estimation du coût, fait seulement quand tu cliques. La CI
 échoue si une API réseau apparaît ailleurs dans `Sources/`.
 
-> État : **v0.2.4** — veille en direct, 27 règles, agent blame, rapport, garde-fou CI.
+> État : **v0.2.5** — veille en direct, 28 règles, agent blame, rapport, garde-fou CI.
 > Interface en anglais (US), turc, allemand, espagnol, italien et français.
 
 ![Rapport](docs/screenshots/report-light.png)
@@ -60,7 +60,7 @@ donc aucun vrai projet n'y apparaît.
   critique devient une notification macOS. Clique dessus et la chronologie s'ouvre sur cet événement.
   Pas de polling, pas de démon, rien n'est envoyé nulle part. Le même flux est disponible dans le
   terminal : `trailwarden watch`.
-- **27 règles de risque** — suppressions destructrices, `curl … | sh`, lectures de secrets et du
+- **28 règles de risque** — suppressions destructrices, `curl … | sh`, lectures de secrets et du
   trousseau, clés d'API collées dans une commande, `--dangerously-skip-permissions`,
   `git commit --no-verify`, persistance via launchd/cron, modifications du démarrage du shell et des
   réglages des agents, modifications des workflows CI, `DROP TABLE`, `terraform destroy`, effacement
@@ -92,6 +92,7 @@ donc aucun vrai projet n'y apparaît.
   puissent poser les mêmes questions (`search_events`, `list_sessions`, `get_event`,
   `file_history`, `audit_summary`). `file_history` permet à un agent de vérifier qui d'autre
   travaille sur un fichier avant de le modifier.
+- **Pensé pour l'usage quotidien** — lancement à l'ouverture de session (un échec est affiché, pas caché), taille du texte Standard, Grand ou Plus grand, et lignes sobres par défaut : active « Afficher les détails techniques » pour voir les identifiants de règle, les noms d'outils bruts et les erreurs brutes. VoiceOver lit chaque ligne comme une phrase, et la chronologie se pilote avec ↑/↓, ⏎, Échap et ⌘C.
 
 Le nouveau « code mode » de Codex enveloppe chaque appel dans un petit programme JavaScript ;
 Trailwarden en extrait les commandes shell et les fichiers modifiés, de sorte que la

@@ -15,16 +15,18 @@ struct TrailwardenApp: App {
     /// Which tab the single window shows; shared with the menu bar panel and the
     /// menu commands so every entry point lands on the same place.
     @StateObject private var router = DashboardRouter()
+    /// Whether the app opens at login; one reading shared by onboarding and Settings.
+    @StateObject private var loginItem = LoginItem()
     @Environment(\.openWindow) private var openWindow
 
     @NSApplicationDelegateAdaptor(TrailwardenDelegate.self) private var delegate
 
     var body: some Scene {
         MenuBarExtra {
-            MenuBarView(model: model, updates: updates, router: router)
+            MenuBarView(model: model, updates: updates, router: router, loginItem: loginItem)
                 .environmentObject(router)
         } label: {
-            MenuBarLabel(model: model, updates: updates)
+            MenuBarLabel(model: model, updates: updates, loginItem: loginItem)
                 .environmentObject(router)
         }
         .menuBarExtraStyle(.window)
@@ -38,7 +40,7 @@ struct TrailwardenApp: App {
         .windowResizability(.contentMinSize)
 
         Window("Trailwarden", id: "main") {
-            MainWindowView(model: model, updates: updates, router: router)
+            MainWindowView(model: model, updates: updates, router: router, loginItem: loginItem)
                 .environmentObject(router)
         }
         .defaultSize(width: 1180, height: 720)
@@ -86,6 +88,7 @@ private struct MenuBarLabel: View {
     /// it cannot see changing would never open anything.
     @ObservedObject var model: AppModel
     @ObservedObject var updates: UpdateChecker
+    @ObservedObject var loginItem: LoginItem
 
     var body: some View {
         HStack(spacing: 3) {
@@ -155,7 +158,7 @@ private struct MenuBarLabel: View {
                 // after the check so the line it produces is in the picture.
                 try? await Task.sleep(for: .seconds(1))
                 let renderer = ImageRenderer(
-                    content: MenuBarView(model: model, updates: updates, router: router)
+                    content: MenuBarView(model: model, updates: updates, router: router, loginItem: loginItem)
                         .environmentObject(router)
                         .frame(width: Tokens.Metrics.panelWidth)
                         .background(Tokens.Palette.paper))

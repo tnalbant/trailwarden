@@ -8,6 +8,7 @@ import TrailwardenCore
 /// fires, how many events it currently hits, plus the mutes that silence it.
 struct RulesView: View {
     @AppStorage(LocalizationStore.defaultsKey) private var language = AppLanguage.system.rawValue
+    @AppStorage(TechnicalDetails.storageKey) private var technical = false
     @ObservedObject var model: AppModel
 
     var body: some View {
@@ -26,7 +27,9 @@ struct RulesView: View {
         .tint(Tokens.Palette.accent)
         .onAppear {
             model.loadRules()
-            Task { await model.reapplyRules() }
+            if model.rulesDirty {
+                Task { await model.reapplyRules() }
+            }
         }
     }
 
@@ -35,9 +38,9 @@ struct RulesView: View {
     private var header: some View {
         VStack(alignment: .leading, spacing: 4) {
             Text(L(.windowRules))
-                .font(Tokens.Typography.serif(18, weight: .semibold))
+                .font(Tokens.Typography.font(.title, weight: .semibold))
             Text(L(.rulesIntro))
-                .font(Tokens.Typography.text(10.5))
+                .font(Tokens.Typography.font(.callout))
                 .foregroundStyle(Tokens.Palette.secondary)
                 .fixedSize(horizontal: false, vertical: true)
         }
@@ -72,22 +75,30 @@ struct RulesView: View {
             .buttonStyle(.plain)
             .help(rule.isEnabled ? L(.disableRule) : L(.enableRule))
 
-            Text(rule.id)
-                .font(Tokens.Typography.mono(10, weight: .medium))
-                .foregroundStyle(rule.isEnabled ? Tokens.Palette.ink : Tokens.Palette.secondary)
-                .frame(width: 26, alignment: .leading)
+            if technical {
+                Text(rule.id)
+                    .font(Tokens.Typography.font(.code, weight: .medium))
+                    .foregroundStyle(rule.isEnabled ? Tokens.Palette.ink : Tokens.Palette.secondary)
+                    .fixedSize()
+                    .frame(minWidth: Tokens.Metrics.scaled(26), alignment: .leading)
+            }
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(rule.localizedTitle(LocalizationStore.current))
-                    .font(Tokens.Typography.text(12, weight: .medium))
+                    .font(Tokens.Typography.font(.body, weight: .medium))
                     .foregroundStyle(rule.isEnabled ? Tokens.Palette.ink : Tokens.Palette.secondary)
-                Text(ruleMatchSummary(rule))
-                    .font(Tokens.Typography.mono(9))
-                    .foregroundStyle(Tokens.Palette.secondary)
-                    .lineLimit(1)
-                    .truncationMode(.middle)
+                if let examples = rule.examples, !technical {
+                    exampleLine(L(.ruleExamplesMatch), examples.matches)
+                    exampleLine(L(.ruleExamplesIgnore), examples.ignores)
+                } else {
+                    Text(ruleMatchSummary(rule))
+                        .font(Tokens.Typography.font(.codeSmall))
+                        .foregroundStyle(Tokens.Palette.secondary)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                }
                 Text(rule.localizedMessage(LocalizationStore.current))
-                    .font(Tokens.Typography.text(10))
+                    .font(Tokens.Typography.font(.callout))
                     .foregroundStyle(Tokens.Palette.secondary)
                     .lineLimit(2)
                     .fixedSize(horizontal: false, vertical: true)
@@ -97,9 +108,9 @@ struct RulesView: View {
 
             VStack(alignment: .trailing, spacing: 4) {
                 Text(Lf(.ruleHits, [model.ruleHitCounts[rule.id] ?? 0]))
-                    .font(Tokens.Typography.mono(9))
+                    .font(Tokens.Typography.font(.codeSmall))
                     .foregroundStyle(Tokens.Palette.secondary)
-                Picker("", selection: severityBinding(rule)) {
+                Picker(L(.severityPickerLabel), selection: severityBinding(rule)) {
                     ForEach([Severity.info, Severity.warn, Severity.critical], id: \.self) { severity in
                         Text(LocalizationStore.current.severity(severity)).tag(severity)
                     }
@@ -112,6 +123,19 @@ struct RulesView: View {
         .padding(.horizontal, 20)
         .padding(.vertical, 9)
         .opacity(rule.isEnabled ? 1 : 0.62)
+    }
+
+    /// Examples are shown as written; a rule's placeholders (`{{NAME}}`) stay
+    /// placeholders.
+    @ViewBuilder
+    private func exampleLine(_ title: String, _ samples: [String]) -> some View {
+        if !samples.isEmpty {
+            Text("\(title): \(samples.prefix(2).joined(separator: " · "))")
+                .font(Tokens.Typography.font(.codeSmall))
+                .foregroundStyle(Tokens.Palette.secondary)
+                .lineLimit(1)
+                .truncationMode(.middle)
+        }
     }
 
     private func severityBinding(_ rule: Rule) -> Binding<Severity> {
@@ -146,33 +170,33 @@ struct RulesView: View {
                 SectionLabel(text: L(.mutedRules))
                 Spacer()
                 Text("\(model.mutes.count)")
-                    .font(Tokens.Typography.mono(9))
+                    .font(Tokens.Typography.font(.codeSmall))
                     .foregroundStyle(Tokens.Palette.secondary)
             }
             if model.mutes.isEmpty {
                 Text(L(.noMutes))
-                    .font(Tokens.Typography.text(10))
+                    .font(Tokens.Typography.font(.callout))
                     .foregroundStyle(Tokens.Palette.secondary)
             } else {
                 ForEach(model.mutes) { mute in
                     HStack(spacing: 8) {
-                        Text(mute.ruleId)
-                            .font(Tokens.Typography.mono(9, weight: .medium))
-                            .foregroundStyle(Tokens.Palette.accent)
+                        Text(muteName(mute))
+                            .font(Tokens.Typography.font(.codeSmall, weight: .medium))
+                            .foregroundStyle(Tokens.Palette.accentText)
                         Text(mute.target)
-                            .font(Tokens.Typography.mono(9))
+                            .font(Tokens.Typography.font(.codeSmall))
                             .lineLimit(1)
                             .truncationMode(.middle)
                         Spacer(minLength: 6)
                         Text(remainingDays(mute))
-                            .font(Tokens.Typography.text(9))
+                            .font(Tokens.Typography.font(.caption))
                             .foregroundStyle(Tokens.Palette.secondary)
                         Button(L(.removeMute)) {
                             Task { await model.removeMute(mute) }
                         }
                         .buttonStyle(.plain)
-                        .font(Tokens.Typography.text(9.5, weight: .medium))
-                        .foregroundStyle(Tokens.Palette.accent)
+                        .font(Tokens.Typography.font(.caption, weight: .medium))
+                        .foregroundStyle(Tokens.Palette.accentText)
                     }
                 }
             }
@@ -180,6 +204,12 @@ struct RulesView: View {
         .padding(.horizontal, 20)
         .padding(.vertical, 11)
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private func muteName(_ mute: Mute) -> String {
+        guard !technical else { return mute.ruleId }
+        let rule = model.rules.first { $0.id == mute.ruleId }
+        return rule?.localizedTitle(LocalizationStore.current) ?? mute.ruleId
     }
 
     private func remainingDays(_ mute: Mute) -> String {
@@ -194,11 +224,11 @@ struct RulesView: View {
             if model.isReapplying {
                 ProgressView().controlSize(.small)
                 Text(L(.reapplying))
-                    .font(Tokens.Typography.text(10))
+                    .font(Tokens.Typography.font(.callout))
                     .foregroundStyle(Tokens.Palette.secondary)
             } else if let status = model.ruleStatus {
                 Text(status)
-                    .font(Tokens.Typography.mono(9.5))
+                    .font(Tokens.Typography.font(.codeSmall))
                     .foregroundStyle(Tokens.Palette.secondary)
             }
             Spacer()
@@ -206,8 +236,8 @@ struct RulesView: View {
                 Task { await model.reapplyRules() }
             } label: {
                 Text(L(.reapply))
-                    .font(Tokens.Typography.text(10.5, weight: .medium))
-                    .foregroundStyle(Tokens.Palette.accent)
+                    .font(Tokens.Typography.font(.callout, weight: .medium))
+                    .foregroundStyle(Tokens.Palette.accentText)
             }
             .buttonStyle(.plain)
             .disabled(model.isReapplying)

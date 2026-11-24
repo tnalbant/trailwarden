@@ -20,7 +20,7 @@ monthly (off by default). "Update prices" is one GET for the public
 `prices.json` in this repository, used for the cost estimate, made only when you
 click it. CI fails if a network API shows up anywhere else in `Sources/`.
 
-> Status: **v0.2.4** — live guard, 27 rules, agent blame, report card, CI gate.
+> Status: **v0.2.5** — live guard, 28 rules, agent blame, report card, CI gate.
 > Interface in English (US), Turkish, German, Spanish, Italian and French.
 
 ![Report card](docs/screenshots/report-light.png)
@@ -59,7 +59,7 @@ so no real project appears in them.
   becomes a macOS notification. Click it and the timeline opens on that event.
   No polling, no daemon, and nothing sent anywhere. The same stream is in the
   terminal: `trailwarden watch`.
-- **27 risk rules** — destructive deletes, `curl … | sh`, secret and keychain
+- **28 risk rules** — destructive deletes, `curl … | sh`, secret and keychain
   reads, API keys pasted into a command, `--dangerously-skip-permissions`,
   `git commit --no-verify`, launchd/cron persistence, shell-startup and agent
   settings edits, CI workflow edits, `DROP TABLE`, `terraform destroy`, disk
@@ -91,6 +91,7 @@ so no real project appears in them.
   can ask the same questions (`search_events`, `list_sessions`, `get_event`,
   `file_history`, `audit_summary`). `file_history` lets an agent check who else
   is working on a file before it edits it.
+- **Made for daily use** — launch at login (a failure is shown, not hidden), text size Standard, Large or Larger, and plain rows by default: turn on "Show technical details" to see rule ids, raw tool names and raw errors. Rows are read by VoiceOver as one sentence, and the timeline works with ↑/↓, ⏎, Esc and ⌘C.
 
 Codex's newer "code mode" wraps every call in a small JavaScript program;
 Trailwarden reads the shell commands and patched files out of it, so the

@@ -111,6 +111,11 @@ final class AppModel: ObservableObject {
         if onboardingDone, liveAllowed {
             live.sync()
         }
+        // The live guard re-grades the history after an update that changed the
+        // built-in rules; without it running, the app does it here.
+        if onboardingDone, !(liveAllowed && LiveMonitor.isEnabled) {
+            Task { await reapplyIfCatalogueChanged() }
+        }
     }
 
     /// Jumps to one event: the window opens on its session with it selected.
@@ -129,7 +134,7 @@ final class AppModel: ObservableObject {
             liveSessions = try Self.loadLiveSessions(at: databaseURL)
             errorMessage = nil
         } catch {
-            errorMessage = String(describing: error)
+            errorMessage = TechnicalDetails.errorText(error)
         }
     }
 
@@ -181,7 +186,11 @@ final class AppModel: ObservableObject {
         }
 
         let url = databaseURL
-        let outcome = await Task.detached(priority: .userInitiated) { [weak self] () -> (
+        // Built here, on the main actor, so the detached scan never captures `self`.
+        let publish: @MainActor @Sendable (ScanProgress) -> Void = { [weak self] progress in
+            self?.scanProgress = progress
+        }
+        let outcome = await Task.detached(priority: .userInitiated) { () -> (
             events: Int,
             failure: String?) in
             do {
@@ -195,11 +204,12 @@ final class AppModel: ObservableObject {
                         let percent = Int(progress.fraction * 100)
                         guard percent != shown else { return }
                         shown = percent
-                        Task { @MainActor in self?.scanProgress = progress }
+                        Task { @MainActor in publish(progress) }
                     }
-                return (report.eventsStored, report.failures.first)
+                let failure = report.failures.first.map { TechnicalDetails.errorText(raw: $0) }
+                return (report.eventsStored, failure)
             } catch {
-                return (0, String(describing: error))
+                return (0, TechnicalDetails.errorText(error))
             }
         }.value
 
@@ -223,7 +233,7 @@ final class AppModel: ObservableObject {
             rules = RulePreferences.apply(stored, to: builtIn)
             mutes = try EventStore(url: databaseURL).mutes()
         } catch {
-            errorMessage = String(describing: error)
+            errorMessage = TechnicalDetails.errorText(error)
         }
     }
 
@@ -231,6 +241,7 @@ final class AppModel: ObservableObject {
     /// index is re-run so the timeline reflects it immediately.
     func updateRule(_ ruleId: String, enabled: Bool? = nil, severity: Severity? = nil) async {
         guard let index = rules.firstIndex(where: { $0.id == ruleId }) else { return }
+        rulesDirty = true
         let current = rules[index]
         rules[index] = current.with(
             enabled: enabled ?? current.isEnabled,
@@ -245,24 +256,26 @@ final class AppModel: ObservableObject {
             ruleId: ruleId,
             target: target,
             until: Date().addingTimeInterval(Double(days) * 86400))
+        rulesDirty = true
         do {
             let store = try EventStore(url: databaseURL)
             try store.addMute(mute)
             mutes = try store.mutes()
         } catch {
-            errorMessage = String(describing: error)
+            errorMessage = TechnicalDetails.errorText(error)
             return
         }
         await reapplyRules()
     }
 
     func removeMute(_ mute: Mute) async {
+        rulesDirty = true
         do {
             let store = try EventStore(url: databaseURL)
             try store.removeMute(mute)
             mutes = try store.mutes()
         } catch {
-            errorMessage = String(describing: error)
+            errorMessage = TechnicalDetails.errorText(error)
             return
         }
         await reapplyRules()
@@ -274,10 +287,31 @@ final class AppModel: ObservableObject {
                 try RulePreferences.save(RulePreferences.preferences(from: rules), to: url)
             }
         } catch {
-            errorMessage = String(describing: error)
+            errorMessage = TechnicalDetails.errorText(error)
             return
         }
         await reapplyRules()
+    }
+
+    /// Re-runs the rules over the whole index once after an update changed the
+    /// built-in catalogue, with the reader's preferences and mutes.
+    func reapplyIfCatalogueChanged() async {
+        let rulesCopy = rules
+        let mutesCopy = mutes
+        let url = databaseURL
+        let changed = await Task.detached(priority: .utility) { () -> Bool in
+            do {
+                let store = try EventStore(url: url)
+                let engine = try RuleEngine(rules: rulesCopy, mutes: mutesCopy)
+                return try store.reapplyRulesIfCatalogueChanged(engine: engine)
+            } catch {
+                NSLog("Trailwarden could not re-apply the rules: %@", String(describing: error))
+                return false
+            }
+        }.value
+        if changed {
+            refresh()
+        }
     }
 
     /// Re-runs the rules over the stored index. Runs off the main actor because
@@ -286,6 +320,7 @@ final class AppModel: ObservableObject {
         guard !isReapplying else { return }
         isReapplying = true
         defer { isReapplying = false }
+        rulesDirty = false
 
         let rulesCopy = rules
         let mutesCopy = mutes
@@ -309,6 +344,10 @@ final class AppModel: ObservableObject {
         refresh()
     }
 
+    /// Set when a rule or a mute changed and the stored events have not been
+    /// re-run yet (true at launch, so the first visit fills the hit counts);
+    /// the Rules tab reapplies on appear only then.
+    private(set) var rulesDirty = true
     @Published private(set) var ruleHitCounts: [String: Int] = [:]
     @Published private(set) var maintenanceStatus: String?
     @Published private(set) var usage: [Agent: TokenTotals] = [:]

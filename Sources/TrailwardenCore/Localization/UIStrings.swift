@@ -28,7 +28,7 @@ public enum UIString: String, CaseIterable, Sendable {
     case rangeDay, rangeWeek, rangeMonth, rangeAll
     // Counts
     case events, event, findings, sessions, eventCount, sessionMeta, sessionCritical
-    case projectMeta, liveCount, liveTooltip, zeroEvents, eventsRatio
+    case projectMeta, liveCount, liveTooltip, eventsRatio
     // Empty states
     case noDataYet, noSessionsFound, noSessionSelected, noEventsInRange, noEventsHint
     case pickEvent, pickEventHint, loadMore
@@ -37,6 +37,8 @@ public enum UIString: String, CaseIterable, Sendable {
     // Severity
     case severityCritical, severityWarning, severityInfo
     // Event detail
+    /// Plain verbs for what an event did
+    case verbRan, verbEdited, verbWrote, verbRead, verbSearched, verbSaid, verbThought, verbOther
     case labelCommand, labelText, labelDiff, labelPaths, labelRaw
     case resumeSession, copy, copied, whyFlagged, muteThirtyDays, muteThirtyDaysHint
     // Rules
@@ -46,6 +48,12 @@ public enum UIString: String, CaseIterable, Sendable {
     case allAgents, onlyFindings, rawStream, showCountersHint
     // Settings
     case appearance, appearanceAutomatic, appearanceLight, appearanceDark, appearanceHint
+    case textSizeSection, textSizeStandard, textSizeLarge, textSizeLarger
+    case technicalDetailsToggle, technicalDetailsHint, ruleExamplesMatch, ruleExamplesIgnore
+    case outsideProject, genericError
+    /// Spoken names for controls that show no visible label
+    case rangePickerLabel, agentPickerLabel, severityPickerLabel, languagePickerLabel
+    case exportFormatLabel, updateSchedulePickerLabel, liveThresholdLabel, selected
     case languageSection, languageSystem, languageHint
     case scannedDirs, dirsHint, retention, retentionDays, cleanupNow, retentionHint
     case exportSection, exportAction, exportRange, exportHint
@@ -74,6 +82,9 @@ public enum UIString: String, CaseIterable, Sendable {
     case liveGuard, liveGuardHint, liveOn, liveOff, liveNotifyFor, liveCriticalOnly, liveWarnAndCritical
     case liveNotificationsDenied, liveMoreFindings, liveAllowNotifications, liveOpenNotificationSettings
     case liveNotificationsAllowed
+    // Launch at login
+    case loginItemTitle, loginItemOn, loginItemOff, loginItemNeedsApproval, loginItemOpenSettings
+    case loginItemFailed, guardOffBanner, guardOffAction
     // Report card
     case windowReport, reportTitle, reportWork, reportCommands, reportEdits, reportReads, reportFilesChanged
     case reportWorthALook, reportNoFindings, reportByAgent, reportHotFiles, reportRules, reportCopySummary
@@ -81,6 +92,9 @@ public enum UIString: String, CaseIterable, Sendable {
     case reportShareFooter, reportOpen
     // File history in the detail pane
     case whoTouched, whoNone
+    // Last interface strings that were hardcoded
+    case eventsNone, range90Days, touchChanged, touchRead, touchNamed
+    case tokenInput, tokenCacheRead, tokenCacheWrite, tokenOutput, tokenReasoning, activeDays
     // Scheduled update check
     case updateSchedule, updateScheduleNever, updateScheduleWeekly, updateScheduleMonthly
     case updateScheduleHint, updateLastChecked, updateNeverChecked, updateNotificationTitle
@@ -130,7 +144,6 @@ public enum UITranslations {
         .projectMeta: "%d sessions · %d events",
         .liveCount: "%d live",
         .liveTooltip: "This session wrote in the last two minutes — the agent may still be running",
-        .zeroEvents: "0 events",
         .eventsRatio: "%d / %d events",
 
         .noDataYet: "No data yet — hit Scan.",
@@ -189,6 +202,16 @@ public enum UITranslations {
         .appearanceLight: "Light",
         .appearanceDark: "Dark",
         .appearanceHint: "Automatic follows the macOS light/dark setting.",
+        .textSizeSection: "Text size",
+        .textSizeStandard: "Standard",
+        .textSizeLarge: "Large",
+        .textSizeLarger: "Larger",
+        .technicalDetailsToggle: "Show technical details",
+        .technicalDetailsHint: "Adds tool names, rule ids, session ids, raw records and full error text.",
+        .ruleExamplesMatch: "Flags",
+        .ruleExamplesIgnore: "Leaves alone",
+        .outsideProject: "outside the project",
+        .genericError: "Something went wrong. Turn on technical details to see the error.",
         .languageSection: "Language",
         .languageSystem: "System",
         .languageHint: "Interface language. A change applies immediately.",
@@ -207,7 +230,7 @@ public enum UITranslations {
         .privacyBadge: "A redacted audit record will be written",
         .settingsVersion: "v%@ · %d events · %d sessions",
 
-        .usageSummary: "Last %d days · %@ tokens · %d days",
+        .usageSummary: "Last %d days · %@ tokens · %@",
         .dailyTokens: "Daily tokens",
         .noTokenData: "No token counts yet. They appear here once an agent writes a counter during a session.",
         .token: "Token",
@@ -249,7 +272,7 @@ public enum UITranslations {
         .addModel: "Add",
         .addModelPlaceholder: "Another model id, e.g. gpt-6-sol",
         .noPriceModels: "No models yet. They appear once an agent reports tokens.",
-        .priceSaveFailed: "Could not save the price: %@",
+        .priceSaveFailed: "Could not save the price.",
         .pricesWindow: "Prices",
         .editPrices: "Edit prices…",
         .pricesSummary: "%d models · %d without a price · %d of your own",
@@ -283,6 +306,14 @@ public enum UITranslations {
         .liveNotificationsDenied: "Notifications are turned off for Trailwarden in System Settings.",
         .liveAllowNotifications: "Allow notifications",
         .liveNotificationsAllowed: "Notifications are on",
+        .loginItemTitle: "Open Trailwarden when you log in",
+        .loginItemOn: "Trailwarden opens when you log in.",
+        .loginItemOff: "Trailwarden does not open when you log in.",
+        .loginItemNeedsApproval: "Allow Trailwarden in System Settings to open at login.",
+        .loginItemOpenSettings: "Open Login Items",
+        .loginItemFailed: "Could not change the login item.",
+        .guardOffBanner: "Live guard is off",
+        .guardOffAction: "Turn on",
         .liveOpenNotificationSettings: "Open Notification Settings",
         .liveMoreFindings: "%d more findings — open Trailwarden to see them",
         .windowReport: "Report",
@@ -305,8 +336,19 @@ public enum UITranslations {
         .reportShareFindings: "%d critical, %d warnings",
         .reportShareFooter: "Audited locally with Trailwarden — github.com/tnalbant/trailwarden",
         .reportOpen: "Open in timeline",
-        .whoTouched: "Other agents on this file",
-        .whoNone: "No other agent touched it.",
+        .whoTouched: "Other sessions on this file",
+        .whoNone: "No other session touched it.",
+        .eventsNone: "0 events",
+        .range90Days: "90 days",
+        .touchChanged: "changed",
+        .touchRead: "read",
+        .touchNamed: "in a command",
+        .tokenInput: "input",
+        .tokenCacheRead: "cache read",
+        .tokenCacheWrite: "cache write",
+        .tokenOutput: "output",
+        .tokenReasoning: "reasoning",
+        .activeDays: "%d active days",
 
         .updateSchedule: "Automatic update check",
         .updateScheduleNever: "Off",
@@ -315,6 +357,24 @@ public enum UITranslations {
         .updateScheduleHint: "Off by default. When on, Trailwarden reads one small file from the latest GitHub release on this schedule. Nothing is sent: no identifiers, nothing about your agents.",
         .updateLastChecked: "Last checked %@",
         .updateNeverChecked: "Not checked yet",
-        .updateNotificationTitle: "Trailwarden %@ is available"
+        .updateNotificationTitle: "Trailwarden %@ is available",
+
+        .verbRan: "Ran",
+        .verbEdited: "Edited",
+        .verbWrote: "Wrote",
+        .verbRead: "Read",
+        .verbSearched: "Searched",
+        .verbSaid: "Said",
+        .verbThought: "Thought",
+        .verbOther: "Other",
+
+        .rangePickerLabel: "Time range",
+        .agentPickerLabel: "Agent",
+        .severityPickerLabel: "Severity",
+        .languagePickerLabel: "Language",
+        .exportFormatLabel: "Export format",
+        .updateSchedulePickerLabel: "Update check frequency",
+        .liveThresholdLabel: "Notify for severity",
+        .selected: "Selected"
     ]
 }

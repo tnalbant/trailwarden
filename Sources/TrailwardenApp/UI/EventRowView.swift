@@ -8,9 +8,24 @@ extension Severity {
     var tint: Color {
         switch self {
         case .critical: Tokens.Palette.accent
-        case .warn: Color(red: 0.72, green: 0.52, blue: 0.12)
+        case .warn: Tokens.Palette.severity(.warn)
         case .info: Tokens.Palette.secondary
         }
+    }
+
+    /// The tint for text: the terracotta accent is only for marks.
+    var textTint: Color {
+        self == .critical ? Tokens.Palette.accentText : tint
+    }
+}
+
+/// The one sentence VoiceOver reads for a row: severity word (if any), summary,
+/// agent, time. The visible severity strip and dot carry no extra information.
+enum RowAccessibility {
+    static func label(severity: Severity?, summary: String, agent: String, time: String) -> String {
+        [severity.map { LocalizationStore.current.severity($0) }, summary, agent, time]
+            .compactMap(\.self)
+            .joined(separator: ", ")
     }
 }
 
@@ -18,6 +33,7 @@ extension Severity {
 /// worst rule hit as a coloured strip on the left.
 struct EventRowView: View {
     @AppStorage(LocalizationStore.defaultsKey) private var language = AppLanguage.system.rawValue
+    @AppStorage(TechnicalDetails.storageKey) private var technical = false
     let event: Event
     var selected = false
 
@@ -30,16 +46,17 @@ struct EventRowView: View {
             Rectangle()
                 .fill(worst?.tint ?? Color.clear)
                 .frame(width: 2.5)
+                .accessibilityHidden(true)
 
             HStack(alignment: .top, spacing: 9) {
                 Text(EventFormatting.stamp(event.ts))
-                    .font(Tokens.Typography.mono(9.5))
+                    .font(Tokens.Typography.font(.codeSmall))
                     .foregroundStyle(Tokens.Palette.secondary)
                     .fixedSize()
-                    .frame(width: 88, alignment: .leading)
+                    .frame(minWidth: Tokens.Metrics.scaled(88), alignment: .leading)
 
                 Text(EventFormatting.agentLabel(event.agent))
-                    .font(Tokens.Typography.mono(8.5))
+                    .font(Tokens.Typography.font(.codeSmall))
                     .padding(.horizontal, 5)
                     .padding(.vertical, 1)
                     .background(Tokens.Palette.surface)
@@ -47,16 +64,27 @@ struct EventRowView: View {
 
                 VStack(alignment: .leading, spacing: 2) {
                     HStack(spacing: 6) {
-                        Text(event.tool ?? event.kind.rawValue)
-                            .font(Tokens.Typography.mono(9.5, weight: .medium))
+                        Image(systemName: EventPresentation.verb(for: event).symbolName)
+                            .font(Tokens.Typography.font(.caption))
+                            .foregroundStyle(Tokens.Palette.secondary)
+                            .accessibilityHidden(true)
+                        if technical {
+                            Text(event.tool ?? event.kind.rawValue)
+                                .font(Tokens.Typography.font(.codeSmall, weight: .medium))
+                        }
                         ForEach(event.risk, id: \.ruleId) { hit in
-                            Text("\(hit.ruleId) \(LocalizationStore.current.severity(hit.severity))")
-                                .font(Tokens.Typography.text(8.5, weight: .medium))
-                                .foregroundStyle(hit.severity.tint)
+                            Text(badge(for: hit))
+                                .font(Tokens.Typography.font(.caption, weight: .medium))
+                                .foregroundStyle(hit.severity.textTint)
+                        }
+                        if EventPresentation.touchesOutsideProject(event) {
+                            Text(L(.outsideProject))
+                                .font(Tokens.Typography.font(.caption))
+                                .foregroundStyle(Tokens.Palette.secondary)
                         }
                     }
-                    Text(event.preview ?? event.command ?? "—")
-                        .font(Tokens.Typography.mono(10))
+                    Text(EventPresentation.summary(for: event, localizer: LocalizationStore.current))
+                        .font(Tokens.Typography.font(.body))
                         .foregroundStyle(Tokens.Palette.ink.opacity(0.82))
                         .lineLimit(2)
                         .truncationMode(.middle)
@@ -71,5 +99,18 @@ struct EventRowView: View {
         }
         .background(selected ? Tokens.Palette.surface : Color.clear)
         .contentShape(Rectangle())
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(RowAccessibility.label(
+            severity: worst,
+            summary: EventPresentation.summary(for: event, localizer: LocalizationStore.current),
+            agent: EventFormatting.agentLabel(event.agent),
+            time: EventFormatting.stamp(event.ts)))
+    }
+
+    private func badge(for hit: RiskHit) -> String {
+        TechnicalDetails.badge(
+            title: EventPresentation.ruleTitle(hit, localizer: LocalizationStore.current),
+            ruleId: hit.ruleId,
+            technical: technical)
     }
 }

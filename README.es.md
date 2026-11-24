@@ -21,7 +21,7 @@ Ajustes, como mucho una vez por semana o por mes (desactivado por defecto).
 la estimación de coste, y solo se hace cuando lo pulsas. La CI falla si aparece una
 API de red en cualquier otro punto de `Sources/`.
 
-> Estado: **v0.2.4** — vigía en vivo, 27 reglas, agent blame, informe, control en CI.
+> Estado: **v0.2.5** — vigía en vivo, 28 reglas, agent blame, informe, control en CI.
 > Interfaz en inglés (EE. UU.), turco, alemán, español, italiano y francés.
 
 ![Informe](docs/screenshots/report-light.png)
@@ -60,7 +60,7 @@ así que no aparece ningún proyecto real.
   crítico se convierte en una notificación de macOS. Si haces clic en ella, la cronología se abre en ese evento.
   Sin sondeo, sin daemon y sin enviar nada a ningún sitio. El mismo flujo está disponible en la
   terminal: `trailwarden watch`.
-- **27 reglas de riesgo**: borrados destructivos, `curl … | sh`, lecturas de secretos y del
+- **28 reglas de riesgo**: borrados destructivos, `curl … | sh`, lecturas de secretos y del
   llavero, claves de API pegadas en un comando, `--dangerously-skip-permissions`,
   `git commit --no-verify`, persistencia con launchd/cron, ediciones de los archivos de arranque del shell y de los
   ajustes de agentes, ediciones de workflows de CI, `DROP TABLE`, `terraform destroy`, borrado
@@ -92,6 +92,7 @@ así que no aparece ningún proyecto real.
   puedan hacer las mismas preguntas (`search_events`, `list_sessions`, `get_event`,
   `file_history`, `audit_summary`). `file_history` permite a un agente comprobar quién más
   trabaja en un archivo antes de editarlo.
+- **Pensado para el uso diario**: arranque al iniciar sesión (si falla, se muestra), tamaño de texto Estándar, Grande o Más grande, y filas sencillas por defecto: activa «Mostrar detalles técnicos» para ver los ids de regla, los nombres de herramienta y los errores en bruto. VoiceOver lee cada fila como una frase, y la cronología se maneja con ↑/↓, ⏎, Esc y ⌘C.
 
 El «code mode» más reciente de Codex envuelve cada llamada en un pequeño programa de JavaScript;
 Trailwarden extrae de él los comandos de shell y los archivos modificados con parches, de modo que la

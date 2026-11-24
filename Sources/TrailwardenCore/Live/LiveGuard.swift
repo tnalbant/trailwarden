@@ -68,7 +68,8 @@ public struct LiveAlert: Sendable, Equatable {
         let rule = worst.flatMap { hit in
             RuleLocalization.text(forRule: hit.ruleId, language: localizer.language)
         }
-        title = "\(event.agent.displayName) · \(rule?.title ?? worst?.ruleId ?? "")"
+        let ruleName = worst.map { EventPresentation.ruleTitle($0, localizer: localizer) } ?? ""
+        title = "\(event.agent.displayName) · \(ruleName)"
         subtitle = rule?.message ?? worst?.message ?? ""
         var what = event.command ?? event.paths.first ?? event.preview ?? ""
         what = what.replacingOccurrences(of: "\n", with: " ⏎ ")

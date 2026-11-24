@@ -11,7 +11,11 @@ import Foundation
 /// 3. a rule with `pathGlobs` must match one of the event's paths or one of the
 ///    path-like tokens of its command;
 /// 4. both conditions, when present, must hold (R1 is "rm -rf *and* a dangerous
-///    target", not "any rm -rf").
+///    target", not "any rm -rf");
+/// 5. when one match has both, they must hold for the same command of a command
+///    line: a path among that command's tokens, and the pattern matching the
+///    text from that command's start (so `\A` anchors at the command). In
+///    `ls ~/.ssh && git status` the path belongs to `ls`, not to `git`.
 ///
 /// Hits are de-duplicated per `(rule, session, normalized command)` and muted
 /// pairs are dropped, so the timeline shows one entry per situation.
@@ -96,27 +100,39 @@ public struct RuleEngine: Sendable {
         _ match: CompiledMatch,
         tool: String?,
         texts: [String],
-        candidates: [String]) -> Bool
+        candidates: [String],
+        segments: [CommandSegment]) -> Bool
     {
         if !match.tools.isEmpty, !match.tools.contains(where: { toolMatches($0, tool) }) {
             return false
         }
-        if let regex = match.commandRegex {
-            guard texts.contains(where: { matches(regex, $0) }) else { return false }
-        }
-        if !match.globs.isEmpty {
-            let matched = candidates.contains { candidate in
-                match.globs.contains { Glob.matches($0, candidate) }
-                    && !match.excludes.contains { Glob.matches($0, candidate) }
+        if let regex = match.commandRegex, !match.globs.isEmpty, !segments.isEmpty {
+            // Paths first: they are cheap, and most commands name no matching path.
+            let matched = segments.contains { segment in
+                (segment.candidates.contains { pathMatches(match, $0) }
+                    || segment.directories.contains { pathMatches(match, $0) || isSecretDirectory($0) })
+                    && regex.firstMatch(in: segment.line, range: segment.range) != nil
             }
             guard matched else { return false }
+        } else {
+            if let regex = match.commandRegex {
+                guard texts.contains(where: { matches(regex, $0) }) else { return false }
+            }
+            if !match.globs.isEmpty {
+                guard candidates.contains(where: { pathMatches(match, $0) }) else { return false }
+            }
         }
         if !match.anyOf.isEmpty {
             return match.anyOf.contains {
-                evaluate($0, tool: tool, texts: texts, candidates: candidates)
+                evaluate($0, tool: tool, texts: texts, candidates: candidates, segments: segments)
             }
         }
         return true
+    }
+
+    private static func pathMatches(_ match: CompiledMatch, _ candidate: String) -> Bool {
+        match.globs.contains { Glob.matches($0, candidate) }
+            && !match.excludes.contains { Glob.matches($0, candidate) }
     }
 
     /// Built-in catalogue with no mutes. Used by the CLI and by tests.
@@ -129,17 +145,27 @@ public struct RuleEngine: Sendable {
     public func hits(for event: Event, now: Date = Date()) -> [RiskHit] {
         // Heredoc bodies are file content (`cat > x <<EOF`), not commands — unless
         // they are fed to a shell, which `withoutHeredocBodies` keeps.
-        let texts = [event.command, event.preview].compactMap(\.self)
-            .filter { !$0.isEmpty }
-            .map(Self.withoutHeredocBodies)
+        if event.kind == .toolResult {
+            return []
+        }
+        // What the agent ran is the command. A tool result is what came back and a
+        // Bash description is what the agent said, so neither is scanned.
+        let texts = Self.scannedTexts(for: event)
         let candidates = Self.pathCandidates(for: event)
+        let segments = Self.commandSegments(for: event)
         let target = Self.target(for: event)
 
         let tool = Self.canonicalTool(event.tool)
 
         var result: [RiskHit] = []
         for rule in compiled {
-            guard Self.evaluate(rule.match, tool: tool, texts: texts, candidates: candidates) else {
+            guard Self.evaluate(
+                rule.match,
+                tool: tool,
+                texts: texts,
+                candidates: candidates,
+                segments: segments)
+            else {
                 continue
             }
             if isMuted(rule.id, target: target, now: now) {
@@ -150,6 +176,21 @@ public struct RuleEngine: Sendable {
         return result.sorted { lhs, rhs in
             lhs.severity == rhs.severity ? lhs.ruleId < rhs.ruleId : lhs.severity > rhs.severity
         }
+    }
+
+    /// The text of an event that rules match against: the command with heredoc
+    /// bodies removed. Preview is only used for tool calls that have no command.
+    static func scannedTexts(for event: Event) -> [String] {
+        if event.kind == .toolResult {
+            return []
+        }
+        let source: String? = if let command = event.command, !command.isEmpty {
+            command
+        } else {
+            event.preview
+        }
+        guard let source, !source.isEmpty else { return [] }
+        return [withoutHeredocBodies(source)]
     }
 
     /// Returns the events with `risk` filled in, one hit per situation.
@@ -242,9 +283,67 @@ public struct RuleEngine: Sendable {
         let tool = canonicalTool(event.tool)
         let isEdit = tool == "Write" || tool == "Edit"
         if let command = event.command, !(isEdit && !event.paths.isEmpty) {
-            values.append(contentsOf: tokens(in: withoutHeredocBodies(command)))
+            values.append(contentsOf: tokens(in: strippingQuotedArguments(withoutHeredocBodies(command))))
         }
         return values.map(normalizePathToken).filter { !$0.isEmpty }
+    }
+
+    /// One command of a command line: where it starts in the line (it runs to
+    /// the line's end, so a pattern can see what it is piped into) and the
+    /// path-like tokens of that command alone, plus the event's own paths.
+    struct CommandSegment {
+        let line: String
+        let range: NSRange
+        let candidates: [String]
+        /// Where earlier `cd`/`pushd` commands of the line went.
+        let directories: [String]
+    }
+
+    /// The commands of an event's command line, split at unquoted `;`, `&`,
+    /// `&&`, `|`, `||` and newlines. Empty when there is no command, or when an
+    /// edit tool's "command" is patch text.
+    static func commandSegments(for event: Event) -> [CommandSegment] {
+        guard event.kind != .toolResult, let command = event.command, !command.isEmpty else { return [] }
+        let tool = canonicalTool(event.tool)
+        if tool == "Write" || tool == "Edit", !event.paths.isEmpty {
+            return []
+        }
+        let line = withoutHeredocBodies(command)
+        let stripped = strippingQuotedArguments(line)
+        let paths = event.paths.map(normalizePathToken).filter { !$0.isEmpty }
+        func candidates(_ text: String) -> [String] {
+            paths + tokens(in: text).map(normalizePathToken).filter { !$0.isEmpty }
+        }
+        let parts = splitCommandParts(line)
+        let blanked = splitCommandParts(stripped)
+        // Blanking quotes never adds or removes a separator; if it ever did, the
+        // whole line counts as one command.
+        guard parts.count == blanked.count else {
+            return [
+                CommandSegment(
+                    line: line,
+                    range: NSRange(line.startIndex..., in: line),
+                    candidates: candidates(stripped),
+                    directories: [])
+            ]
+        }
+        var result: [CommandSegment] = []
+        var start = line.startIndex
+        var directories: [String] = []
+        for (part, blank) in zip(parts, blanked) {
+            result.append(
+                CommandSegment(
+                    line: line,
+                    range: NSRange(start..., in: line),
+                    candidates: candidates(blank.body),
+                    directories: directories))
+            directories = directoriesAfter(blank.body, previous: directories)
+            start = line.index(
+                start,
+                offsetBy: part.body.count + part.delimiter.count,
+                limitedBy: line.endIndex) ?? line.endIndex
+        }
+        return result
     }
 
     /// `cat > x.py <<'EOF' … EOF` carries a file's content, and content that
@@ -293,6 +392,155 @@ public struct RuleEngine: Sendable {
                 continue
             }
             result.replaceSubrange(found, with: "<<" + result[name])
+        }
+        return result
+    }
+
+    // MARK: - Quoted prose
+
+    private static let messageFlagBefore = try? NSRegularExpression(
+        pattern: #"(?:^|\s)(?:-m|--message)(?:=|\s*)$"#)
+    private static let echoPart = try? NSRegularExpression(pattern: #"^\s*(?:echo|printf)\b"#)
+    private static let interpreterPart = try? NSRegularExpression(
+        pattern: #"^\s*(?:sudo\s+(?:-\S+\s+)*)?(?:\S*/)?(?:sh|bash|zsh|dash|python3?|perl|ruby|node|eval|base64|xargs)\b"#)
+    private static let startupFileRedirect = try? NSRegularExpression(
+        pattern: #">>?\s*["']?(?:~|\$\{?HOME\}?|/[\w/.-]*)?/?\.(?:zshrc|zshenv|zprofile|zlogin|bashrc|bash_profile|profile)\b"#)
+
+    /// Removes text that is prose, not a command: the quoted argument of `-m` /
+    /// `--message` and the quoted arguments of `echo` / `printf`. An `echo` that is
+    /// piped into a shell, an interpreter or `xargs`, or redirected into a shell
+    /// startup file, keeps its text because that text runs or is used as paths.
+    static func strippingQuotedArguments(_ command: String) -> String {
+        guard command.contains("-m") || command.contains("echo") || command.contains("printf") else {
+            return command
+        }
+        let parts = splitCommandParts(command)
+        var result = ""
+        for (index, part) in parts.enumerated() {
+            var body = part.body
+            // A command substitution runs, whatever quotes surround it.
+            if !body.contains("$("), !body.contains("`") {
+                let isEcho = isMatch(echoPart, body) && !runsItsText(parts, from: index, body: body)
+                body = blankingQuotes(body, allQuoted: isEcho)
+            }
+            result += body + part.delimiter
+        }
+        return result
+    }
+
+    private static func isMatch(_ regex: NSRegularExpression?, _ text: String) -> Bool {
+        guard let regex else { return false }
+        return regex.firstMatch(in: text, range: NSRange(text.startIndex..., in: text)) != nil
+    }
+
+    private static func runsItsText(
+        _ parts: [(body: String, delimiter: String)],
+        from index: Int,
+        body: String) -> Bool
+    {
+        if isMatch(startupFileRedirect, body) {
+            return true
+        }
+        var next = index
+        while parts[next].delimiter == "|", next + 1 < parts.count {
+            next += 1
+            if isMatch(interpreterPart, parts[next].body) {
+                return true
+            }
+        }
+        return false
+    }
+
+    /// Splits at unquoted `;`, `&`, `&&`, `|`, `||` and newlines, keeping the delimiters.
+    private static func splitCommandParts(_ text: String) -> [(body: String, delimiter: String)] {
+        let chars = Array(text)
+        var parts: [(body: String, delimiter: String)] = []
+        var current = ""
+        var quote: Character?
+        var index = 0
+        func flush(_ delimiter: String) {
+            parts.append((current, delimiter))
+            current = ""
+            index += delimiter.count
+        }
+        while index < chars.count {
+            let char = chars[index]
+            let next: Character? = index + 1 < chars.count ? chars[index + 1] : nil
+            if let open = quote {
+                current.append(char)
+                if char == "\\", open == "\"", let next {
+                    current.append(next)
+                    index += 2
+                    continue
+                }
+                if char == open {
+                    quote = nil
+                }
+                index += 1
+                continue
+            }
+            switch char {
+            case "\"", "'":
+                quote = char
+                current.append(char)
+                index += 1
+            case "\\":
+                current.append(char)
+                if let next {
+                    current.append(next)
+                }
+                index += 2
+            case ";", "\n":
+                flush(String(char))
+            case "&" where current.last == ">" || current.last == "<":
+                current.append(char)
+                index += 1
+            case "&", "|":
+                flush(next == char ? String([char, char]) : String(char))
+            default:
+                current.append(char)
+                index += 1
+            }
+        }
+        parts.append((current, ""))
+        return parts
+    }
+
+    /// Replaces closed quoted strings with an empty pair: every one when
+    /// `allQuoted`, else only the argument of an unquoted `-m` / `--message`.
+    /// A redirect target (`> "file"`) is a path and is never blanked.
+    private static func blankingQuotes(_ body: String, allQuoted: Bool) -> String {
+        var result = ""
+        var index = body.startIndex
+        while index < body.endIndex {
+            let char = body[index]
+            guard char == "\"" || char == "'" else {
+                result.append(char)
+                index = body.index(after: index)
+                continue
+            }
+            var end = body.index(after: index)
+            while end < body.endIndex, body[end] != char {
+                if char == "\"", body[end] == "\\" {
+                    end = body.index(after: end)
+                    if end == body.endIndex {
+                        break
+                    }
+                }
+                end = body.index(after: end)
+            }
+            guard end < body.endIndex else {
+                result += body[index...]
+                break
+            }
+            let lastSignificant = result.last { !$0.isWhitespace }
+            let isRedirectTarget = lastSignificant == ">" || lastSignificant == "<"
+            if !isRedirectTarget, allQuoted || isMatch(messageFlagBefore, result) {
+                result += "\(char)\(char)"
+            } else {
+                result += body[index ... end]
+            }
+            index = body.index(after: end)
         }
         return result
     }

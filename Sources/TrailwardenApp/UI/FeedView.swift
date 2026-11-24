@@ -9,10 +9,10 @@ import TrailwardenCore
 /// thing the reader came for.
 struct FeedView: View {
     @AppStorage(LocalizationStore.defaultsKey) private var language = AppLanguage.system.rawValue
+    @AppStorage(TechnicalDetails.storageKey) private var technical = false
     @ObservedObject var model: FeedModel
-    /// Clicking a row hands the session to the timeline, which already knows how
-    /// to show the full event.
-    var onOpenSession: (String) -> Void
+    /// Clicking a row hands the event to the timeline, which shows it in full.
+    var onOpen: (ActivityItem) -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -20,8 +20,8 @@ struct FeedView: View {
             Hairline()
             if let error = model.errorMessage {
                 Text(error)
-                    .font(Tokens.Typography.text(11))
-                    .foregroundStyle(Tokens.Palette.accent)
+                    .font(Tokens.Typography.font(.body))
+                    .foregroundStyle(Tokens.Palette.accentText)
                     .padding(.horizontal, Tokens.Metrics.gutter)
                     .padding(.vertical, 8)
             }
@@ -45,7 +45,7 @@ struct FeedView: View {
     private var header: some View {
         HStack(alignment: .firstTextBaseline, spacing: 10) {
             Text(dateLabel)
-                .font(Tokens.Typography.serif(15, weight: .semibold))
+                .font(Tokens.Typography.font(.subtitle, weight: .semibold))
             Spacer()
             if model.isLoading {
                 ProgressView().controlSize(.small)
@@ -58,9 +58,9 @@ struct FeedView: View {
     private var emptyState: some View {
         VStack(alignment: .leading, spacing: 6) {
             Text(L(.noEventsInRange))
-                .font(Tokens.Typography.text(12))
+                .font(Tokens.Typography.font(.body))
             Text(L(.noEventsHint))
-                .font(Tokens.Typography.text(10.5))
+                .font(Tokens.Typography.font(.callout))
                 .foregroundStyle(Tokens.Palette.secondary)
         }
         .padding(.top, 40)
@@ -73,9 +73,9 @@ struct FeedView: View {
                     .font(.system(size: 10))
                     .foregroundStyle(Tokens.Palette.secondary)
                 Text(section.title)
-                    .font(Tokens.Typography.text(11.5, weight: .medium))
+                    .font(Tokens.Typography.font(.body, weight: .medium))
                 Text("\(section.items.count)")
-                    .font(Tokens.Typography.text(9))
+                    .font(Tokens.Typography.font(.caption))
                     .foregroundStyle(Tokens.Palette.secondary)
                 if section.criticalCount > 0 {
                     Circle()
@@ -95,36 +95,53 @@ struct FeedView: View {
 
     private func row(_ item: ActivityItem) -> some View {
         Button {
-            onOpenSession(item.sessionID)
+            onOpen(item)
         } label: {
             HStack(alignment: .firstTextBaseline, spacing: 10) {
                 Text(time(item.time))
-                    .font(Tokens.Typography.mono(9.5))
+                    .font(Tokens.Typography.font(.codeSmall))
                     .foregroundStyle(Tokens.Palette.tertiary)
                     .fixedSize()
-                    .frame(width: 84, alignment: .leading)
+                    .frame(minWidth: Tokens.Metrics.scaled(84), alignment: .leading)
 
-                Text(item.label)
-                    .font(Tokens.Typography.mono(9))
-                    .foregroundStyle(item.isMessage ? Tokens.Palette.secondary : Tokens.Palette.ink)
-                    .padding(.horizontal, 5)
-                    .padding(.vertical, 1)
-                    .background(Tokens.Palette.surface)
-                    .clipShape(RoundedRectangle(cornerRadius: 3))
-                    .frame(width: 86, alignment: .leading)
+                HStack(spacing: 4) {
+                    Image(systemName: item.verb.symbolName)
+                        .font(Tokens.Typography.font(.caption))
+                        .foregroundStyle(item.isMessage ? Tokens.Palette.secondary : Tokens.Palette.ink)
+                        .accessibilityHidden(true)
+                    if technical {
+                        Text(item.label)
+                            .font(Tokens.Typography.font(.codeSmall))
+                            .foregroundStyle(item.isMessage ? Tokens.Palette.secondary : Tokens.Palette.ink)
+                            .padding(.horizontal, 5)
+                            .padding(.vertical, 1)
+                            .background(Tokens.Palette.surface)
+                            .clipShape(RoundedRectangle(cornerRadius: 3))
+                    }
+                }
+                .fixedSize()
+                .frame(minWidth: Tokens.Metrics.scaled(technical ? 110 : 20), alignment: .leading)
 
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(item.detail)
-                        .font(Tokens.Typography.text(11))
+                    Text(item.summary(LocalizationStore.current))
+                        .font(Tokens.Typography.font(.body))
                         .foregroundStyle(item.isMessage ? Tokens.Palette.secondary : Tokens.Palette.ink)
                         .lineLimit(3)
                         .fixedSize(horizontal: false, vertical: true)
                         .multilineTextAlignment(.leading)
                         .frame(maxWidth: .infinity, alignment: .leading)
-                    if let rule = item.ruleLine(LocalizationStore.current), let severity = item.severity {
-                        Text(rule)
-                            .font(Tokens.Typography.text(9.5))
-                            .foregroundStyle(Tokens.Palette.severity(severity))
+                    if let severity = item.severity, let title = item.ruleTitle(LocalizationStore.current) {
+                        Text(TechnicalDetails.badge(
+                            title: title,
+                            ruleId: item.ruleId ?? "",
+                            technical: technical))
+                            .font(Tokens.Typography.font(.caption, weight: .medium))
+                            .foregroundStyle(severity.textTint)
+                    }
+                    if item.outsideProject {
+                        Text(L(.outsideProject))
+                            .font(Tokens.Typography.font(.caption))
+                            .foregroundStyle(Tokens.Palette.secondary)
                     }
                 }
 
@@ -133,13 +150,20 @@ struct FeedView: View {
                         .fill(Tokens.Palette.severity(severity))
                         .frame(width: 6, height: 6)
                         .padding(.top, 3)
+                        .accessibilityHidden(true)
                 }
             }
             .padding(.vertical, 3)
             .contentShape(Rectangle())
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel(RowAccessibility.label(
+                severity: item.severity,
+                summary: item.summary(LocalizationStore.current),
+                agent: EventFormatting.agentLabel(item.agent),
+                time: time(item.time)))
         }
         .buttonStyle(.plain)
-        .help(item.ruleLine(LocalizationStore.current) ?? item.detail)
+        .help(item.ruleLine(LocalizationStore.current) ?? item.summary(LocalizationStore.current))
     }
 
     private var dateLabel: String {

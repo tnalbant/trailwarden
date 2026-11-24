@@ -10,19 +10,22 @@ import TrailwardenCore
 /// It used to be five `Window` scenes, so Settings and Rules sat in the Window
 /// menu next to the dashboard and a reader had to keep track of six things.
 struct MainWindowView: View {
+    @AppStorage(TextSize.storageKey) private var textSize = TextSize.standard.rawValue
     @AppStorage(LocalizationStore.defaultsKey) private var language = AppLanguage.system.rawValue
     @ObservedObject var model: AppModel
     @ObservedObject var updates: UpdateChecker
     @ObservedObject var router: DashboardRouter
+    @ObservedObject var loginItem: LoginItem
 
     @StateObject private var timeline: TimelineModel
     @StateObject private var feed: FeedModel
     @FocusState private var searchFocused: Bool
 
-    init(model: AppModel, updates: UpdateChecker, router: DashboardRouter) {
+    init(model: AppModel, updates: UpdateChecker, router: DashboardRouter, loginItem: LoginItem) {
         self.model = model
         self.updates = updates
         self.router = router
+        self.loginItem = loginItem
         _timeline = StateObject(wrappedValue: TimelineModel(databaseURL: model.databaseURL))
         _feed = StateObject(wrappedValue: FeedModel(databaseURL: model.databaseURL))
     }
@@ -33,6 +36,7 @@ struct MainWindowView: View {
             Hairline()
             content
         }
+        .id(textSize)
         // Three columns need 200 + 400 + 340 plus two dividers. Below that the
         // split view squeezed them and the panes clipped their own content — the
         // sidebar cut on the left, timestamps losing their first digit.
@@ -79,23 +83,17 @@ struct MainWindowView: View {
         }
         .onChange(of: model.sessionToOpen) { _, sessionID in
             guard let sessionID else { return }
-            open(sessionID)
+            open(sessionID, event: model.eventToSelect)
             model.sessionToOpen = nil
-            if let eventID = model.eventToSelect {
-                timeline.selectedEventID = eventID
-                model.eventToSelect = nil
-            }
+            model.eventToSelect = nil
         }
         .onAppear {
             // A notification clicked while the window was closed: the request
             // arrived before this view existed to observe it.
             if let sessionID = model.sessionToOpen {
-                open(sessionID)
+                open(sessionID, event: model.eventToSelect)
                 model.sessionToOpen = nil
-                if let eventID = model.eventToSelect {
-                    timeline.selectedEventID = eventID
-                    model.eventToSelect = nil
-                }
+                model.eventToSelect = nil
             }
         }
     }
@@ -119,19 +117,22 @@ struct MainWindowView: View {
                 } label: {
                     HStack(spacing: 3) {
                         Text(Lf(.sessionCritical, [model.snapshot.criticalToday]))
-                            .font(Tokens.Typography.text(10, weight: .medium))
+                            .font(Tokens.Typography.font(.callout, weight: .medium))
                         Image(systemName: "chevron.right")
                             .font(.system(size: 7, weight: .semibold))
                     }
-                    .foregroundStyle(Tokens.Palette.accent)
+                    .foregroundStyle(Tokens.Palette.accentText)
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
                 .help(L(.severityCritical))
             }
             Text(Lf(.eventCount, [model.snapshot.totalEvents]))
-                .font(Tokens.Typography.mono(10))
+                .font(Tokens.Typography.font(.code))
                 .foregroundStyle(Tokens.Palette.secondary)
+                .lineLimit(1)
+                .fixedSize()
+                .layoutPriority(1)
 
             Button {
                 Task {
@@ -166,6 +167,7 @@ struct MainWindowView: View {
                 .padding(.horizontal, 4)
             tabButton(.settings)
         }
+        .layoutPriority(2)
     }
 
     private func tabButton(_ tab: DashboardTab) -> some View {
@@ -173,8 +175,10 @@ struct MainWindowView: View {
             router.tab = tab
         } label: {
             Text(tab.title)
-                .font(Tokens.Typography.text(11.5, weight: router.tab == tab ? .semibold : .regular))
+                .font(Tokens.Typography.font(.body, weight: router.tab == tab ? .semibold : .regular))
                 .foregroundStyle(router.tab == tab ? Tokens.Palette.ink : Tokens.Palette.secondary)
+                .lineLimit(1)
+                .fixedSize()
                 .padding(.horizontal, 9)
                 .padding(.vertical, 5)
                 .background {
@@ -184,6 +188,7 @@ struct MainWindowView: View {
                 .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        .accessibilityAddTraits(router.tab == tab ? .isSelected : [])
         .help(tab.title)
     }
 
@@ -193,10 +198,12 @@ struct MainWindowView: View {
                 .font(.system(size: 10))
                 .foregroundStyle(Tokens.Palette.tertiary)
             Text(timeline.selectionLabel)
-                .font(Tokens.Typography.text(11, weight: .medium))
+                .font(Tokens.Typography.font(.body, weight: .medium))
                 .foregroundStyle(Tokens.Palette.secondary)
                 .lineLimit(1)
+                .truncationMode(.middle)
         }
+        .frame(minWidth: 0)
         .help(selectionHelp)
     }
 
@@ -209,14 +216,14 @@ struct MainWindowView: View {
                 .foregroundStyle(Tokens.Palette.tertiary)
             TextField(L(.searchPlaceholder), text: $timeline.search)
                 .textFieldStyle(.plain)
-                .font(Tokens.Typography.text(11))
+                .font(Tokens.Typography.font(.body))
                 .focused($searchFocused)
         }
         .padding(.horizontal, 8)
         .padding(.vertical, 4)
         .background(Tokens.Palette.surface)
         .clipShape(RoundedRectangle(cornerRadius: 5))
-        .frame(minWidth: 140, idealWidth: 200, maxWidth: 240)
+        .frame(minWidth: 90, idealWidth: 200, maxWidth: 240)
         .background {
             Button("") { searchFocused = true }
                 .keyboardShortcut("f", modifiers: .command)
@@ -239,8 +246,8 @@ struct MainWindowView: View {
     private var content: some View {
         switch router.tab {
         case .today:
-            FeedView(model: feed) { sessionID in
-                open(sessionID)
+            FeedView(model: feed) { item in
+                open(item.sessionID, event: item.id)
             }
         case .timeline:
             timelineView
@@ -251,7 +258,7 @@ struct MainWindowView: View {
         case .rules:
             RulesView(model: model)
         case .settings:
-            SettingsView(model: model, updates: updates)
+            SettingsView(model: model, updates: updates, loginItem: loginItem)
         }
     }
 
@@ -282,7 +289,7 @@ struct MainWindowView: View {
     /// Jumping to a session always means the timeline: the feed is a digest, the
     /// timeline is the record. The range widens first, or an older session would
     /// be filtered out by the current preset.
-    private func open(_ sessionID: String) {
+    private func open(_ sessionID: String, event eventID: String? = nil) {
         // Opening a session means its whole story, so any finding/agent filter
         // from a previous visit is cleared rather than silently applied.
         timeline.findingsOnly = false
@@ -290,6 +297,9 @@ struct MainWindowView: View {
         timeline.search = ""
         timeline.window = .everything
         timeline.selection = .session(sessionID)
+        if let eventID {
+            timeline.reveal(eventID)
+        }
         router.tab = .timeline
     }
 }

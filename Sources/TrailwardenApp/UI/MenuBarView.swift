@@ -12,20 +12,27 @@ import TrailwardenCore
 /// a reader, and with a database count nobody asked for. Rows are actions now:
 /// the tool, the thing it touched, the time.
 struct MenuBarView: View {
+    @AppStorage(TextSize.storageKey) private var textSize = TextSize.standard.rawValue
     @AppStorage(LocalizationStore.defaultsKey) private var language = AppLanguage.system.rawValue
+    @AppStorage(TechnicalDetails.storageKey) private var technical = false
     @ObservedObject var model: AppModel
     @ObservedObject var updates: UpdateChecker
     @ObservedObject var live: LiveMonitor
     @ObservedObject var router: DashboardRouter
+    @ObservedObject var loginItem: LoginItem
     @Environment(\.openWindow) private var openWindow
     /// The places menu unfolds inside the panel: a `Menu` renders as an
     /// unsupported control inside a menu bar window.
     @State private var showsDestinations = false
+    /// "Up to date" is shown only for a check started in this panel session;
+    /// an old result is not news.
+    @State private var showsUpToDate = false
 
-    init(model: AppModel, updates: UpdateChecker, router: DashboardRouter) {
+    init(model: AppModel, updates: UpdateChecker, router: DashboardRouter, loginItem: LoginItem) {
         self.model = model
         self.updates = updates
         self.router = router
+        self.loginItem = loginItem
         live = model.live
         #if DEBUG
             // Screenshots need the unfolded list without a hand on the mouse.
@@ -38,14 +45,22 @@ struct MenuBarView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             header
-            updateBar
+            if model.onboardingDone, !live.isRunning {
+                guardOffStrip
+            }
+            if model.onboardingDone, let message = loginItem.status.failureText(technical: technical) {
+                loginFailedStrip(message)
+            }
+            if updateBarVisible {
+                updateBar
+            }
             Hairline()
             if model.onboardingDone {
                 status
                 Hairline()
                 activity
             } else {
-                OnboardingView(model: model)
+                OnboardingView(model: model, loginItem: loginItem)
             }
             Hairline()
             if showsDestinations {
@@ -54,6 +69,7 @@ struct MenuBarView: View {
             }
             footer
         }
+        .id(textSize)
         .frame(width: Tokens.Metrics.panelWidth)
         .background(Tokens.Palette.paper)
         .foregroundStyle(Tokens.Palette.ink)
@@ -62,7 +78,7 @@ struct MenuBarView: View {
     private var header: some View {
         HStack(alignment: .firstTextBaseline) {
             Text("Trailwarden")
-                .font(Tokens.Typography.serif(14, weight: .semibold))
+                .font(Tokens.Typography.font(.subtitle, weight: .semibold))
             Spacer()
             if model.onboardingDone {
                 // Is anyone watching right now? Click to open the switch.
@@ -74,7 +90,7 @@ struct MenuBarView: View {
                             .fill(live.isRunning ? Tokens.Palette.accent : Tokens.Palette.tertiary)
                             .frame(width: 6, height: 6)
                         Text(live.isRunning ? L(.liveOn) : L(.liveOff))
-                            .font(Tokens.Typography.text(9.5, weight: .medium))
+                            .font(Tokens.Typography.font(.caption, weight: .medium))
                             .foregroundStyle(live.isRunning ? Tokens.Palette.ink : Tokens.Palette.secondary)
                     }
                 }
@@ -87,20 +103,73 @@ struct MenuBarView: View {
         .padding(.bottom, 5)
     }
 
-    /// The version and the one network call the reader can start, on the row
-    /// under the title. A version number that hides in Settings is a version
-    /// number nobody reads, and the check belongs next to it.
+    /// The guard is the point of the app; when it is off, say so where the
+    /// reader looks, with the way back.
+    private var guardOffStrip: some View {
+        HStack(spacing: 6) {
+            Image(systemName: "exclamationmark.triangle")
+                .font(.system(size: 9))
+                .foregroundStyle(Tokens.Palette.accent)
+            Text(L(.guardOffBanner))
+                .font(Tokens.Typography.font(.caption, weight: .medium))
+            Spacer(minLength: 2)
+            Button(L(.guardOffAction)) {
+                openMain(.settings)
+            }
+            .buttonStyle(.plain)
+            .font(Tokens.Typography.font(.caption, weight: .medium))
+            .foregroundStyle(Tokens.Palette.accentText)
+        }
+        .padding(.horizontal, Tokens.Metrics.gutter)
+        .padding(.bottom, 4)
+    }
+
+    /// A login item that could not be changed says so here, where the reader
+    /// will see it, instead of only inside Settings.
+    private func loginFailedStrip(_ message: String) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 6) {
+            Image(systemName: "exclamationmark.triangle")
+                .font(.system(size: 9))
+                .foregroundStyle(Tokens.Palette.accent)
+            Text(message)
+                .font(Tokens.Typography.font(.caption, weight: .medium))
+                .lineLimit(2)
+                .fixedSize(horizontal: false, vertical: true)
+            Spacer(minLength: 2)
+            Button(L(.windowSettings)) {
+                openMain(.settings)
+            }
+            .buttonStyle(.plain)
+            .font(Tokens.Typography.font(.caption, weight: .medium))
+            .foregroundStyle(Tokens.Palette.accentText)
+        }
+        .padding(.horizontal, Tokens.Metrics.gutter)
+        .padding(.bottom, 4)
+    }
+
+    /// The bar appears only when there is something to say: an update, a
+    /// failure, a check in progress, or a check the reader just started.
+    private var updateBarVisible: Bool {
+        switch updates.state {
+        case .idle:
+            false
+        case .upToDate:
+            showsUpToDate
+        case .checking, .available, .failed:
+            true
+        }
+    }
+
+    /// The result of the check on the row under the title; the version number
+    /// and the check itself live in the places list.
     private var updateBar: some View {
         HStack(spacing: 6) {
-            Text("v\(TrailwardenVersion.installed)")
-                .font(Tokens.Typography.mono(9))
-                .foregroundStyle(Tokens.Palette.tertiary)
             if let line = updateLine {
                 Image(systemName: line.icon)
                     .font(.system(size: 9))
                     .foregroundStyle(line.tint)
                 Text(line.text)
-                    .font(Tokens.Typography.text(9.5, weight: line.weight))
+                    .font(Tokens.Typography.font(.caption, weight: line.weight))
                     .foregroundStyle(line.tint)
                     .lineLimit(1)
                     .truncationMode(.tail)
@@ -109,21 +178,11 @@ struct MenuBarView: View {
                         NSWorkspace.shared.open(link)
                     }
                     .buttonStyle(.plain)
-                    .font(Tokens.Typography.text(9.5, weight: .medium))
-                    .foregroundStyle(Tokens.Palette.accent)
+                    .font(Tokens.Typography.font(.caption, weight: .medium))
+                    .foregroundStyle(Tokens.Palette.accentText)
                 }
             }
             Spacer(minLength: 2)
-            Button {
-                Task { await updates.check() }
-            } label: {
-                Text(L(.checkUpdates))
-                    .font(Tokens.Typography.text(9.5, weight: .medium))
-                    .foregroundStyle(updates.state == .checking ? Tokens.Palette.tertiary : Tokens.Palette
-                        .accent)
-            }
-            .buttonStyle(.plain)
-            .disabled(updates.state == .checking)
         }
         .padding(.horizontal, Tokens.Metrics.gutter)
         .padding(.bottom, 9)
@@ -144,13 +203,13 @@ struct MenuBarView: View {
                 } label: {
                     HStack(alignment: .firstTextBaseline, spacing: 5) {
                         Text("\(model.snapshot.criticalToday)")
-                            .font(Tokens.Typography.serif(20, weight: .semibold))
-                            .foregroundStyle(Tokens.Palette.accent)
+                            .font(Tokens.Typography.font(.title, weight: .semibold))
+                            .foregroundStyle(Tokens.Palette.accentText)
                         Text(L(.severityCritical))
-                            .font(Tokens.Typography.text(10))
+                            .font(Tokens.Typography.font(.callout))
                             .foregroundStyle(Tokens.Palette.secondary)
                         Text(time(critical.time))
-                            .font(Tokens.Typography.mono(9))
+                            .font(Tokens.Typography.font(.codeSmall))
                             .foregroundStyle(Tokens.Palette.tertiary)
                         Spacer(minLength: 0)
                         Image(systemName: "chevron.right")
@@ -161,36 +220,39 @@ struct MenuBarView: View {
                 }
                 .buttonStyle(.plain)
                 .help(L(.whatHappened))
-                if let rule = critical.ruleLine(LocalizationStore.current) {
-                    Text(rule)
-                        .font(Tokens.Typography.text(10))
+                if let title = critical.ruleTitle(LocalizationStore.current) {
+                    Text(TechnicalDetails.badge(
+                        title: title,
+                        ruleId: critical.ruleId ?? "",
+                        technical: technical))
+                        .font(Tokens.Typography.font(.callout))
                         .foregroundStyle(Tokens.Palette.secondary)
                         .lineLimit(1)
                 }
-                if !critical.detail.isEmpty {
-                    Text(critical.detail)
-                        .font(Tokens.Typography.mono(9.5))
+                if !critical.object.isEmpty {
+                    Text(critical.summary(LocalizationStore.current))
+                        .font(Tokens.Typography.font(technical ? .codeSmall : .caption))
                         .lineLimit(1)
                         .truncationMode(.middle)
                 }
             } else if model.snapshot.totalEvents == 0 {
                 Text(model.isScanning ? model.scanLabel : L(.noDataYet))
-                    .font(Tokens.Typography.text(10.5))
+                    .font(Tokens.Typography.font(.callout))
                     .foregroundStyle(Tokens.Palette.secondary)
             } else {
                 Text(L(.nothingRiskyToday))
-                    .font(Tokens.Typography.text(11))
+                    .font(Tokens.Typography.font(.body))
                     .foregroundStyle(Tokens.Palette.secondary)
             }
             if let error = model.errorMessage {
                 Text(error)
-                    .font(Tokens.Typography.text(10))
-                    .foregroundStyle(Tokens.Palette.accent)
+                    .font(Tokens.Typography.font(.callout))
+                    .foregroundStyle(Tokens.Palette.accentText)
                     .lineLimit(2)
             }
             if model.snapshot.messagesToday > 0 {
                 Text(Lf(.messagesToday, [model.snapshot.messagesToday]))
-                    .font(Tokens.Typography.text(9))
+                    .font(Tokens.Typography.font(.caption))
                     .foregroundStyle(Tokens.Palette.tertiary)
             }
         }
@@ -205,7 +267,7 @@ struct MenuBarView: View {
             SectionLabel(text: L(.whatHappened))
             if model.snapshot.recentActions.isEmpty {
                 Text(L(.noSessionsFound))
-                    .font(Tokens.Typography.text(10.5))
+                    .font(Tokens.Typography.font(.callout))
                     .foregroundStyle(Tokens.Palette.secondary)
             } else {
                 ForEach(model.snapshot.recentActions) { item in
@@ -217,37 +279,57 @@ struct MenuBarView: View {
         .padding(.vertical, 11)
     }
 
-    /// A row opens the timeline on the session it belongs to.
+    /// A row opens the timeline on the event it describes.
     private func actionRow(_ item: ActivityItem) -> some View {
         Button {
-            model.sessionToOpen = item.sessionID
+            model.openEvent(item.id, in: item.sessionID)
             openWindow(id: "main")
             NSApp.activate(ignoringOtherApps: true)
         } label: {
             HStack(alignment: .firstTextBaseline, spacing: 6) {
                 Text(time(item.time))
-                    .font(Tokens.Typography.mono(8.5))
+                    .font(Tokens.Typography.font(.codeSmall))
                     .foregroundStyle(Tokens.Palette.tertiary)
-                    .frame(width: 74, alignment: .leading)
-                Text(item.label)
-                    .font(Tokens.Typography.mono(9, weight: .medium))
+                    .fixedSize()
+                    .frame(minWidth: Tokens.Metrics.scaled(80), alignment: .leading)
+                Image(systemName: item.verb.symbolName)
+                    .font(Tokens.Typography.font(.caption))
                     .foregroundStyle(item.isMessage ? Tokens.Palette.secondary : Tokens.Palette.ink)
-                Text(item.detail)
-                    .font(Tokens.Typography.text(9.5))
+                    .accessibilityHidden(true)
+                if technical {
+                    Text(item.label)
+                        .font(Tokens.Typography.font(.codeSmall, weight: .medium))
+                        .foregroundStyle(item.isMessage ? Tokens.Palette.secondary : Tokens.Palette.ink)
+                }
+                Text(item.summary(LocalizationStore.current))
+                    .font(Tokens.Typography.font(.caption))
                     .foregroundStyle(item.isMessage ? Tokens.Palette.tertiary : Tokens.Palette.secondary)
                     .lineLimit(1)
                     .truncationMode(.middle)
+                if item.outsideProject {
+                    Text(L(.outsideProject))
+                        .font(Tokens.Typography.font(.caption))
+                        .foregroundStyle(Tokens.Palette.secondary)
+                        .lineLimit(1)
+                }
                 Spacer(minLength: 2)
                 if let severity = item.severity {
                     Circle()
                         .fill(Tokens.Palette.severity(severity))
                         .frame(width: 5, height: 5)
+                        .accessibilityHidden(true)
                 }
             }
             .contentShape(Rectangle())
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel(RowAccessibility.label(
+                severity: item.severity,
+                summary: item.summary(LocalizationStore.current),
+                agent: EventFormatting.agentLabel(item.agent),
+                time: time(item.time)))
         }
         .buttonStyle(.plain)
-        .help(item.ruleLine(LocalizationStore.current) ?? item.detail)
+        .help(item.ruleLine(LocalizationStore.current) ?? item.summary(LocalizationStore.current))
     }
 
     // MARK: - Updates
@@ -278,7 +360,7 @@ struct MenuBarView: View {
             let text = Lf(.updateAvailable, [feed.version])
             return UpdateLine(
                 icon: "arrow.down.circle", text: feed.notes.map { "\(text) — \($0)" } ?? text,
-                tint: Tokens.Palette.accent, weight: .medium, link: feed.url)
+                tint: Tokens.Palette.accentText, weight: .medium, link: feed.url)
         case .failed:
             return UpdateLine(
                 icon: "exclamationmark.triangle", text: L(.updateCheckFailed),
@@ -290,7 +372,7 @@ struct MenuBarView: View {
 
     private var footer: some View {
         HStack(spacing: 10) {
-            footerButton(L(.openDashboard), tint: Tokens.Palette.accent, weight: .medium) {
+            footerButton(L(.openDashboard), tint: Tokens.Palette.accentText, weight: .medium) {
                 openMain(nil)
             }
 
@@ -313,8 +395,8 @@ struct MenuBarView: View {
 
             if !model.liveSessions.isEmpty {
                 Text(Lf(.liveCount, [model.liveSessions.count]))
-                    .font(Tokens.Typography.mono(9, weight: .medium))
-                    .foregroundStyle(Tokens.Palette.accent)
+                    .font(Tokens.Typography.font(.codeSmall, weight: .medium))
+                    .foregroundStyle(Tokens.Palette.accentText)
             }
 
             overflowButton
@@ -355,12 +437,17 @@ struct MenuBarView: View {
                 .padding(.vertical, 4)
             Button {
                 showsDestinations = false
+                showsUpToDate = true
                 Task { await updates.check() }
             } label: {
                 destinationLabel(L(.checkUpdates))
             }
             .buttonStyle(.plain)
             .disabled(updates.state == .checking)
+            Text("v\(TrailwardenVersion.installed)")
+                .font(Tokens.Typography.font(.codeSmall))
+                .foregroundStyle(Tokens.Palette.tertiary)
+                .padding(.vertical, 4)
             Button {
                 NSApp.terminate(nil)
             } label: {
@@ -385,7 +472,7 @@ struct MenuBarView: View {
     private func destinationLabel(_ title: String) -> some View {
         HStack {
             Text(title)
-                .font(Tokens.Typography.text(11))
+                .font(Tokens.Typography.font(.body))
                 .foregroundStyle(Tokens.Palette.ink)
             Spacer(minLength: 0)
         }
@@ -415,7 +502,7 @@ struct MenuBarView: View {
             NSApp.activate(ignoringOtherApps: true)
         } label: {
             Text(title)
-                .font(Tokens.Typography.text(11, weight: weight))
+                .font(Tokens.Typography.font(.body, weight: weight))
                 .foregroundStyle(tint)
                 .lineLimit(1)
                 .fixedSize(horizontal: true, vertical: false)

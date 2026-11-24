@@ -10,8 +10,11 @@ import TrailwardenCore
 struct SettingsView: View {
     @ObservedObject var model: AppModel
     @ObservedObject var updates: UpdateChecker
+    @ObservedObject var loginItem: LoginItem
 
+    @AppStorage(TechnicalDetails.storageKey) private var technicalDetails = false
     @AppStorage(AppearanceMode.storageKey) private var appearance = AppearanceMode.system.rawValue
+    @AppStorage(TextSize.storageKey) private var textSize = TextSize.standard.rawValue
     @AppStorage(LocalizationStore.defaultsKey) private var language = AppLanguage.system.rawValue
     @AppStorage("trailwarden.retentionDays") private var retentionDays = 90
     @AppStorage("trailwarden.exportFormat") private var exportFormat = AuditFormat.markdown.rawValue
@@ -47,7 +50,11 @@ struct SettingsView: View {
         VStack(alignment: .leading, spacing: 18) {
             header
             Hairline()
-            LiveSection(live: model.live, enabled: $liveEnabled, threshold: $liveThreshold)
+            LiveSection(
+                live: model.live,
+                loginItem: loginItem,
+                enabled: $liveEnabled,
+                threshold: $liveThreshold)
             Hairline()
             appearanceSection
             Hairline()
@@ -71,11 +78,11 @@ struct SettingsView: View {
     private var header: some View {
         VStack(alignment: .leading, spacing: 3) {
             Text(L(.windowSettings))
-                .font(Tokens.Typography.serif(18, weight: .semibold))
+                .font(Tokens.Typography.font(.title, weight: .semibold))
             Text(Lf(
                 .settingsVersion,
                 [TrailwardenVersion.current, model.snapshot.totalEvents, model.snapshot.sessions.count]))
-                .font(Tokens.Typography.mono(9.5))
+                .font(Tokens.Typography.font(.codeSmall))
                 .foregroundStyle(Tokens.Palette.secondary)
         }
     }
@@ -83,7 +90,7 @@ struct SettingsView: View {
     private var appearanceSection: some View {
         VStack(alignment: .leading, spacing: 7) {
             SectionLabel(text: L(.appearance))
-            Picker("", selection: $appearance) {
+            Picker(L(.appearance), selection: $appearance) {
                 ForEach(AppearanceMode.allCases) { mode in
                     Text(mode.label).tag(mode.rawValue)
                 }
@@ -95,15 +102,36 @@ struct SettingsView: View {
                 AppearanceMode(rawValue: value)?.apply()
             }
             Text(L(.appearanceHint))
-                .font(Tokens.Typography.text(9.5))
+                .font(Tokens.Typography.font(.caption))
                 .foregroundStyle(Tokens.Palette.secondary)
+            SectionLabel(text: L(.textSizeSection))
+                .padding(.top, 4)
+            Picker(L(.textSizeSection), selection: $textSize) {
+                ForEach(TextSize.allCases) { size in
+                    Text(size.label).tag(size.rawValue)
+                }
+            }
+            .pickerStyle(.segmented)
+            .labelsHidden()
+            .frame(width: 260)
+            Toggle(isOn: $technicalDetails) {
+                Text(L(.technicalDetailsToggle))
+                    .font(Tokens.Typography.font(.callout))
+            }
+            .toggleStyle(.switch)
+            .controlSize(.small)
+            .padding(.top, 4)
+            Text(L(.technicalDetailsHint))
+                .font(Tokens.Typography.font(.caption))
+                .foregroundStyle(Tokens.Palette.secondary)
+                .fixedSize(horizontal: false, vertical: true)
         }
     }
 
     private var languageSection: some View {
         VStack(alignment: .leading, spacing: 7) {
             SectionLabel(text: L(.languageSection))
-            Picker("", selection: $language) {
+            Picker(L(.languagePickerLabel), selection: $language) {
                 Text(L(.languageSystem)).tag(AppLanguage.system.rawValue)
                 ForEach(AppLanguage.translated) { option in
                     Text(option.endonym).tag(option.rawValue)
@@ -112,7 +140,7 @@ struct SettingsView: View {
             .labelsHidden()
             .frame(width: 260)
             Text(L(.languageHint))
-                .font(Tokens.Typography.text(9.5))
+                .font(Tokens.Typography.font(.caption))
                 .foregroundStyle(Tokens.Palette.secondary)
         }
     }
@@ -123,20 +151,21 @@ struct SettingsView: View {
             ForEach(roots) { root in
                 HStack(alignment: .firstTextBaseline) {
                     Text(EventFormatting.agentLabel(root.agent))
-                        .font(Tokens.Typography.mono(9))
-                        .frame(width: 70, alignment: .leading)
+                        .font(Tokens.Typography.font(.codeSmall))
+                        .fixedSize()
+                        .frame(minWidth: Tokens.Metrics.scaled(90), alignment: .leading)
                     Text(ProjectName.display(root.path))
-                        .font(Tokens.Typography.mono(9.5))
+                        .font(Tokens.Typography.font(.codeSmall))
                         .lineLimit(1)
                         .truncationMode(.middle)
                     Spacer(minLength: 6)
                     Text(root.exists ? Lf(.filesCount, [root.files]) : L(.missingFolder))
-                        .font(Tokens.Typography.text(9))
+                        .font(Tokens.Typography.font(.caption))
                         .foregroundStyle(Tokens.Palette.secondary)
                 }
             }
             Text(L(.dirsHint))
-                .font(Tokens.Typography.text(9.5))
+                .font(Tokens.Typography.font(.caption))
                 .foregroundStyle(Tokens.Palette.secondary)
         }
     }
@@ -147,17 +176,17 @@ struct SettingsView: View {
             HStack(spacing: 8) {
                 Stepper(value: $retentionDays, in: 30 ... 365, step: 30) {
                     Text(Lf(.retentionDays, [retentionDays]))
-                        .font(Tokens.Typography.text(11))
+                        .font(Tokens.Typography.font(.body))
                 }
                 Button(L(.cleanupNow)) {
                     Task { await model.prune(retentionDays: retentionDays) }
                 }
                 .buttonStyle(.plain)
-                .font(Tokens.Typography.text(10, weight: .medium))
-                .foregroundStyle(Tokens.Palette.accent)
+                .font(Tokens.Typography.font(.callout, weight: .medium))
+                .foregroundStyle(Tokens.Palette.accentText)
             }
             Text(L(.retentionHint))
-                .font(Tokens.Typography.text(9.5))
+                .font(Tokens.Typography.font(.caption))
                 .foregroundStyle(Tokens.Palette.secondary)
                 .fixedSize(horizontal: false, vertical: true)
         }
@@ -167,7 +196,7 @@ struct SettingsView: View {
         VStack(alignment: .leading, spacing: 7) {
             SectionLabel(text: L(.exportSection))
             HStack(spacing: 10) {
-                Picker("", selection: $exportFormat) {
+                Picker(L(.exportFormatLabel), selection: $exportFormat) {
                     ForEach(AuditFormat.allCases) { f in
                         Text(f.label).tag(f.rawValue)
                     }
@@ -176,20 +205,20 @@ struct SettingsView: View {
                 .frame(width: 120)
                 Button(L(.exportAction)) { exportNow() }
                     .buttonStyle(.plain)
-                    .font(Tokens.Typography.text(10.5, weight: .medium))
-                    .foregroundStyle(Tokens.Palette.accent)
+                    .font(Tokens.Typography.font(.callout, weight: .medium))
+                    .foregroundStyle(Tokens.Palette.accentText)
                 Spacer()
                 Text(L(.exportRange))
-                    .font(Tokens.Typography.text(9.5))
+                    .font(Tokens.Typography.font(.caption))
                     .foregroundStyle(Tokens.Palette.secondary)
             }
             Text(L(.exportHint))
-                .font(Tokens.Typography.text(9.5))
+                .font(Tokens.Typography.font(.caption))
                 .foregroundStyle(Tokens.Palette.secondary)
                 .fixedSize(horizontal: false, vertical: true)
             if let status = model.maintenanceStatus {
                 Text(status)
-                    .font(Tokens.Typography.mono(9))
+                    .font(Tokens.Typography.font(.codeSmall))
                     .foregroundStyle(Tokens.Palette.secondary)
             }
         }
@@ -199,7 +228,7 @@ struct SettingsView: View {
         VStack(alignment: .leading, spacing: 4) {
             SectionLabel(text: L(.privacySection))
             Text(L(.privacyText))
-                .font(Tokens.Typography.text(10))
+                .font(Tokens.Typography.font(.callout))
                 .foregroundStyle(Tokens.Palette.secondary)
                 .fixedSize(horizontal: false, vertical: true)
         }
@@ -222,8 +251,30 @@ struct SettingsView: View {
 /// observe the monitor (running, notification permission) directly.
 private struct LiveSection: View {
     @ObservedObject var live: LiveMonitor
+    @ObservedObject var loginItem: LoginItem
+    @AppStorage(TechnicalDetails.storageKey) private var technical = false
     @Binding var enabled: Bool
     @Binding var threshold: String
+
+    /// Follows the system's answer rather than a stored flag, so a change made in
+    /// System Settings is what the switch shows.
+    private var opensAtLogin: Binding<Bool> {
+        Binding(
+            get: { loginItem.status == .enabled || loginItem.status == .requiresApproval },
+            set: { loginItem.setEnabled($0) })
+    }
+
+    private static let becameActive = NotificationCenter.default
+        .publisher(for: NSApplication.didBecomeActiveNotification)
+
+    private var loginItemLine: String {
+        switch loginItem.status {
+        case .enabled: L(.loginItemOn)
+        case .disabled: L(.loginItemOff)
+        case .requiresApproval: L(.loginItemNeedsApproval)
+        case .failed: loginItem.status.failureText(technical: technical) ?? ""
+        }
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 7) {
@@ -240,9 +291,9 @@ private struct LiveSection: View {
             }
             HStack(spacing: 8) {
                 Text(L(.liveNotifyFor))
-                    .font(Tokens.Typography.text(10.5))
+                    .font(Tokens.Typography.font(.callout))
                     .foregroundStyle(Tokens.Palette.secondary)
-                Picker("", selection: $threshold) {
+                Picker(L(.liveThresholdLabel), selection: $threshold) {
                     Text(L(.liveCriticalOnly)).tag(Severity.critical.rawValue)
                     Text(L(.liveWarnAndCritical)).tag(Severity.warn.rawValue)
                 }
@@ -255,17 +306,40 @@ private struct LiveSection: View {
                 }
             }
             Text(L(.liveGuardHint))
-                .font(Tokens.Typography.text(9.5))
+                .font(Tokens.Typography.font(.caption))
                 .foregroundStyle(Tokens.Palette.secondary)
                 .fixedSize(horizontal: false, vertical: true)
+            VStack(alignment: .leading, spacing: 4) {
+                Toggle(isOn: opensAtLogin) {
+                    Text(L(.loginItemTitle))
+                        .font(Tokens.Typography.font(.callout))
+                }
+                .toggleStyle(.switch)
+                .controlSize(.small)
+                Text(loginItemLine)
+                    .font(Tokens.Typography.font(.caption))
+                    .foregroundStyle(Tokens.Palette.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                if loginItem.status == .requiresApproval {
+                    Button(L(.loginItemOpenSettings)) {
+                        loginItem.openLoginItemsSettings()
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+                }
+            }
+            .onAppear { loginItem.refresh() }
+            .onReceive(Self.becameActive) { _ in
+                loginItem.refresh()
+            }
             if enabled, !live.notificationsAllowed {
                 VStack(alignment: .leading, spacing: 6) {
                     // "Turned off" only when the answer was no; before anyone has
                     // been asked, say what the permission is for.
                     Text(live
                         .permission == .denied ? L(.liveNotificationsDenied) : L(.onboardingNotifications))
-                        .font(Tokens.Typography.text(9.5, weight: .medium))
-                        .foregroundStyle(Tokens.Palette.accent)
+                        .font(Tokens.Typography.font(.caption, weight: .medium))
+                        .foregroundStyle(Tokens.Palette.accentText)
                         .fixedSize(horizontal: false, vertical: true)
                     HStack(spacing: 10) {
                         // Once the answer is "no" the system will not prompt again;
@@ -303,7 +377,7 @@ private struct UpdateSection: View {
         VStack(alignment: .leading, spacing: 7) {
             SectionLabel(text: L(.updateSchedule))
             HStack(spacing: 10) {
-                Picker("", selection: $schedule) {
+                Picker(L(.updateSchedulePickerLabel), selection: $schedule) {
                     Text(L(.updateScheduleNever)).tag(UpdateSchedule.never.rawValue)
                     Text(L(.updateScheduleWeekly)).tag(UpdateSchedule.weekly.rawValue)
                     Text(L(.updateScheduleMonthly)).tag(UpdateSchedule.monthly.rawValue)
@@ -320,10 +394,10 @@ private struct UpdateSection: View {
                 .disabled(updates.state == .checking)
             }
             Text(lastLine)
-                .font(Tokens.Typography.mono(9.5))
+                .font(Tokens.Typography.font(.codeSmall))
                 .foregroundStyle(Tokens.Palette.secondary)
             Text(L(.updateScheduleHint))
-                .font(Tokens.Typography.text(9.5))
+                .font(Tokens.Typography.font(.caption))
                 .foregroundStyle(Tokens.Palette.secondary)
                 .fixedSize(horizontal: false, vertical: true)
         }

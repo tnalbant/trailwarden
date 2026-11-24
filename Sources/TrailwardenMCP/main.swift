@@ -27,6 +27,15 @@ do {
     exit(2)
 }
 
+// After an update that changed the built-in rules, the history is re-graded
+// once, so the answers use the rules this binary ships.
+do {
+    let engine = try RuleEngine(rules: RulePreferences.effectiveRules(), mutes: store.mutes())
+    try store.reapplyRulesIfCatalogueChanged(engine: engine)
+} catch {
+    FileHandle.standardError.write(Data("trailwarden-mcp: cannot re-apply the rules: \(error)\n".utf8))
+}
+
 let router = MCPRouter(store: store)
 FileHandle.standardError.write(Data("trailwarden-mcp \(TrailwardenVersion.current) ready\n".utf8))
 

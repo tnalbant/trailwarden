@@ -68,8 +68,10 @@ final class LocalizationTests: XCTestCase {
         XCTAssertEqual(localizer.format(.eventCount, 3), "3 events")
     }
 
-    func testEveryRuleIsTranslatedInEveryLanguage() {
-        let ids = ["R1", "R2", "R3", "R4", "R5", "R6", "R7", "R8", "R9", "R10"]
+    func testEveryRuleIsTranslatedInEveryLanguage() throws {
+        // Every built-in rule, so a rule added later (R28) cannot ship in one language only.
+        let ids = try RuleCatalog.builtIn().map(\.id)
+        XCTAssertGreaterThanOrEqual(ids.count, 28)
         for id in ids {
             for language in languages {
                 let text = RuleLocalization.text(forRule: id, language: language)
@@ -149,6 +151,22 @@ final class LocalizationTests: XCTestCase {
     }
 
     // MARK: - Helper
+
+    func testFileTouchActionsAreTranslated() {
+        let actions: [FileTouch.Action] = [.changed, .read, .command]
+        for language in languages {
+            let localizer = Localizer(language: language)
+            for action in actions {
+                let label = action.label(localizer)
+                XCTAssertFalse(label.isEmpty, "\(language.rawValue)/\(action.rawValue) is empty")
+                if language != .english {
+                    XCTAssertNotEqual(
+                        label, action.rawValue,
+                        "\(language.rawValue)/\(action.rawValue) is still the raw value")
+                }
+            }
+        }
+    }
 
     private static func specifiers(in text: String) -> [String] {
         // "%d", "%@", "%.2f" — capture the conversion but not the width/precision.

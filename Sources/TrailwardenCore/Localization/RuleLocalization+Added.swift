@@ -276,26 +276,28 @@ extension RuleLocalization {
         "R24": [
             .english: RuleText(
                 title: "Destructive database command",
-                message: "A table, schema or database is being dropped; a DELETE without WHERE takes every row"),
+                message: "A database or schema is dropped, a DELETE without WHERE takes every row, or Redis "
+                    + "is flushed"),
             .turkish: RuleText(
                 title: "Yıkıcı veritabanı komutu",
-                message: "Tablo, şema veya veritabanı siliniyor; koşulsuz DELETE tüm satırları götürür"),
+                message: "Veritabanı veya şema siliniyor, koşulsuz DELETE tüm satırları götürüyor ya da "
+                    + "Redis boşaltılıyor"),
             .german: RuleText(
                 title: "Destruktiver Datenbankbefehl",
-                message: "Tabelle, Schema oder Datenbank werden gelöscht; ein DELETE ohne WHERE entfernt "
-                    + "alle Zeilen"),
+                message: "Datenbank oder Schema werden gelöscht, ein DELETE ohne WHERE entfernt alle Zeilen "
+                    + "oder Redis wird geleert"),
             .spanish: RuleText(
                 title: "Comando destructivo de base de datos",
-                message: "Se elimina una tabla, esquema o base de datos; un DELETE sin WHERE se lleva todas "
-                    + "las filas"),
+                message: "Se elimina una base de datos o un esquema, un DELETE sin WHERE se lleva todas las "
+                    + "filas o se vacía Redis"),
             .italian: RuleText(
                 title: "Comando distruttivo sul database",
-                message: "Una tabella, uno schema o un database viene eliminato; un DELETE senza WHERE "
-                    + "rimuove tutte le righe"),
+                message: "Un database o uno schema viene eliminato, un DELETE senza WHERE rimuove tutte le "
+                    + "righe o Redis viene svuotato"),
             .french: RuleText(
                 title: "Commande destructive de base de données",
-                message: "Une table, un schéma ou une base est supprimé ; un DELETE sans WHERE emporte "
-                    + "toutes les lignes")
+                message: "Une base ou un schéma est supprimé, un DELETE sans WHERE emporte toutes les lignes "
+                    + "ou Redis est vidé")
         ],
         "R25": [
             .english: RuleText(
@@ -362,6 +364,31 @@ extension RuleLocalization {
                 title: "Clé dans la commande",
                 message: "Une clé API est écrite en clair dans la ligne de commande ; elle reste dans la "
                     + "transcription et l'historique du shell")
+        ],
+        "R28": [
+            .english: RuleText(
+                title: "Risky database or deploy command",
+                message: "A table is dropped or emptied, or a deployment is removed or applied without "
+                    + "review"),
+            .turkish: RuleText(
+                title: "Riskli veritabanı veya dağıtım komutu",
+                message: "Bir tablo siliniyor veya boşaltılıyor ya da bir dağıtım onaysız kaldırılıyor veya "
+                    + "uygulanıyor"),
+            .german: RuleText(
+                title: "Riskanter Datenbank- oder Deploy-Befehl",
+                message: "Eine Tabelle wird gelöscht oder geleert, oder ein Deployment wird ohne Prüfung "
+                    + "entfernt oder angewendet"),
+            .spanish: RuleText(
+                title: "Comando arriesgado de base de datos o despliegue",
+                message: "Se elimina o vacía una tabla, o se quita o aplica un despliegue sin revisión"),
+            .italian: RuleText(
+                title: "Comando rischioso su database o deploy",
+                message: "Una tabella viene eliminata o svuotata, oppure un deploy viene rimosso o applicato "
+                    + "senza revisione"),
+            .french: RuleText(
+                title: "Commande risquée de base de données ou de déploiement",
+                message: "Une table est supprimée ou vidée, ou un déploiement est retiré ou appliqué sans "
+                    + "relecture")
         ]
     ]
 }

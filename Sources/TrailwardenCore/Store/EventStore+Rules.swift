@@ -96,6 +96,42 @@ public extension EventStore {
         return try count("mutes")
     }
 
+    // MARK: - Rule catalogue
+
+    /// The `meta` key under which the fingerprint of the catalogue that last
+    /// graded the index is kept.
+    static let ruleCatalogueKey = "rule_catalogue"
+
+    /// A fact about the index itself (schema 8), or nil when none is stored.
+    func metaValue(_ key: String) throws -> String? {
+        let statement = try database.prepare("SELECT value FROM meta WHERE key = ?")
+        try statement.bind([.text(key)])
+        return try statement.step() ? statement.text(0) : nil
+    }
+
+    func setMetaValue(_ value: String, for key: String) throws {
+        let statement = try database.prepare("INSERT OR REPLACE INTO meta (key, value) VALUES (?,?)")
+        try statement.bind([.text(key), .text(value)])
+        try statement.step()
+    }
+
+    /// Re-runs `engine` over the whole index when the built-in catalogue differs
+    /// from the one that last graded it (or none is recorded), then records
+    /// `fingerprint`. An update that changes a rule thus reaches the history
+    /// once, at the first start after it. `engine` should carry the reader's
+    /// rule preferences and mutes. Returns whether the rules were re-applied.
+    @discardableResult
+    func reapplyRulesIfCatalogueChanged(
+        engine: RuleEngine,
+        fingerprint: String = RuleCatalog.builtInFingerprint,
+        now: Date = Date()) throws -> Bool
+    {
+        guard try metaValue(Self.ruleCatalogueKey) != fingerprint else { return false }
+        try engine.reapply(to: self, now: now)
+        try setMetaValue(fingerprint, for: Self.ruleCatalogueKey)
+        return true
+    }
+
     private func count(_ table: String) throws -> Int {
         let statement = try database.prepare("SELECT COUNT(*) FROM \(table)")
         return try statement.step() ? (statement.int(0) ?? 0) : 0

@@ -21,7 +21,7 @@ predefinita). «Aggiorna prezzi» è una GET per il `prices.json` pubblico di qu
 repository, usato per la stima dei costi, fatta solo quando lo premi. La CI fallisce
 se compare un'API di rete in qualsiasi altro punto di `Sources/`.
 
-> Stato: **v0.2.4** — guardia live, 27 regole, agent blame, rapporto, CI gate.
+> Stato: **v0.2.5** — guardia live, 28 regole, agent blame, rapporto, CI gate.
 > Interfaccia in inglese (US), turco, tedesco, spagnolo, italiano e francese.
 
 ![Rapporto](docs/screenshots/report-light.png)
@@ -60,7 +60,7 @@ quindi non compare nessun progetto reale.
   critica diventa una notifica di macOS. Cliccandola, la cronologia si apre su quell'evento.
   Niente polling, niente daemon e niente viene inviato altrove. Lo stesso flusso è disponibile nel
   terminale: `trailwarden watch`.
-- **27 regole di rischio**: eliminazioni distruttive, `curl … | sh`, letture di segreti e del
+- **28 regole di rischio**: eliminazioni distruttive, `curl … | sh`, letture di segreti e del
   portachiavi, chiavi API incollate in un comando, `--dangerously-skip-permissions`,
   `git commit --no-verify`, persistenza tramite launchd/cron, modifiche ai file di avvio della shell e alle
   impostazioni degli agenti, modifiche ai workflow di CI, `DROP TABLE`, `terraform destroy`, cancellazione
@@ -92,6 +92,7 @@ quindi non compare nessun progetto reale.
   possono porre le stesse domande (`search_events`, `list_sessions`, `get_event`,
   `file_history`, `audit_summary`). `file_history` permette a un agente di controllare chi altro
   sta lavorando su un file prima di modificarlo.
+- **Pensato per l'uso quotidiano**: avvio al login (se fallisce, lo mostra), dimensione del testo Standard, Grande o Più grande e righe semplici per impostazione predefinita: attiva «Mostra dettagli tecnici» per vedere gli id delle regole, i nomi grezzi degli strumenti e gli errori grezzi. VoiceOver legge ogni riga come una frase e la cronologia si usa con ↑/↓, ⏎, Esc e ⌘C.
 
 La nuova «code mode» di Codex racchiude ogni chiamata in un piccolo programma JavaScript;
 Trailwarden ne estrae i comandi shell e i file modificati, così la

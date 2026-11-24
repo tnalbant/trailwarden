@@ -103,6 +103,27 @@ final class CodexParserTests: XCTestCase {
             TokenCount(model: "demo", input: 900, output: 80, reasoning: 10))
     }
 
+    // MARK: - Shell argv
+
+    func testShellArgvStoresTheScriptAsTheCommand() throws {
+        let name = "rollout-2026-11-23T10-00-00-5b1e2d7c-0a3f-4c6e-8d9b-2e4f6a8c0b1d.jsonl"
+        let events = try parser.parse(file: fixture(name)).events
+        let calls = events.filter { $0.kind == .toolCall }
+
+        XCTAssertEqual(calls.map(\.command), ["rm -rf ~", "git status --short"])
+        let engine = try RuleEngine.builtIn()
+        XCTAssertEqual(engine.hits(for: calls[0]).map(\.ruleId), ["R1"])
+        XCTAssertTrue(engine.hits(for: calls[1]).isEmpty)
+    }
+
+    func testOnlyAShellWithAScriptIsUnwrapped() {
+        XCTAssertEqual(CodexParser.shellScript(["/bin/zsh", "-c", "ls"]), "ls")
+        XCTAssertEqual(CodexParser.shellScript(["sh", "-c", "ls"]), "ls")
+        XCTAssertNil(CodexParser.shellScript(["bash", "script.sh", "x"]))
+        XCTAssertNil(CodexParser.shellScript(["python3", "-c", "print(1)"]))
+        XCTAssertNil(CodexParser.shellScript(["bash", "-lc"]))
+    }
+
     // MARK: - Damaged files
 
     func testBrokenLinesAreCountedButDoNotStopTheFile() throws {

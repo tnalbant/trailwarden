@@ -10,6 +10,7 @@ import TrailwardenCore
 /// API prices, labelled as such, and a model without a price shows none.
 struct UsageView: View {
     @AppStorage(LocalizationStore.defaultsKey) private var language = AppLanguage.system.rawValue
+    @AppStorage(TechnicalDetails.storageKey) private var technical = false
     @ObservedObject var model: AppModel
     @State private var days = 30
     private let ranges = [7, 30, 90]
@@ -43,19 +44,19 @@ struct UsageView: View {
     private var header: some View {
         VStack(alignment: .leading, spacing: 3) {
             Text(L(.windowUsage))
-                .font(Tokens.Typography.serif(19, weight: .semibold))
-            Text(Lf(.usageSummary, [days, Self.tokens(total), model.dailyUsage.count]))
-                .font(Tokens.Typography.mono(10))
+                .font(Tokens.Typography.font(.title, weight: .semibold))
+            Text(Lf(.usageSummary, [days, Self.tokens(total), Lf(.activeDays, [model.dailyUsage.count])]))
+                .font(Tokens.Typography.font(.code))
                 .foregroundStyle(Tokens.Palette.secondary)
             if model.costEstimate.pricedTokens > 0 {
                 Text(Lf(.estimatedCost, [Self.dollars(model.costEstimate.dollars)]))
-                    .font(Tokens.Typography.mono(10, weight: .semibold))
-                    .foregroundStyle(Tokens.Palette.accent)
+                    .font(Tokens.Typography.font(.code, weight: .semibold))
+                    .foregroundStyle(Tokens.Palette.accentText)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .overlay(alignment: .topTrailing) {
-            Picker("", selection: $days) {
+            Picker(L(.rangePickerLabel), selection: $days) {
                 ForEach(ranges, id: \.self) { value in
                     Text(Lf(.daysLeft, [value])).tag(value)
                 }
@@ -74,7 +75,7 @@ struct UsageView: View {
             SectionLabel(text: L(.dailyTokens))
             if model.dailyUsage.isEmpty {
                 Text(L(.noTokenData))
-                    .font(Tokens.Typography.text(11))
+                    .font(Tokens.Typography.font(.body))
                     .foregroundStyle(Tokens.Palette.secondary)
             } else {
                 Chart(model.dailyUsage) { day in
@@ -88,14 +89,14 @@ struct UsageView: View {
                     AxisMarks(values: .stride(by: .day, count: max(2, model.dailyUsage.count / 4))) { _ in
                         AxisGridLine().foregroundStyle(Tokens.Palette.hairline)
                         AxisValueLabel(format: .dateTime.day().month(.abbreviated), centered: true)
-                            .font(Tokens.Typography.text(9))
+                            .font(Tokens.Typography.font(.caption))
                     }
                 }
                 .chartYAxis {
                     AxisMarks(position: .leading) { value in
                         AxisValueLabel {
                             if let tokens = value.as(Int.self) {
-                                Text(UsageView.tokens(tokens)).font(Tokens.Typography.mono(8.5))
+                                Text(UsageView.tokens(tokens)).font(Tokens.Typography.font(.codeSmall))
                             }
                         }
                         .foregroundStyle(Tokens.Palette.secondary)
@@ -115,8 +116,9 @@ struct UsageView: View {
                 if let totals, totals.processed > 0 || totals.peakContext > 0 {
                     HStack(spacing: 10) {
                         Text(EventFormatting.agentLabel(agent))
-                            .font(Tokens.Typography.text(11.5, weight: .medium))
-                            .frame(width: 92, alignment: .leading)
+                            .font(Tokens.Typography.font(.body, weight: .medium))
+                            .fixedSize()
+                            .frame(minWidth: Tokens.Metrics.scaled(92), alignment: .leading)
                         GeometryReader { geometry in
                             ZStack(alignment: .leading) {
                                 Capsule().fill(Tokens.Palette.hairline)
@@ -127,18 +129,22 @@ struct UsageView: View {
                         }
                         .frame(height: 6)
                         Text(Self.tokens(totals.processed))
-                            .font(Tokens.Typography.mono(10))
-                            .frame(width: 96, alignment: .trailing)
-                        Text(Lf(.counterCount, [totals.events]))
-                            .font(Tokens.Typography.text(9.5))
-                            .foregroundStyle(Tokens.Palette.secondary)
-                            .frame(width: 72, alignment: .trailing)
+                            .font(Tokens.Typography.font(.code))
+                            .fixedSize()
+                            .frame(minWidth: Tokens.Metrics.scaled(96), alignment: .trailing)
+                        if technical {
+                            Text(Lf(.counterCount, [totals.events]))
+                                .font(Tokens.Typography.font(.caption))
+                                .foregroundStyle(Tokens.Palette.secondary)
+                                .fixedSize()
+                                .frame(minWidth: Tokens.Metrics.scaled(72), alignment: .trailing)
+                        }
                     }
                 }
             }
             if model.usage.values.allSatisfy({ $0.processed == 0 && $0.peakContext == 0 }) {
                 Text(L(.noCounterData))
-                    .font(Tokens.Typography.text(10.5))
+                    .font(Tokens.Typography.font(.callout))
                     .foregroundStyle(Tokens.Palette.secondary)
             }
         }
@@ -149,38 +155,40 @@ struct UsageView: View {
             SectionLabel(text: L(.byModel), trailing: L(.apiEquivalent))
             if model.modelUsage.isEmpty {
                 Text(L(.noCounterData))
-                    .font(Tokens.Typography.text(10.5))
+                    .font(Tokens.Typography.font(.callout))
                     .foregroundStyle(Tokens.Palette.secondary)
             }
             ForEach(model.modelUsage) { row in
                 HStack(spacing: 10) {
                     VStack(alignment: .leading, spacing: 1) {
                         Text(row.model)
-                            .font(Tokens.Typography.mono(10.5, weight: .medium))
+                            .font(Tokens.Typography.font(.code, weight: .medium))
                             .lineLimit(1)
                             .truncationMode(.middle)
                         Text(EventFormatting.agentLabel(row.agent))
-                            .font(Tokens.Typography.text(9))
+                            .font(Tokens.Typography.font(.caption))
                             .foregroundStyle(Tokens.Palette.secondary)
                     }
                     Spacer(minLength: 8)
                     Text(Self.tokens(row.tokens.processed))
-                        .font(Tokens.Typography.mono(10))
-                        .frame(width: 80, alignment: .trailing)
+                        .font(Tokens.Typography.font(.code))
+                        .fixedSize()
+                        .frame(minWidth: Tokens.Metrics.scaled(80), alignment: .trailing)
                     Text(priceLabel(row))
-                        .font(Tokens.Typography.mono(10, weight: .semibold))
+                        .font(Tokens.Typography.font(.code, weight: .semibold))
                         .foregroundStyle(model.prices.price(for: row.model) == nil
                             ? Tokens.Palette.secondary : Tokens.Palette.ink)
-                        .frame(width: 88, alignment: .trailing)
+                        .fixedSize()
+                        .frame(minWidth: Tokens.Metrics.scaled(88), alignment: .trailing)
                 }
-                .help(breakdown(row.tokens))
+                .help(technical ? breakdown(row.tokens) : "")
             }
             if model.costEstimate.unpricedTokens > 0 {
                 Text(Lf(.unpricedNote, [
                     Self.tokens(model.costEstimate.unpricedTokens),
                     model.costEstimate.unpricedModels.count
                 ]))
-                .font(Tokens.Typography.text(9.5))
+                .font(Tokens.Typography.font(.caption))
                 .foregroundStyle(Tokens.Palette.secondary)
             }
         }
@@ -197,11 +205,11 @@ struct UsageView: View {
     /// The split behind a row, on hover: where the tokens (and the money) went.
     private func breakdown(_ tokens: TokenCount) -> String {
         [
-            "input \(Self.tokens(tokens.input))",
-            "cache read \(Self.tokens(tokens.cacheRead))",
-            "cache write \(Self.tokens(tokens.cacheWrite))",
-            "output \(Self.tokens(tokens.output))",
-            tokens.reasoning > 0 ? "reasoning \(Self.tokens(tokens.reasoning))" : nil
+            "\(L(.tokenInput)) \(Self.tokens(tokens.input))",
+            "\(L(.tokenCacheRead)) \(Self.tokens(tokens.cacheRead))",
+            "\(L(.tokenCacheWrite)) \(Self.tokens(tokens.cacheWrite))",
+            "\(L(.tokenOutput)) \(Self.tokens(tokens.output))",
+            tokens.reasoning > 0 ? "\(L(.tokenReasoning)) \(Self.tokens(tokens.reasoning))" : nil
         ].compactMap(\.self).joined(separator: " · ")
     }
 
@@ -209,23 +217,23 @@ struct UsageView: View {
         VStack(alignment: .leading, spacing: 4) {
             SectionLabel(text: L(.noteTitle))
             Text(L(.usageNote))
-                .font(Tokens.Typography.text(10))
+                .font(Tokens.Typography.font(.callout))
                 .foregroundStyle(Tokens.Palette.secondary)
                 .fixedSize(horizontal: false, vertical: true)
             Text(Lf(.priceNote, [model.prices.asOf]))
-                .font(Tokens.Typography.text(10))
+                .font(Tokens.Typography.font(.callout))
                 .foregroundStyle(Tokens.Palette.secondary)
                 .fixedSize(horizontal: false, vertical: true)
             if model.prices.isStale() {
                 Text(L(.pricesStale))
-                    .font(Tokens.Typography.text(10))
-                    .foregroundStyle(Tokens.Palette.accent)
+                    .font(Tokens.Typography.font(.callout))
+                    .foregroundStyle(Tokens.Palette.accentText)
                     .fixedSize(horizontal: false, vertical: true)
             }
             if let error = model.priceFileError {
                 Text(Lf(.priceFileError, [error]))
-                    .font(Tokens.Typography.text(10))
-                    .foregroundStyle(Tokens.Palette.accent)
+                    .font(Tokens.Typography.font(.callout))
+                    .foregroundStyle(Tokens.Palette.accentText)
                     .fixedSize(horizontal: false, vertical: true)
             }
         }

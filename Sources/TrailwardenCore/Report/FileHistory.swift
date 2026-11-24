@@ -185,3 +185,14 @@ public extension EventStore {
         return result
     }
 }
+
+public extension FileTouch.Action {
+    /// The word shown in the file-history list, in the reader's language.
+    func label(_ localizer: Localizer) -> String {
+        switch self {
+        case .changed: localizer.text(.touchChanged)
+        case .read: localizer.text(.touchRead)
+        case .command: localizer.text(.touchNamed)
+        }
+    }
+}

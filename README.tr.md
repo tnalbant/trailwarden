@@ -22,7 +22,7 @@ maliyet tahmini için bu depodaki herkese açık `prices.json` dosyasını çeke
 GET'tir ve yalnızca sen tıkladığında yapılır. `Sources/` altında başka herhangi bir
 yerde ağ API'si görünürse CI başarısız olur.
 
-> Durum: **v0.2.4** — canlı bekçi, 27 kural, ajan izi, karne, CI kapısı.
+> Durum: **v0.2.5** — canlı bekçi, 28 kural, ajan izi, karne, CI kapısı.
 > Arayüz İngilizce (ABD), Türkçe, Almanca, İspanyolca, İtalyanca ve Fransızca.
 
 ![Karne](docs/screenshots/report-light.tr.png)
@@ -61,7 +61,7 @@ bu yüzden hiçbirinde gerçek bir proje görünmez.
   bir bulgu macOS bildirimine dönüşür. Bildirime tıklayınca zaman çizelgesi o
   olayda açılır. Yoklama yok, arka plan servisi yok, hiçbir yere bir şey
   gönderilmez. Aynı akış terminalde de var: `trailwarden watch`.
-- **27 risk kuralı** — yıkıcı silmeler, `curl … | sh`, gizli bilgi ve anahtarlık
+- **28 risk kuralı** — yıkıcı silmeler, `curl … | sh`, gizli bilgi ve anahtarlık
   okumaları, komuta yapıştırılmış API anahtarları, `--dangerously-skip-permissions`,
   `git commit --no-verify`, launchd/cron ile kalıcılık, kabuk başlangıç dosyalarında
   ve ajan ayarlarında yapılan düzenlemeler, CI iş akışı düzenlemeleri, `DROP TABLE`,
@@ -97,6 +97,7 @@ bu yüzden hiçbirinde gerçek bir proje görünmez.
   `get_event`, `file_history`, `audit_summary`). `file_history`, bir ajanın bir
   dosyayı düzenlemeden önce o dosya üzerinde başka kimin çalıştığına bakmasını
   sağlar.
+- **Günlük kullanıma uygun** — girişte başlatma (başarısız olursa gösterilir, gizlenmez), Standart, Büyük ve Daha büyük yazı boyutu ve varsayılan olarak sade satırlar: kural kimliklerini, ham araç adlarını ve ham hataları görmek için "Teknik ayrıntıları göster"i açın. VoiceOver her satırı tek cümle olarak okur; zaman çizelgesi ↑/↓, ⏎, Esc ve ⌘C ile kullanılır.
 
 Codex'in yeni "code mode"u her çağrıyı küçük bir JavaScript programına sarar.
 Trailwarden kabuk komutlarını ve yamalanan dosyaları bu programın içinden çıkarır;

@@ -50,9 +50,24 @@ public struct RuleMatch: Codable, Sendable, Equatable {
         (commandRegex.map { [$0] } ?? []) + (anyOf ?? []).flatMap(\.allCommandPatterns)
     }
 
-    /// Every path glob, own and alternative.
+    /// Every path glob, own and alternative, each once (two alternatives may
+    /// share a list).
     public var allPathGlobs: [String] {
-        (pathGlobs ?? []) + (anyOf ?? []).flatMap(\.allPathGlobs)
+        var seen = Set<String>()
+        return ((pathGlobs ?? []) + (anyOf ?? []).flatMap(\.allPathGlobs)).filter { seen.insert($0).inserted }
+    }
+}
+
+/// Commands (or, for a rule that only looks at paths, file paths) that show
+/// what a rule is for: each `matches` entry must raise the rule and no
+/// `ignores` entry may. `RuleExamplesTests` holds every built-in rule to them.
+public struct RuleExamples: Codable, Sendable, Equatable {
+    public let matches: [String]
+    public let ignores: [String]
+
+    public init(matches: [String], ignores: [String]) {
+        self.matches = matches
+        self.ignores = ignores
     }
 }
 
@@ -65,6 +80,8 @@ public struct Rule: Codable, Sendable, Identifiable, Equatable {
     public let message: String
     /// User rules may switch a built-in rule off without deleting it.
     public let enabled: Bool?
+    /// Documented behaviour; optional, so user rule files need not carry it.
+    public let examples: RuleExamples?
 
     public init(
         id: String,
@@ -72,7 +89,8 @@ public struct Rule: Codable, Sendable, Identifiable, Equatable {
         severity: Severity,
         match: RuleMatch,
         message: String,
-        enabled: Bool? = nil)
+        enabled: Bool? = nil,
+        examples: RuleExamples? = nil)
     {
         self.id = id
         self.title = title
@@ -80,6 +98,7 @@ public struct Rule: Codable, Sendable, Identifiable, Equatable {
         self.match = match
         self.message = message
         self.enabled = enabled
+        self.examples = examples
     }
 
     public var isEnabled: Bool {

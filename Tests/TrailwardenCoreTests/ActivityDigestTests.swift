@@ -143,4 +143,26 @@ final class ActivityDigestTests: XCTestCase {
         let item = ActivityDigest.item(from: event(command: "ls"))
         XCTAssertNil(item.ruleLine(Localizer(language: .english)))
     }
+
+    func testItemCarriesTheVerbAndTheObject() {
+        let localizer = Localizer(language: .english)
+        let ran = ActivityDigest.item(from: event(command: "swift test"))
+        XCTAssertEqual(ran.verb, .ran)
+        XCTAssertEqual(ran.object, "swift test")
+        XCTAssertEqual(ran.summary(localizer), "Ran swift test")
+
+        let read = ActivityDigest.item(from: event(
+            tool: "Read",
+            paths: ["/Users/demo/work/app/Sources/main.swift"],
+            cwd: "/Users/demo/work/app"))
+        XCTAssertEqual(read.verb, .read)
+        XCTAssertEqual(read.object, "Sources/main.swift")
+        XCTAssertFalse(read.outsideProject)
+
+        let outside = ActivityDigest.item(from: event(
+            tool: "Read",
+            paths: ["/etc/hosts"],
+            cwd: "/Users/demo/work/app"))
+        XCTAssertTrue(outside.outsideProject)
+    }
 }

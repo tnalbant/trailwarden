@@ -19,22 +19,29 @@ private struct FilterChip: View {
                     .font(.system(size: 11))
                     .foregroundStyle(isOn ? Tokens.Palette.accent : Tokens.Palette.secondary)
                 Text(title)
-                    .font(Tokens.Typography.text(10.5, weight: isOn ? .medium : .regular))
+                    .font(Tokens.Typography.font(.callout, weight: isOn ? .medium : .regular))
                     .foregroundStyle(Tokens.Palette.ink)
                     .lineLimit(1)
                     .fixedSize(horizontal: true, vertical: false)
             }
         }
         .buttonStyle(.plain)
+        .accessibilityValue(isOn ? L(.selected) : "")
     }
 }
 
 /// Sidebar (project → session) plus the paged event stream.
 struct TimelineView: View {
     @AppStorage(LocalizationStore.defaultsKey) private var language = AppLanguage.system.rawValue
+    @AppStorage(TechnicalDetails.storageKey) private var technical = false
     @ObservedObject var model: TimelineModel
     var onMute: ((RiskHit, Event) -> Void)?
     var liveSessionIDs: Set<String> = []
+    @FocusState private var focusedPane: Pane?
+
+    private enum Pane: Hashable {
+        case list, detail
+    }
 
     private var selectionBinding: Binding<TimelineSelection?> {
         Binding(
@@ -72,6 +79,12 @@ struct TimelineView: View {
                 }
             }
             .frame(minWidth: 340, idealWidth: 460, maxWidth: 720)
+            .focusable()
+            .focused($focusedPane, equals: .detail)
+            .onKeyPress(.escape) {
+                focusedPane = .list
+                return .handled
+            }
         }
         .background(Tokens.Palette.paper)
     }
@@ -94,7 +107,7 @@ struct TimelineView: View {
                         }
                         if model.sessions(inProject: project.cwd).isEmpty {
                             Text(L(.noSessionSelected))
-                                .font(Tokens.Typography.text(10))
+                                .font(Tokens.Typography.font(.callout))
                                 .foregroundStyle(Tokens.Palette.secondary)
                         }
                     } label: {
@@ -116,10 +129,10 @@ struct TimelineView: View {
                 .foregroundStyle(Tokens.Palette.secondary)
             VStack(alignment: .leading, spacing: 1) {
                 Text(ProjectName.short(project.cwd))
-                    .font(Tokens.Typography.text(11.5, weight: .medium))
+                    .font(Tokens.Typography.font(.body, weight: .medium))
                     .lineLimit(1)
                 Text(Lf(.projectMeta, [project.sessionCount, project.eventCount]))
-                    .font(Tokens.Typography.text(9))
+                    .font(Tokens.Typography.font(.caption))
                     .foregroundStyle(Tokens.Palette.secondary)
             }
         }
@@ -127,15 +140,30 @@ struct TimelineView: View {
 
     private func sessionLabel(_ session: SessionSummary) -> some View {
         HStack(spacing: 6) {
-            Text(EventFormatting.agentLabel(session.agent))
-                .font(Tokens.Typography.mono(8))
-                .padding(.horizontal, 4)
-                .padding(.vertical, 0.5)
-                .background(Tokens.Palette.surface)
-                .clipShape(RoundedRectangle(cornerRadius: 2.5))
-            Text(Sessions.shortID(session.id))
-                .font(Tokens.Typography.mono(9))
-                .lineLimit(1)
+            if technical {
+                Text(EventFormatting.agentLabel(session.agent))
+                    .font(Tokens.Typography.font(.codeSmall))
+                    .padding(.horizontal, 4)
+                    .padding(.vertical, 0.5)
+                    .background(Tokens.Palette.surface)
+                    .clipShape(RoundedRectangle(cornerRadius: 2.5))
+                Text(Sessions.shortID(session.id))
+                    .font(Tokens.Typography.font(.codeSmall))
+                    .lineLimit(1)
+            } else {
+                VStack(alignment: .leading, spacing: 1) {
+                    Text("\(session.agent.displayName) · \(EventFormatting.stamp(session.startedAt))")
+                        .font(Tokens.Typography.font(.callout))
+                        .lineLimit(1)
+                    if let branch = session.gitBranch, !branch.isEmpty {
+                        Text(branch)
+                            .font(Tokens.Typography.font(.caption))
+                            .foregroundStyle(Tokens.Palette.secondary)
+                            .lineLimit(1)
+                            .truncationMode(.middle)
+                    }
+                }
+            }
             Spacer(minLength: 2)
             if liveSessionIDs.contains(session.id) {
                 Circle()
@@ -145,8 +173,8 @@ struct TimelineView: View {
             }
             if session.criticalCount > 0 {
                 Text("\(session.criticalCount)")
-                    .font(Tokens.Typography.text(9, weight: .medium))
-                    .foregroundStyle(Tokens.Palette.accent)
+                    .font(Tokens.Typography.font(.caption, weight: .medium))
+                    .foregroundStyle(Tokens.Palette.accentText)
             }
         }
     }
@@ -171,18 +199,31 @@ struct TimelineView: View {
     private var filters: some View {
         // The search field moved to the window row, where there was empty space and
         // room to breathe; four controls fit in this column at its minimum width.
-        HStack(spacing: 10) {
-            rangePicker
-            agentPicker
-            toggles
-            Spacer(minLength: 0)
+        // At larger text sizes the four controls outgrow the column's minimum
+        // width and clipped both edges, so they fall back to two rows.
+        ViewThatFits(in: .horizontal) {
+            HStack(spacing: 10) {
+                rangePicker
+                agentPicker
+                toggles
+                Spacer(minLength: 0)
+            }
+            VStack(alignment: .leading, spacing: 6) {
+                HStack(spacing: 10) {
+                    rangePicker
+                    agentPicker
+                    Spacer(minLength: 0)
+                }
+                toggles
+            }
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.horizontal, 12)
         .padding(.vertical, 9)
     }
 
     private var rangePicker: some View {
-        Picker("", selection: $model.window) {
+        Picker(L(.rangePickerLabel), selection: $model.window) {
             ForEach(TimelineWindow.allCases) { window in
                 Text(window.shortLabel).tag(window)
             }
@@ -192,7 +233,7 @@ struct TimelineView: View {
     }
 
     private var agentPicker: some View {
-        Picker("", selection: $model.agentFilter) {
+        Picker(L(.agentPickerLabel), selection: $model.agentFilter) {
             Text(L(.allAgents)).tag(Agent?.none)
             ForEach(Agent.allCases, id: \.self) { agent in
                 Text(EventFormatting.agentLabel(agent)).tag(Agent?.some(agent))
@@ -211,11 +252,66 @@ struct TimelineView: View {
     }
 
     private var list: some View {
+        ScrollViewReader { proxy in
+            listContent
+                .focusable()
+                .focusEffectDisabled()
+                .focused($focusedPane, equals: .list)
+                .onKeyPress(.upArrow) { moveSelection(-1, proxy: proxy) }
+                .onKeyPress(.downArrow) { moveSelection(1, proxy: proxy) }
+                .onKeyPress(.return) {
+                    guard model.selectedEvent != nil else { return .ignored }
+                    focusedPane = .detail
+                    return .handled
+                }
+                .onCopyCommand { copySelection() }
+                .onChange(of: model.scrollTarget, initial: true) { _, target in
+                    guard let target else { return }
+                    withAnimation { proxy.scrollTo(target, anchor: .center) }
+                    model.consumeScrollTarget()
+                }
+        }
+    }
+
+    /// Moves the selection one row (↓ with nothing selected picks the first row),
+    /// loading the next page when moving down from the last row, and keeps
+    /// the new row on screen.
+    private func moveSelection(_ delta: Int, proxy: ScrollViewProxy) -> KeyPress.Result {
+        guard !model.events.isEmpty else { return .ignored }
+        var events = model.events
+        let current = events.firstIndex { $0.id == model.selectedEventID }
+        if delta > 0, let current, current == events.count - 1 {
+            model.loadMore()
+            events = model.events
+        }
+        let start = current ?? (delta > 0 ? -1 : events.count)
+        let next = min(max(start + delta, 0), events.count - 1)
+        let id = events[next].id
+        model.selectedEventID = id
+        proxy.scrollTo(id)
+        return .handled
+    }
+
+    /// ⌘C on the list copies what the detail pane would: the command, else the preview.
+    private func copySelection() -> [NSItemProvider] {
+        guard let event = model.selectedEvent,
+              let text = event.command ?? event.preview, !text.isEmpty
+        else { return [] }
+        return [NSItemProvider(object: text as NSString)]
+    }
+
+    private var listContent: some View {
         ScrollView {
             LazyVStack(alignment: .leading, spacing: 0) {
                 ForEach(model.events) { event in
                     EventRowView(event: event, selected: model.selectedEventID == event.id)
-                        .onTapGesture { model.selectedEventID = event.id }
+                        .id(event.id)
+                        .onTapGesture {
+                            model.selectedEventID = event.id
+                            focusedPane = .list
+                        }
+                        .accessibilityAddTraits(
+                            model.selectedEventID == event.id ? [.isButton, .isSelected] : .isButton)
                         .onAppear {
                             if event.id == model.events.last?.id {
                                 model.loadMore()
@@ -238,9 +334,9 @@ struct TimelineView: View {
     private var detailPlaceholder: some View {
         VStack(alignment: .leading, spacing: 6) {
             Text(L(.pickEvent))
-                .font(Tokens.Typography.serif(14))
+                .font(Tokens.Typography.font(.subtitle))
             Text(L(.pickEventHint))
-                .font(Tokens.Typography.text(11))
+                .font(Tokens.Typography.font(.body))
                 .foregroundStyle(Tokens.Palette.secondary)
         }
         .padding(20)
@@ -251,9 +347,9 @@ struct TimelineView: View {
     private var emptyState: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(L(.noEventsInRange))
-                .font(Tokens.Typography.serif(14))
+                .font(Tokens.Typography.font(.subtitle))
             Text(L(.noEventsHint))
-                .font(Tokens.Typography.text(11))
+                .font(Tokens.Typography.font(.body))
                 .foregroundStyle(Tokens.Palette.secondary)
             // A filter combination that matches nothing should not be a dead end.
             // Findings-only plus one session is the easy way to get here.
@@ -265,8 +361,8 @@ struct TimelineView: View {
                 model.window = .month
             }
             .buttonStyle(.plain)
-            .font(Tokens.Typography.text(11, weight: .medium))
-            .foregroundStyle(Tokens.Palette.accent)
+            .font(Tokens.Typography.font(.body, weight: .medium))
+            .foregroundStyle(Tokens.Palette.accentText)
             .padding(.top, 2)
         }
         .padding(24)
@@ -276,21 +372,21 @@ struct TimelineView: View {
         HStack {
             if let error = model.errorMessage {
                 Text(error)
-                    .font(Tokens.Typography.text(10))
-                    .foregroundStyle(Tokens.Palette.accent)
+                    .font(Tokens.Typography.font(.callout))
+                    .foregroundStyle(Tokens.Palette.accentText)
                     .lineLimit(1)
             } else {
                 Text(model.events.isEmpty
-                    ? "0 olay"
+                    ? L(.eventsNone)
                     : Lf(.eventsRatio, [model.events.count, model.total]))
-                    .font(Tokens.Typography.mono(9.5))
+                    .font(Tokens.Typography.font(.codeSmall))
                     .foregroundStyle(Tokens.Palette.secondary)
             }
             Spacer()
             if model.events.count < model.total {
                 Button(L(.loadMore)) { model.loadMore() }
                     .buttonStyle(.plain)
-                    .font(Tokens.Typography.text(10.5, weight: .medium))
+                    .font(Tokens.Typography.font(.callout, weight: .medium))
             }
         }
         .padding(.horizontal, 16)

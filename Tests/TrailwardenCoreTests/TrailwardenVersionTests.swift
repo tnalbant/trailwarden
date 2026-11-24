@@ -9,6 +9,10 @@ final class TrailwardenVersionTests: XCTestCase {
         XCTAssertFalse(TrailwardenVersion.current.isEmpty)
     }
 
+    func testVersionIsTheReleaseBeingBuilt() {
+        XCTAssertEqual(TrailwardenVersion.current, "0.2.5")
+    }
+
     func testSchemaVersionIsStable() {
         XCTAssertEqual(TrailwardenVersion.schema, 1)
     }
