@@ -37,4 +37,25 @@ final class LiveSessionTests: XCTestCase {
         let store = try EventStore(inMemory: true)
         XCTAssertTrue(try store.activeSessionIDs().isEmpty)
     }
+
+    func testLiveAlertTitleUsesTheRuleTitle() throws {
+        let localizer = Localizer(language: .english)
+        let hit = RiskHit(ruleId: "R1", severity: .critical, message: "stored message")
+        let event = Event(
+            id: "alert",
+            ts: Date(),
+            agent: .claudeCode,
+            sessionId: "s",
+            kind: .toolCall,
+            tool: "Bash",
+            command: "ls",
+            paths: [],
+            preview: "ls",
+            risk: [hit],
+            rawJSON: nil)
+        let title = try XCTUnwrap(RuleLocalization.text(forRule: "R1", language: .english)).title
+        let alert = LiveAlert(event: event, localizer: localizer)
+        XCTAssertEqual(alert.title, "Claude Code · \(title)")
+        XCTAssertFalse(alert.title.contains("R1"))
+    }
 }

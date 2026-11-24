@@ -114,12 +114,39 @@ public enum EventPresentation {
     }
 
     public static func summary(for event: Event, localizer: Localizer) -> String {
+        summary(verb: verb(for: event), object: object(for: event), localizer: localizer)
+    }
+
+    /// The verb and the object joined the way a row reads them. Split out so a
+    /// row built from an `ActivityItem` says exactly what one built from an event does.
+    public static func summary(verb: ActionVerb, object: String, localizer: Localizer) -> String {
+        switch verb {
+        case .said, .thought:
+            object
+        default:
+            object.isEmpty ? verb.label(localizer) : "\(verb.label(localizer)) \(object)"
+        }
+    }
+
+    /// Whether the path the summary shows lies outside the event's project, so a
+    /// row can say so beside it.
+    public static func touchesOutsideProject(_ event: Event) -> Bool {
+        switch verb(for: event) {
+        case .read, .edited, .wrote, .searched:
+            event.paths.first.map { displayPath($0, cwd: event.cwd).outsideProject } ?? false
+        default:
+            false
+        }
+    }
+
+    /// The thing the event touched, on one line and without the verb. Empty when
+    /// the event carries nothing to show.
+    public static func object(for event: Event) -> String {
         let verb = verb(for: event)
-        let label = verb.label(localizer)
         let object: String?
         switch verb {
         case .said, .thought:
-            return oneLine(event.preview ?? event.command ?? "")
+            object = event.preview ?? event.command
         case .ran:
             object = event.command ?? event.paths.first ?? event.preview
         case .read, .edited, .wrote, .searched:
@@ -133,8 +160,7 @@ public enum EventPresentation {
         case .other:
             object = event.command ?? event.paths.first ?? event.preview
         }
-        let text = oneLine(object ?? "")
-        return text.isEmpty ? label : "\(label) \(text)"
+        return oneLine(object ?? "")
     }
 
     public static func ruleTitle(_ hit: RiskHit, localizer: Localizer) -> String {

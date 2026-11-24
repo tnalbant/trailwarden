@@ -49,6 +49,8 @@ public enum UIString: String, CaseIterable, Sendable {
     // Settings
     case appearance, appearanceAutomatic, appearanceLight, appearanceDark, appearanceHint
     case textSizeSection, textSizeStandard, textSizeLarge, textSizeLarger
+    case technicalDetailsToggle, technicalDetailsHint, ruleExamplesMatch, ruleExamplesIgnore
+    case outsideProject, genericError
     case languageSection, languageSystem, languageHint
     case scannedDirs, dirsHint, retention, retentionDays, cleanupNow, retentionHint
     case exportSection, exportAction, exportRange, exportHint
@@ -201,6 +203,12 @@ public enum UITranslations {
         .textSizeStandard: "Standard",
         .textSizeLarge: "Large",
         .textSizeLarger: "Larger",
+        .technicalDetailsToggle: "Show technical details",
+        .technicalDetailsHint: "Adds tool names, rule ids, session ids, raw records and full error text.",
+        .ruleExamplesMatch: "Flags",
+        .ruleExamplesIgnore: "Leaves alone",
+        .outsideProject: "outside the project",
+        .genericError: "Something went wrong. Turn on technical details to see the error.",
         .languageSection: "Language",
         .languageSystem: "System",
         .languageHint: "Interface language. A change applies immediately.",
@@ -300,7 +308,7 @@ public enum UITranslations {
         .loginItemOff: "Trailwarden does not open when you log in.",
         .loginItemNeedsApproval: "Allow Trailwarden in System Settings to open at login.",
         .loginItemOpenSettings: "Open Login Items",
-        .loginItemFailed: "Could not change the login item: %@",
+        .loginItemFailed: "Could not change the login item.",
         .guardOffBanner: "Live guard is off",
         .guardOffAction: "Turn on",
         .liveOpenNotificationSettings: "Open Notification Settings",

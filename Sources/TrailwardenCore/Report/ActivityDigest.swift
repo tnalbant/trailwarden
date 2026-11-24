@@ -25,9 +25,27 @@ public struct ActivityItem: Sendable, Identifiable, Equatable {
     /// reader's language. `ruleLine(_:)` is what a view should show.
     public let ruleMessage: String?
     public let kind: EventKind
+    /// What the action was, in the one verb the interface uses.
+    public let verb: ActionVerb
+    /// What it touched (a project-relative path, a command, the words said),
+    /// without the verb. `summary(_:)` is what a row should show.
+    public let object: String
+    /// The path in `object` is not inside the session's project.
+    public let outsideProject: Bool
 
     public var isMessage: Bool {
         kind == .message
+    }
+
+    /// One plain line, "Ran npm test", in the interface language.
+    public func summary(_ localizer: Localizer) -> String {
+        EventPresentation.summary(verb: verb, object: object, localizer: localizer)
+    }
+
+    /// The rule's short title in the interface language, or its id when unknown.
+    public func ruleTitle(_ localizer: Localizer) -> String? {
+        guard let ruleId else { return nil }
+        return RuleLocalization.text(forRule: ruleId, language: localizer.language)?.title ?? ruleId
     }
 
     /// The rule line in the interface language, falling back to the stored
@@ -81,7 +99,10 @@ public enum ActivityDigest {
             severity: hit?.severity,
             ruleId: hit?.ruleId,
             ruleMessage: hit?.message,
-            kind: event.kind)
+            kind: event.kind,
+            verb: EventPresentation.verb(for: event),
+            object: EventPresentation.object(for: event),
+            outsideProject: EventPresentation.touchesOutsideProject(event))
     }
 
     static func label(for event: Event) -> String {
