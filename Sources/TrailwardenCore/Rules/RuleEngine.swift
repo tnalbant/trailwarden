@@ -11,7 +11,11 @@ import Foundation
 /// 3. a rule with `pathGlobs` must match one of the event's paths or one of the
 ///    path-like tokens of its command;
 /// 4. both conditions, when present, must hold (R1 is "rm -rf *and* a dangerous
-///    target", not "any rm -rf").
+///    target", not "any rm -rf");
+/// 5. when one match has both, they must hold for the same command of a command
+///    line: a path among that command's tokens, and the pattern matching the
+///    text from that command's start (so `\A` anchors at the command). In
+///    `ls ~/.ssh && git status` the path belongs to `ls`, not to `git`.
 ///
 /// Hits are de-duplicated per `(rule, session, normalized command)` and muted
 /// pairs are dropped, so the timeline shows one entry per situation.
@@ -96,27 +100,38 @@ public struct RuleEngine: Sendable {
         _ match: CompiledMatch,
         tool: String?,
         texts: [String],
-        candidates: [String]) -> Bool
+        candidates: [String],
+        segments: [CommandSegment]) -> Bool
     {
         if !match.tools.isEmpty, !match.tools.contains(where: { toolMatches($0, tool) }) {
             return false
         }
-        if let regex = match.commandRegex {
-            guard texts.contains(where: { matches(regex, $0) }) else { return false }
-        }
-        if !match.globs.isEmpty {
-            let matched = candidates.contains { candidate in
-                match.globs.contains { Glob.matches($0, candidate) }
-                    && !match.excludes.contains { Glob.matches($0, candidate) }
+        if let regex = match.commandRegex, !match.globs.isEmpty, !segments.isEmpty {
+            // Paths first: they are cheap, and most commands name no matching path.
+            let matched = segments.contains { segment in
+                segment.candidates.contains { pathMatches(match, $0) }
+                    && regex.firstMatch(in: segment.line, range: segment.range) != nil
             }
             guard matched else { return false }
+        } else {
+            if let regex = match.commandRegex {
+                guard texts.contains(where: { matches(regex, $0) }) else { return false }
+            }
+            if !match.globs.isEmpty {
+                guard candidates.contains(where: { pathMatches(match, $0) }) else { return false }
+            }
         }
         if !match.anyOf.isEmpty {
             return match.anyOf.contains {
-                evaluate($0, tool: tool, texts: texts, candidates: candidates)
+                evaluate($0, tool: tool, texts: texts, candidates: candidates, segments: segments)
             }
         }
         return true
+    }
+
+    private static func pathMatches(_ match: CompiledMatch, _ candidate: String) -> Bool {
+        match.globs.contains { Glob.matches($0, candidate) }
+            && !match.excludes.contains { Glob.matches($0, candidate) }
     }
 
     /// Built-in catalogue with no mutes. Used by the CLI and by tests.
@@ -136,13 +151,20 @@ public struct RuleEngine: Sendable {
         // Bash description is what the agent said, so neither is scanned.
         let texts = Self.scannedTexts(for: event)
         let candidates = Self.pathCandidates(for: event)
+        let segments = Self.commandSegments(for: event)
         let target = Self.target(for: event)
 
         let tool = Self.canonicalTool(event.tool)
 
         var result: [RiskHit] = []
         for rule in compiled {
-            guard Self.evaluate(rule.match, tool: tool, texts: texts, candidates: candidates) else {
+            guard Self.evaluate(
+                rule.match,
+                tool: tool,
+                texts: texts,
+                candidates: candidates,
+                segments: segments)
+            else {
                 continue
             }
             if isMuted(rule.id, target: target, now: now) {
@@ -265,6 +287,58 @@ public struct RuleEngine: Sendable {
         return values.map(normalizePathToken).filter { !$0.isEmpty }
     }
 
+    /// One command of a command line: where it starts in the line (it runs to
+    /// the line's end, so a pattern can see what it is piped into) and the
+    /// path-like tokens of that command alone, plus the event's own paths.
+    struct CommandSegment {
+        let line: String
+        let range: NSRange
+        let candidates: [String]
+    }
+
+    /// The commands of an event's command line, split at unquoted `;`, `&`,
+    /// `&&`, `|`, `||` and newlines. Empty when there is no command, or when an
+    /// edit tool's "command" is patch text.
+    static func commandSegments(for event: Event) -> [CommandSegment] {
+        guard event.kind != .toolResult, let command = event.command, !command.isEmpty else { return [] }
+        let tool = canonicalTool(event.tool)
+        if tool == "Write" || tool == "Edit", !event.paths.isEmpty {
+            return []
+        }
+        let line = withoutHeredocBodies(command)
+        let stripped = strippingQuotedArguments(line)
+        let paths = event.paths.map(normalizePathToken).filter { !$0.isEmpty }
+        func candidates(_ text: String) -> [String] {
+            paths + tokens(in: text).map(normalizePathToken).filter { !$0.isEmpty }
+        }
+        let parts = splitCommandParts(line)
+        let blanked = splitCommandParts(stripped)
+        // Blanking quotes never adds or removes a separator; if it ever did, the
+        // whole line counts as one command.
+        guard parts.count == blanked.count else {
+            return [
+                CommandSegment(
+                    line: line,
+                    range: NSRange(line.startIndex..., in: line),
+                    candidates: candidates(stripped))
+            ]
+        }
+        var result: [CommandSegment] = []
+        var start = line.startIndex
+        for (part, blank) in zip(parts, blanked) {
+            result.append(
+                CommandSegment(
+                    line: line,
+                    range: NSRange(start..., in: line),
+                    candidates: candidates(blank.body)))
+            start = line.index(
+                start,
+                offsetBy: part.body.count + part.delimiter.count,
+                limitedBy: line.endIndex) ?? line.endIndex
+        }
+        return result
+    }
+
     /// `cat > x.py <<'EOF' … EOF` carries a file's content, and content that
     /// mentions `id_rsa` or `rm -rf ~` is not a command that does it. Only the
     /// heredoc body is dropped; the command line around it still counts. A body
@@ -321,14 +395,14 @@ public struct RuleEngine: Sendable {
         pattern: #"(?:^|\s)(?:-m|--message)(?:=|\s*)$"#)
     private static let echoPart = try? NSRegularExpression(pattern: #"^\s*(?:echo|printf)\b"#)
     private static let interpreterPart = try? NSRegularExpression(
-        pattern: #"^\s*(?:sudo\s+(?:-\S+\s+)*)?(?:\S*/)?(?:sh|bash|zsh|dash|python3?|perl|ruby|node|eval|base64)\b"#)
+        pattern: #"^\s*(?:sudo\s+(?:-\S+\s+)*)?(?:\S*/)?(?:sh|bash|zsh|dash|python3?|perl|ruby|node|eval|base64|xargs)\b"#)
     private static let startupFileRedirect = try? NSRegularExpression(
         pattern: #">>?\s*["']?(?:~|\$\{?HOME\}?|/[\w/.-]*)?/?\.(?:zshrc|zshenv|zprofile|zlogin|bashrc|bash_profile|profile)\b"#)
 
     /// Removes text that is prose, not a command: the quoted argument of `-m` /
     /// `--message` and the quoted arguments of `echo` / `printf`. An `echo` that is
-    /// piped into a shell or interpreter, or redirected into a shell startup
-    /// file, keeps its text because that text runs.
+    /// piped into a shell, an interpreter or `xargs`, or redirected into a shell
+    /// startup file, keeps its text because that text runs or is used as paths.
     static func strippingQuotedArguments(_ command: String) -> String {
         guard command.contains("-m") || command.contains("echo") || command.contains("printf") else {
             return command

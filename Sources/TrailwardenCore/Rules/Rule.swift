@@ -50,9 +50,11 @@ public struct RuleMatch: Codable, Sendable, Equatable {
         (commandRegex.map { [$0] } ?? []) + (anyOf ?? []).flatMap(\.allCommandPatterns)
     }
 
-    /// Every path glob, own and alternative.
+    /// Every path glob, own and alternative, each once (two alternatives may
+    /// share a list).
     public var allPathGlobs: [String] {
-        (pathGlobs ?? []) + (anyOf ?? []).flatMap(\.allPathGlobs)
+        var seen = Set<String>()
+        return ((pathGlobs ?? []) + (anyOf ?? []).flatMap(\.allPathGlobs)).filter { seen.insert($0).inserted }
     }
 }
 
