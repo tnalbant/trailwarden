@@ -37,7 +37,7 @@ public enum PaletteRole: String, CaseIterable, Sendable {
     public static let textRoles: [PaletteRole] = [
         .ink, .secondary, .tertiary, .accentText,
         .severityCritical, .severityWarn, .severityInfo,
-        .diffAddition, .diffRemoval, .diffHeader,
+        .diffAddition, .diffRemoval, .diffHeader
     ]
 }
 
@@ -62,7 +62,7 @@ public struct PaletteSpec: Sendable {
             .severityInfo: RGBA(hex: 0x2E4B7A),
             .diffAddition: RGBA(hex: 0x1B5E33),
             .diffRemoval: RGBA(hex: 0x992C1B),
-            .diffHeader: RGBA(hex: 0x5A544A),
+            .diffHeader: RGBA(hex: 0x5A544A)
         ],
         dark: [
             .paper: RGBA(hex: 0x1B1A18),
@@ -79,7 +79,7 @@ public struct PaletteSpec: Sendable {
             .severityInfo: RGBA(hex: 0x8FB8F5),
             .diffAddition: RGBA(hex: 0x86DCA5),
             .diffRemoval: RGBA(hex: 0xFF9A86),
-            .diffHeader: RGBA(hex: 0xB2AB9D),
+            .diffHeader: RGBA(hex: 0xB2AB9D)
         ])
 
     /// WCAG 2.x contrast ratio. A translucent foreground is composited over

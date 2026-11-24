@@ -129,13 +129,17 @@ struct ReportView: View {
             .foregroundStyle(Tokens.Palette.tertiary)
     }
 
+    private func criticalTint(_ card: ReportCard) -> Color? {
+        card.critical > 0 ? Tokens.Palette.accentText : nil
+    }
+
     private func tiles(_ card: ReportCard) -> some View {
         HStack(spacing: 10) {
             tile(card.commands, L(.reportCommands))
             tile(card.edits, L(.reportEdits))
             tile(card.reads, L(.reportReads))
             tile(card.filesChanged, L(.reportFilesChanged))
-            tile(card.critical, L(.severityCritical), tint: card.critical > 0 ? Tokens.Palette.accentText : nil)
+            tile(card.critical, L(.severityCritical), tint: criticalTint(card))
             tile(card.warnings, L(.severityWarning))
         }
     }

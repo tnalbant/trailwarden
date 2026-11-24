@@ -157,8 +157,7 @@ private struct PriceListLine: View {
                 if let status {
                     Text(status)
                         .font(Tokens.Typography.mono(9.5))
-                        .foregroundStyle(book.updateState == .failed ? Tokens.Palette.accentText : Tokens.Palette
-                            .secondary)
+                        .foregroundStyle(statusTint)
                 }
             }
             if book.table.isStale() {
@@ -168,6 +167,10 @@ private struct PriceListLine: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
+    }
+
+    private var statusTint: Color {
+        book.updateState == .failed ? Tokens.Palette.accentText : Tokens.Palette.secondary
     }
 
     private var status: String? {
