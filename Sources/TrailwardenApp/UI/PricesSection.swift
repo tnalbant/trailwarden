@@ -23,7 +23,7 @@ struct PricesSection: View {
                 }
                 Text(Lf(.pricesSummary, [book.rows.count, book.unpricedCount, book.userCount]))
                     .font(Tokens.Typography.mono(9.5))
-                    .foregroundStyle(book.unpricedCount > 0 ? Tokens.Palette.accent : Tokens.Palette
+                    .foregroundStyle(book.unpricedCount > 0 ? Tokens.Palette.accentText : Tokens.Palette
                         .secondary)
             }
             Text(L(.pricesHint))
@@ -102,7 +102,7 @@ struct PricesWindow: View {
             if let problem = book.problem {
                 Text(problem)
                     .font(Tokens.Typography.text(9.5))
-                    .foregroundStyle(Tokens.Palette.accent)
+                    .foregroundStyle(Tokens.Palette.accentText)
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
@@ -157,14 +157,14 @@ private struct PriceListLine: View {
                 if let status {
                     Text(status)
                         .font(Tokens.Typography.mono(9.5))
-                        .foregroundStyle(book.updateState == .failed ? Tokens.Palette.accent : Tokens.Palette
+                        .foregroundStyle(book.updateState == .failed ? Tokens.Palette.accentText : Tokens.Palette
                             .secondary)
                 }
             }
             if book.table.isStale() {
                 Text(L(.pricesStale))
                     .font(Tokens.Typography.text(9.5, weight: .medium))
-                    .foregroundStyle(Tokens.Palette.accent)
+                    .foregroundStyle(Tokens.Palette.accentText)
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
@@ -239,7 +239,7 @@ private struct PriceRowEditor: View {
                     .truncationMode(.middle)
                 Text(caption)
                     .font(Tokens.Typography.text(9))
-                    .foregroundStyle(price == nil ? Tokens.Palette.accent : Tokens.Palette.secondary)
+                    .foregroundStyle(price == nil ? Tokens.Palette.accentText : Tokens.Palette.secondary)
                     .lineLimit(1)
             }
             .frame(width: PriceLayout.model, alignment: .leading)

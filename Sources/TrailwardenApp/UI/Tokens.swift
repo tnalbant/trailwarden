@@ -14,53 +14,38 @@ import TrailwardenCore
 /// it renders correctly on every Mac and in both appearances.
 enum Tokens {
     enum Palette {
-        static let paper = dynamic(
-            light: NSColor(srgbRed: 0xFA / 255, green: 0xF7 / 255, blue: 0xF2 / 255, alpha: 1),
-            dark: NSColor(srgbRed: 0x1B / 255, green: 0x1A / 255, blue: 0x18 / 255, alpha: 1))
-        static let surface = dynamic(
-            light: NSColor(srgbRed: 0xF2 / 255, green: 0xEC / 255, blue: 0xE3 / 255, alpha: 1),
-            dark: NSColor(srgbRed: 0x24 / 255, green: 0x23 / 255, blue: 0x21 / 255, alpha: 1))
-        static let ink = dynamic(
-            light: NSColor(srgbRed: 0x19 / 255, green: 0x17 / 255, blue: 0x14 / 255, alpha: 1),
-            dark: NSColor(srgbRed: 0xF3 / 255, green: 0xF0 / 255, blue: 0xEA / 255, alpha: 1))
-        static let secondary = dynamic(
-            light: NSColor(srgbRed: 0x19 / 255, green: 0x17 / 255, blue: 0x14 / 255, alpha: 0.66),
-            dark: NSColor(srgbRed: 0xF3 / 255, green: 0xF0 / 255, blue: 0xEA / 255, alpha: 0.62))
-        static let tertiary = dynamic(
-            light: NSColor(srgbRed: 0x19 / 255, green: 0x17 / 255, blue: 0x14 / 255, alpha: 0.42),
-            dark: NSColor(srgbRed: 0xF3 / 255, green: 0xF0 / 255, blue: 0xEA / 255, alpha: 0.40))
-        static let accent = dynamic(
-            light: NSColor(srgbRed: 0xE4 / 255, green: 0x57 / 255, blue: 0x2E / 255, alpha: 1),
-            dark: NSColor(srgbRed: 0xFF / 255, green: 0x7A / 255, blue: 0x50 / 255, alpha: 1))
-        static let hairline = dynamic(
-            light: NSColor(srgbRed: 0x19 / 255, green: 0x17 / 255, blue: 0x14 / 255, alpha: 0.14),
-            dark: NSColor(white: 1, alpha: 0.13))
-        static let selection = dynamic(
-            light: NSColor(srgbRed: 0xE4 / 255, green: 0x57 / 255, blue: 0x2E / 255, alpha: 0.13),
-            dark: NSColor(srgbRed: 0xFF / 255, green: 0x7A / 255, blue: 0x50 / 255, alpha: 0.20))
-        /// Diff colours keep at least 4.5:1 against the surface in both modes.
-        static let diffAddition = dynamic(
-            light: NSColor(srgbRed: 0x1B / 255, green: 0x5E / 255, blue: 0x33 / 255, alpha: 1),
-            dark: NSColor(srgbRed: 0x86 / 255, green: 0xDC / 255, blue: 0xA5 / 255, alpha: 1))
-        static let diffRemoval = dynamic(
-            light: NSColor(srgbRed: 0x99 / 255, green: 0x2C / 255, blue: 0x1B / 255, alpha: 1),
-            dark: NSColor(srgbRed: 0xFF / 255, green: 0x9A / 255, blue: 0x86 / 255, alpha: 1))
-        static let diffHeader = dynamic(
-            light: NSColor(srgbRed: 0x5A / 255, green: 0x54 / 255, blue: 0x4A / 255, alpha: 1),
-            dark: NSColor(srgbRed: 0xB2 / 255, green: 0xAB / 255, blue: 0x9D / 255, alpha: 1))
+        static let paper = color(.paper)
+        static let surface = color(.surface)
+        static let ink = color(.ink)
+        static let secondary = color(.secondary)
+        static let tertiary = color(.tertiary)
+        /// Terracotta for marks only (dots, bars, strips, fills). Text uses `accentText`.
+        static let accent = color(.accent)
+        /// The terracotta that meets 4.5:1 as text on paper and surface.
+        static let accentText = color(.accentText)
+        static let hairline = color(.hairline)
+        static let selection = color(.selection)
+        static let diffAddition = color(.diffAddition)
+        static let diffRemoval = color(.diffRemoval)
+        static let diffHeader = color(.diffHeader)
 
         static func severity(_ severity: Severity) -> Color {
             switch severity {
-            case .critical: dynamic(
-                    light: NSColor(srgbRed: 0xB3 / 255, green: 0x27 / 255, blue: 0x1B / 255, alpha: 1),
-                    dark: NSColor(srgbRed: 0xFF / 255, green: 0x8B / 255, blue: 0x7A / 255, alpha: 1))
-            case .warn: dynamic(
-                    light: NSColor(srgbRed: 0x8A / 255, green: 0x5A / 255, blue: 0x00 / 255, alpha: 1),
-                    dark: NSColor(srgbRed: 0xF5 / 255, green: 0xC2 / 255, blue: 0x60 / 255, alpha: 1))
-            case .info: dynamic(
-                    light: NSColor(srgbRed: 0x2E / 255, green: 0x4B / 255, blue: 0x7A / 255, alpha: 1),
-                    dark: NSColor(srgbRed: 0x8F / 255, green: 0xB8 / 255, blue: 0xF5 / 255, alpha: 1))
+            case .critical: color(.severityCritical)
+            case .warn: color(.severityWarn)
+            case .info: color(.severityInfo)
             }
+        }
+
+        /// One dynamic colour per role, read from the tested `PaletteSpec`.
+        static func color(_ role: PaletteRole) -> Color {
+            let spec = PaletteSpec.paper
+            guard let light = spec.light[role], let dark = spec.dark[role] else { return .clear }
+            return dynamic(light: nsColor(light), dark: nsColor(dark))
+        }
+
+        private static func nsColor(_ value: RGBA) -> NSColor {
+            NSColor(srgbRed: value.red, green: value.green, blue: value.blue, alpha: value.alpha)
         }
 
         static func dynamic(light: NSColor, dark: NSColor) -> Color {

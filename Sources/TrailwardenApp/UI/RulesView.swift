@@ -158,7 +158,7 @@ struct RulesView: View {
                     HStack(spacing: 8) {
                         Text(mute.ruleId)
                             .font(Tokens.Typography.mono(9, weight: .medium))
-                            .foregroundStyle(Tokens.Palette.accent)
+                            .foregroundStyle(Tokens.Palette.accentText)
                         Text(mute.target)
                             .font(Tokens.Typography.mono(9))
                             .lineLimit(1)
@@ -172,7 +172,7 @@ struct RulesView: View {
                         }
                         .buttonStyle(.plain)
                         .font(Tokens.Typography.text(9.5, weight: .medium))
-                        .foregroundStyle(Tokens.Palette.accent)
+                        .foregroundStyle(Tokens.Palette.accentText)
                     }
                 }
             }
@@ -207,7 +207,7 @@ struct RulesView: View {
             } label: {
                 Text(L(.reapply))
                     .font(Tokens.Typography.text(10.5, weight: .medium))
-                    .foregroundStyle(Tokens.Palette.accent)
+                    .foregroundStyle(Tokens.Palette.accentText)
             }
             .buttonStyle(.plain)
             .disabled(model.isReapplying)

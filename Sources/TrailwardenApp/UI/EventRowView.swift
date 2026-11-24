@@ -12,6 +12,11 @@ extension Severity {
         case .info: Tokens.Palette.secondary
         }
     }
+
+    /// The tint for text: the terracotta accent is only for marks.
+    var textTint: Color {
+        self == .critical ? Tokens.Palette.accentText : tint
+    }
 }
 
 /// One line of the event stream: time, agent, tool, the command or text, and the
@@ -52,7 +57,7 @@ struct EventRowView: View {
                         ForEach(event.risk, id: \.ruleId) { hit in
                             Text("\(hit.ruleId) \(LocalizationStore.current.severity(hit.severity))")
                                 .font(Tokens.Typography.text(8.5, weight: .medium))
-                                .foregroundStyle(hit.severity.tint)
+                                .foregroundStyle(hit.severity.textTint)
                         }
                     }
                     Text(event.preview ?? event.command ?? "—")

@@ -50,7 +50,7 @@ struct UsageView: View {
             if model.costEstimate.pricedTokens > 0 {
                 Text(Lf(.estimatedCost, [Self.dollars(model.costEstimate.dollars)]))
                     .font(Tokens.Typography.mono(10, weight: .semibold))
-                    .foregroundStyle(Tokens.Palette.accent)
+                    .foregroundStyle(Tokens.Palette.accentText)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -219,13 +219,13 @@ struct UsageView: View {
             if model.prices.isStale() {
                 Text(L(.pricesStale))
                     .font(Tokens.Typography.text(10))
-                    .foregroundStyle(Tokens.Palette.accent)
+                    .foregroundStyle(Tokens.Palette.accentText)
                     .fixedSize(horizontal: false, vertical: true)
             }
             if let error = model.priceFileError {
                 Text(Lf(.priceFileError, [error]))
                     .font(Tokens.Typography.text(10))
-                    .foregroundStyle(Tokens.Palette.accent)
+                    .foregroundStyle(Tokens.Palette.accentText)
                     .fixedSize(horizontal: false, vertical: true)
             }
         }

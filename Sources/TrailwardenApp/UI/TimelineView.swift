@@ -146,7 +146,7 @@ struct TimelineView: View {
             if session.criticalCount > 0 {
                 Text("\(session.criticalCount)")
                     .font(Tokens.Typography.text(9, weight: .medium))
-                    .foregroundStyle(Tokens.Palette.accent)
+                    .foregroundStyle(Tokens.Palette.accentText)
             }
         }
     }
@@ -278,7 +278,7 @@ struct TimelineView: View {
             }
             .buttonStyle(.plain)
             .font(Tokens.Typography.text(11, weight: .medium))
-            .foregroundStyle(Tokens.Palette.accent)
+            .foregroundStyle(Tokens.Palette.accentText)
             .padding(.top, 2)
         }
         .padding(24)
@@ -289,7 +289,7 @@ struct TimelineView: View {
             if let error = model.errorMessage {
                 Text(error)
                     .font(Tokens.Typography.text(10))
-                    .foregroundStyle(Tokens.Palette.accent)
+                    .foregroundStyle(Tokens.Palette.accentText)
                     .lineLimit(1)
             } else {
                 Text(model.events.isEmpty

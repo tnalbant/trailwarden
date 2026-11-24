@@ -135,7 +135,7 @@ struct ReportView: View {
             tile(card.edits, L(.reportEdits))
             tile(card.reads, L(.reportReads))
             tile(card.filesChanged, L(.reportFilesChanged))
-            tile(card.critical, L(.severityCritical), tint: card.critical > 0 ? Tokens.Palette.accent : nil)
+            tile(card.critical, L(.severityCritical), tint: card.critical > 0 ? Tokens.Palette.accentText : nil)
             tile(card.warnings, L(.severityWarning))
         }
     }

@@ -20,7 +20,7 @@ struct FeedView: View {
             if let error = model.errorMessage {
                 Text(error)
                     .font(Tokens.Typography.text(11))
-                    .foregroundStyle(Tokens.Palette.accent)
+                    .foregroundStyle(Tokens.Palette.accentText)
                     .padding(.horizontal, Tokens.Metrics.gutter)
                     .padding(.vertical, 8)
             }

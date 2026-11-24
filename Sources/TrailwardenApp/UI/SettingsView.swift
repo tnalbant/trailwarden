@@ -159,7 +159,7 @@ struct SettingsView: View {
                 }
                 .buttonStyle(.plain)
                 .font(Tokens.Typography.text(10, weight: .medium))
-                .foregroundStyle(Tokens.Palette.accent)
+                .foregroundStyle(Tokens.Palette.accentText)
             }
             Text(L(.retentionHint))
                 .font(Tokens.Typography.text(9.5))
@@ -182,7 +182,7 @@ struct SettingsView: View {
                 Button(L(.exportAction)) { exportNow() }
                     .buttonStyle(.plain)
                     .font(Tokens.Typography.text(10.5, weight: .medium))
-                    .foregroundStyle(Tokens.Palette.accent)
+                    .foregroundStyle(Tokens.Palette.accentText)
                 Spacer()
                 Text(L(.exportRange))
                     .font(Tokens.Typography.text(9.5))
@@ -314,7 +314,7 @@ private struct LiveSection: View {
                     Text(live
                         .permission == .denied ? L(.liveNotificationsDenied) : L(.onboardingNotifications))
                         .font(Tokens.Typography.text(9.5, weight: .medium))
-                        .foregroundStyle(Tokens.Palette.accent)
+                        .foregroundStyle(Tokens.Palette.accentText)
                         .fixedSize(horizontal: false, vertical: true)
                     HStack(spacing: 10) {
                         // Once the answer is "no" the system will not prompt again;

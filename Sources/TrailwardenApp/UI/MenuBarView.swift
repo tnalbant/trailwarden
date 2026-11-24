@@ -110,7 +110,7 @@ struct MenuBarView: View {
             }
             .buttonStyle(.plain)
             .font(Tokens.Typography.text(9.5, weight: .medium))
-            .foregroundStyle(Tokens.Palette.accent)
+            .foregroundStyle(Tokens.Palette.accentText)
         }
         .padding(.horizontal, Tokens.Metrics.gutter)
         .padding(.bottom, 4)
@@ -133,7 +133,7 @@ struct MenuBarView: View {
             }
             .buttonStyle(.plain)
             .font(Tokens.Typography.text(9.5, weight: .medium))
-            .foregroundStyle(Tokens.Palette.accent)
+            .foregroundStyle(Tokens.Palette.accentText)
         }
         .padding(.horizontal, Tokens.Metrics.gutter)
         .padding(.bottom, 4)
@@ -162,7 +162,7 @@ struct MenuBarView: View {
                     }
                     .buttonStyle(.plain)
                     .font(Tokens.Typography.text(9.5, weight: .medium))
-                    .foregroundStyle(Tokens.Palette.accent)
+                    .foregroundStyle(Tokens.Palette.accentText)
                 }
             }
             Spacer(minLength: 2)
@@ -172,7 +172,7 @@ struct MenuBarView: View {
                 Text(L(.checkUpdates))
                     .font(Tokens.Typography.text(9.5, weight: .medium))
                     .foregroundStyle(updates.state == .checking ? Tokens.Palette.tertiary : Tokens.Palette
-                        .accent)
+                        .accentText)
             }
             .buttonStyle(.plain)
             .disabled(updates.state == .checking)
@@ -197,7 +197,7 @@ struct MenuBarView: View {
                     HStack(alignment: .firstTextBaseline, spacing: 5) {
                         Text("\(model.snapshot.criticalToday)")
                             .font(Tokens.Typography.serif(20, weight: .semibold))
-                            .foregroundStyle(Tokens.Palette.accent)
+                            .foregroundStyle(Tokens.Palette.accentText)
                         Text(L(.severityCritical))
                             .font(Tokens.Typography.text(10))
                             .foregroundStyle(Tokens.Palette.secondary)
@@ -237,7 +237,7 @@ struct MenuBarView: View {
             if let error = model.errorMessage {
                 Text(error)
                     .font(Tokens.Typography.text(10))
-                    .foregroundStyle(Tokens.Palette.accent)
+                    .foregroundStyle(Tokens.Palette.accentText)
                     .lineLimit(2)
             }
             if model.snapshot.messagesToday > 0 {
@@ -330,7 +330,7 @@ struct MenuBarView: View {
             let text = Lf(.updateAvailable, [feed.version])
             return UpdateLine(
                 icon: "arrow.down.circle", text: feed.notes.map { "\(text) — \($0)" } ?? text,
-                tint: Tokens.Palette.accent, weight: .medium, link: feed.url)
+                tint: Tokens.Palette.accentText, weight: .medium, link: feed.url)
         case .failed:
             return UpdateLine(
                 icon: "exclamationmark.triangle", text: L(.updateCheckFailed),
@@ -342,7 +342,7 @@ struct MenuBarView: View {
 
     private var footer: some View {
         HStack(spacing: 10) {
-            footerButton(L(.openDashboard), tint: Tokens.Palette.accent, weight: .medium) {
+            footerButton(L(.openDashboard), tint: Tokens.Palette.accentText, weight: .medium) {
                 openMain(nil)
             }
 
@@ -366,7 +366,7 @@ struct MenuBarView: View {
             if !model.liveSessions.isEmpty {
                 Text(Lf(.liveCount, [model.liveSessions.count]))
                     .font(Tokens.Typography.mono(9, weight: .medium))
-                    .foregroundStyle(Tokens.Palette.accent)
+                    .foregroundStyle(Tokens.Palette.accentText)
             }
 
             overflowButton

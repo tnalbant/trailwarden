@@ -133,7 +133,7 @@ struct EventDetailView: View {
                 }
                 .buttonStyle(.plain)
                 .font(Tokens.Typography.text(10, weight: .medium))
-                .foregroundStyle(Tokens.Palette.accent)
+                .foregroundStyle(Tokens.Palette.accentText)
             }
         }
     }
@@ -156,7 +156,7 @@ struct EventDetailView: View {
                         Button(L(.muteThirtyDays)) { onMute(hit, event) }
                             .buttonStyle(.plain)
                             .font(Tokens.Typography.text(9, weight: .medium))
-                            .foregroundStyle(Tokens.Palette.accent)
+                            .foregroundStyle(Tokens.Palette.accentText)
                             .help(L(.muteThirtyDaysHint))
                     }
                 }
@@ -254,7 +254,7 @@ struct EventDetailView: View {
         } label: {
             Text(copiedField == field ? L(.copied) : L(.copy))
                 .font(Tokens.Typography.text(9.5, weight: .medium))
-                .foregroundStyle(Tokens.Palette.accent)
+                .foregroundStyle(Tokens.Palette.accentText)
         }
         .buttonStyle(.plain)
     }
@@ -307,7 +307,7 @@ private struct FileNeighborsView: View {
                             Text(touch.action.label(LocalizationStore.current))
                                 .font(Tokens.Typography.mono(9))
                                 .foregroundStyle(touch.action == .changed
-                                    ? Tokens.Palette.accent
+                                    ? Tokens.Palette.accentText
                                     : Tokens.Palette.secondary)
                             Text(EventFormatting.stamp(touch.event.ts))
                                 .font(Tokens.Typography.mono(9))

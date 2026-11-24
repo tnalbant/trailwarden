@@ -119,7 +119,7 @@ struct MainWindowView: View {
                         Image(systemName: "chevron.right")
                             .font(.system(size: 7, weight: .semibold))
                     }
-                    .foregroundStyle(Tokens.Palette.accent)
+                    .foregroundStyle(Tokens.Palette.accentText)
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)

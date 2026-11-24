@@ -69,7 +69,7 @@ struct OnboardingView: View {
                     .font(Tokens.Typography.text(11, weight: .semibold))
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 6)
-                    .background(Tokens.Palette.accent)
+                    .background(Tokens.Palette.accentText)
                     .foregroundStyle(Tokens.Palette.paper)
                     .clipShape(RoundedRectangle(cornerRadius: 6))
             }
@@ -101,7 +101,7 @@ private struct NotificationPermissionRow: View {
             case .allowed:
                 Text(L(.liveNotificationsAllowed))
                     .font(Tokens.Typography.text(9.5, weight: .medium))
-                    .foregroundStyle(Tokens.Palette.accent)
+                    .foregroundStyle(Tokens.Palette.accentText)
             case .unknown:
                 Button(L(.liveAllowNotifications)) { live.requestNotifications() }
                     .buttonStyle(.bordered)
