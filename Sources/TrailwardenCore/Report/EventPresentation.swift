@@ -71,8 +71,12 @@ public enum EventPresentation {
         case .sessionStart, .permission, .tokenUsage: return .other
         }
         guard let tool = event.tool else { return .other }
-        if searchTools.contains(tool.lowercased()) { return .searched }
-        if tool == "apply_patch" { return .edited }
+        if searchTools.contains(tool.lowercased()) {
+            return .searched
+        }
+        if tool == "apply_patch" {
+            return .edited
+        }
         switch RuleEngine.canonicalTool(tool) {
         case "Bash": return .ran
         case "Read": return .read
@@ -150,8 +154,12 @@ public enum EventPresentation {
     private static func shorten(_ path: String, home: String) -> String {
         let homePath = normalize(home)
         if homePath.count > 1 {
-            if path == homePath { return "~" }
-            if path.hasPrefix(homePath + "/") { return "~" + path.dropFirst(homePath.count) }
+            if path == homePath {
+                return "~"
+            }
+            if path.hasPrefix(homePath + "/") {
+                return "~" + path.dropFirst(homePath.count)
+            }
         }
         return Redactor().shortenHome(path)
     }
