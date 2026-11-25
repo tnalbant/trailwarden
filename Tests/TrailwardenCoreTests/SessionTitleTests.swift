@@ -47,7 +47,7 @@ final class SessionTitleTests: XCTestCase {
 
         let title = try XCTUnwrap(result.titles["sess-title-1"])
         XCTAssertEqual(title.source, .summary)
-        XCTAssertEqual(title.text, "Rename notes to archive", "the later record wins, and beats the first message")
+        XCTAssertEqual(title.text, "Archive the notes", "the last title record wins, and beats the first message")
         XCTAssertEqual(result.skippedLines, 0)
     }
 
@@ -58,6 +58,28 @@ final class SessionTitleTests: XCTestCase {
         ])
         let title = try XCTUnwrap(ClaudeCodeParser().parse(file: url).titles["sess-s"])
         XCTAssertEqual(title, SessionTitle(text: "Plan the release", source: .summary))
+    }
+
+    /// Claude Code 2.x: `{"type":"custom-title","customTitle":…,"sessionId":…}`.
+    func testCustomTitleRecordIsASummaryTitle() throws {
+        let url = try write("custom.jsonl", [
+            claudeUser("sess-c", "hello there"),
+            #"{"type":"custom-title","customTitle":"Ship the beta","sessionId":"sess-c"}"#
+        ])
+        let result = try ClaudeCodeParser().parse(file: url)
+        XCTAssertEqual(result.titles["sess-c"], SessionTitle(text: "Ship the beta", source: .summary))
+        XCTAssertEqual(result.skippedLines, 0)
+    }
+
+    func testReminderBlockBeforeThePromptIsSkipped() throws {
+        let reminder = "<system-reminder>\\nline one\\nline two\\n</system-reminder>"
+        let url = try write("blocks.jsonl", [
+            """
+            {"type":"user","sessionId":"sess-b","timestamp":"2026-11-25T08:00:00.000Z","message":{"role":"user","content":[{"type":"text","text":"\(reminder)"},{"type":"text","text":"fix the login test"}]}}
+            """
+        ])
+        let result = try ClaudeCodeParser().parse(file: url)
+        XCTAssertEqual(result.titles["sess-b"], SessionTitle(text: "fix the login test", source: .firstMessage))
     }
 
     func testFirstUserMessageFallback() throws {
@@ -196,16 +218,16 @@ final class SessionTitleTests: XCTestCase {
         let roots = [ScanRoot(directory: directory, parser: ClaudeCodeParser())]
 
         _ = try TranscriptScanner(store: store).scan(roots: roots)
-        XCTAssertEqual(try store.sessions().first?.title, "Rename notes to archive")
+        XCTAssertEqual(try store.sessions().first?.title, "Archive the notes")
 
         try store.refreshSession("sess-title-1")
-        XCTAssertEqual(try store.sessions().first?.title, "Rename notes to archive")
+        XCTAssertEqual(try store.sessions().first?.title, "Archive the notes")
 
         try store.requestFullReread()
         let again = try TranscriptScanner(store: store).scan(roots: roots)
         XCTAssertEqual(again.filesParsed, 1, "the file was really read again")
         XCTAssertEqual(try store.sessions().count, 1)
-        XCTAssertEqual(try store.sessions().first?.title, "Rename notes to archive")
+        XCTAssertEqual(try store.sessions().first?.title, "Archive the notes")
     }
 
     func testV9MigrationForcesOneRereadSoOldSessionsGetTitles() throws {
@@ -226,7 +248,55 @@ final class SessionTitleTests: XCTestCase {
         XCTAssertNil(try upgraded.sessions().first?.title)
         let report = try TranscriptScanner(store: upgraded).scan(roots: roots)
         XCTAssertEqual(report.filesParsed, 1, "the signature was forgotten")
-        XCTAssertEqual(try upgraded.sessions().first?.title, "Rename notes to archive")
+        XCTAssertEqual(try upgraded.sessions().first?.title, "Archive the notes")
         XCTAssertEqual(try upgraded.sessions().count, 1)
+    }
+
+    func testReviewAndAllowanceSurviveRescanAndMigration() throws {
+        let directory = temporaryDirectory.appendingPathComponent("risky", isDirectory: true)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        let risky = """
+        {"type":"assistant","sessionId":"sess-r","timestamp":"2026-11-25T08:00:02.000Z","cwd":"/tmp/demo","message":{"role":"assistant","content":[{"type":"tool_use","id":"toolu_1","name":"Bash","input":{"command":"rm -rf /","description":"wipe"}}]}}
+        """
+        let lines = [
+            claudeUser("sess-r", "clean the disk"),
+            risky,
+            #"{"type":"custom-title","customTitle":"Disk cleanup","sessionId":"sess-r"}"#
+        ]
+        try (lines.joined(separator: "\n") + "\n")
+            .write(to: directory.appendingPathComponent("r.jsonl"), atomically: true, encoding: .utf8)
+        let roots = [ScanRoot(directory: directory, parser: ClaudeCodeParser())]
+        let url = temporaryDirectory.appendingPathComponent("survive.sqlite")
+
+        func scanner(_ store: EventStore) throws -> TranscriptScanner {
+            try TranscriptScanner(store: store, rules: RuleEngine.builtIn())
+        }
+        let store = try EventStore(url: url)
+        _ = try scanner(store).scan(roots: roots)
+        let found = try XCTUnwrap(store.events(matching: EventQuery()).first { !$0.risk.isEmpty })
+        let key = try FindingKey.event(found.id, rule: XCTUnwrap(found.risk.first).ruleId)
+        try store.setReview(.expected, for: key)
+        try store.addAllowance(Allowance(ruleId: "R-keep", scope: .everywhere, until: nil))
+
+        func assertIntact(_ store: EventStore, _ message: String) throws {
+            XCTAssertEqual(try store.reviewStates(for: [key]), [key: .expected], message)
+            XCTAssertEqual(try store.allowances().map(\.ruleId), ["R-keep"], message)
+            XCTAssertEqual(try store.sessions().first?.title, "Disk cleanup", message)
+        }
+        try store.requestFullReread()
+        XCTAssertEqual(try scanner(store).scan(roots: roots).filesParsed, 1)
+        try assertIntact(store, "after a forced reread")
+
+        // The v9 migration path: back to schema 8, reopen, rescan.
+        _ = try store.prepareRowStatement("PRAGMA user_version = 8").step()
+        let upgraded = try EventStore(url: url)
+        XCTAssertEqual(try scanner(upgraded).scan(roots: roots).filesParsed, 1)
+        try assertIntact(upgraded, "after the migration")
+
+        let reopened = try EventStore(url: url)
+        let third = try scanner(reopened).scan(roots: roots)
+        XCTAssertEqual(third.filesParsed, 0, "no second full reread")
+        XCTAssertEqual(third.filesUnchanged, 1)
+        try assertIntact(reopened, "after a plain reopen")
     }
 }

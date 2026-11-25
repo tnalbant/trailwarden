@@ -156,9 +156,11 @@ public struct ClaudeCodeParser: AgentParser {
                     }
                 }
 
-            case "summary", "ai-title":
-                let key = type == "summary" ? "summary" : "title"
-                if let text = object[key] as? String ?? object["aiTitle"] as? String {
+            case "summary", "ai-title", "custom-title":
+                // Claude Code 2.x writes `custom-title` (`customTitle`); older
+                // transcripts carry `summary` or `ai-title`.
+                let keys = ["customTitle", "summary", "title", "aiTitle"]
+                if let text = keys.lazy.compactMap({ object[$0] as? String }).first {
                     agentTitle = (text, object["sessionId"] as? String)
                 }
 
@@ -193,8 +195,10 @@ public struct ClaudeCodeParser: AgentParser {
             return text
         }
         guard let blocks = content as? [[String: Any]] else { return nil }
-        let parts = blocks.filter { $0["type"] as? String == "text" }.compactMap { $0["text"] as? String }
-        return parts.isEmpty ? nil : parts.joined(separator: "\n")
+        // Each block is judged on its own: a system-reminder block may come first.
+        return blocks.filter { $0["type"] as? String == "text" }
+            .compactMap { $0["text"] as? String }
+            .first { SessionTitle.fromFirstMessage($0) != nil }
     }
 
     private func usageEvent(_ pending: PendingUsage, source: String) -> Event {
@@ -245,7 +249,7 @@ public struct ClaudeCodeParser: AgentParser {
     static let knownTypes: Set<String> = [
         "user", "assistant", "system", "attachment",
         "file-history-snapshot", "mode", "permission-mode",
-        "last-prompt", "ai-title", "summary"
+        "last-prompt", "ai-title", "summary", "custom-title"
     ]
 
     static let previewLimit = 500
