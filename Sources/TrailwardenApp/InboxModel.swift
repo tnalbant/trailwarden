@@ -9,6 +9,7 @@ import TrailwardenCore
 final class InboxModel: ObservableObject {
     @Published private(set) var findings: [InboxFinding] = []
     @Published private(set) var backlog: Int?
+    @Published private(set) var expiringClaudeSessions = 0
     @Published var errorMessage: String?
 
     private let databaseURL: URL
@@ -20,9 +21,12 @@ final class InboxModel: ObservableObject {
 
     func reload() {
         do {
-            let snapshot = try Inbox.load(from: EventStore(url: databaseURL))
+            let snapshot = try Inbox.load(
+                from: EventStore(url: databaseURL),
+                claudeSettingsURL: ClaudeCleanup.defaultSettingsURL)
             findings = snapshot.unreviewed
             backlog = snapshot.backlog
+            expiringClaudeSessions = snapshot.expiringClaudeSessions
             errorMessage = nil
         } catch {
             errorMessage = TechnicalDetails.errorText(error)

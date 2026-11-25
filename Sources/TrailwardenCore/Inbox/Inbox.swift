@@ -35,11 +35,19 @@ public struct InboxSnapshot: Sendable {
     /// How many findings predate the first 0.3 launch; non-nil only while the
     /// reader has not yet chosen what to do with them.
     public let backlog: Int?
+    /// Claude Code sessions its own cleanup will delete within a week.
+    public let expiringClaudeSessions: Int
 
-    public init(unreviewed: [InboxFinding], unreviewedCritical: Int, backlog: Int?) {
+    public init(
+        unreviewed: [InboxFinding],
+        unreviewedCritical: Int,
+        backlog: Int?,
+        expiringClaudeSessions: Int = 0)
+    {
         self.unreviewed = unreviewed
         self.unreviewedCritical = unreviewedCritical
         self.backlog = backlog
+        self.expiringClaudeSessions = expiringClaudeSessions
     }
 }
 
@@ -51,7 +59,8 @@ public enum Inbox {
     public static func load(
         from store: EventStore,
         now: Date = Date(),
-        limit: Int = 200)
+        limit: Int = 200,
+        claudeSettingsURL: URL? = nil)
         throws -> InboxSnapshot
     {
         let firstLaunch = try firstLaunchDate(store, now: now)
@@ -88,7 +97,11 @@ public enum Inbox {
         return InboxSnapshot(
             unreviewed: Array(open.prefix(limit)),
             unreviewedCritical: open.filter { $0.severity == .critical }.count,
-            backlog: backlog)
+            backlog: backlog,
+            expiringClaudeSessions: claudeSettingsURL.map {
+                (try? ClaudeCleanup.expiringSoon(
+                    store: store, period: ClaudeCleanup.period(settingsURL: $0), now: now)) ?? 0
+            } ?? 0)
     }
 
     /// How many unreviewed critical findings there are, without building events
