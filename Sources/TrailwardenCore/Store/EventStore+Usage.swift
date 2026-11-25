@@ -11,7 +11,7 @@ extension EventStore {
     /// per response). They are dropped and every source is read again: files by
     /// forgetting their signatures, databases by ignoring their watermark once.
     func forgetOldTokenEvents() throws {
-        try database.execute("DELETE FROM scanned_files")
+        try requestFullReread()
         let sessions = try database.prepare(
             "SELECT DISTINCT session_id FROM events WHERE kind = 'token_usage'")
         var ids: [String] = []
@@ -24,6 +24,12 @@ extension EventStore {
         for id in ids {
             try refreshSession(id)
         }
+    }
+
+    /// The next scan reads every source in full: files by forgetting their
+    /// signatures, databases by ignoring their watermark once.
+    func requestFullReread() throws {
+        try database.execute("DELETE FROM scanned_files")
         let reread = try database.prepare("INSERT OR IGNORE INTO rereads (agent) VALUES (?)")
         for agent in Agent.allCases {
             try reread.bind([.text(agent.rawValue)])

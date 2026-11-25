@@ -60,6 +60,7 @@ public struct OpencodeDatabaseParser: DatabaseAgentParser {
         var sessions: [String: String] = [:]
         var events: [Event] = []
         var skipped = 0
+        var collector = TitleCollector()
 
         // Token columns came in over several releases; a missing one reads as 0.
         var columns = Set<String>()
@@ -124,6 +125,9 @@ public struct OpencodeDatabaseParser: DatabaseAgentParser {
                 return
             }
             let ts = Date(timeIntervalSince1970: row.double(3) / 1000)
+            if type == "user" {
+                collector.firstMessage(object["text"] as? String, session: sessionID)
+            }
             events.append(contentsOf: Self.events(
                 messageID: messageID,
                 sessionID: sessionID,
@@ -132,7 +136,7 @@ public struct OpencodeDatabaseParser: DatabaseAgentParser {
                 cwd: sessions[sessionID],
                 data: object))
         }
-        return ParseResult(events: events, skippedLines: skipped)
+        return ParseResult(events: events, skippedLines: skipped, titles: collector.titles)
     }
 
     // MARK: - Mapping

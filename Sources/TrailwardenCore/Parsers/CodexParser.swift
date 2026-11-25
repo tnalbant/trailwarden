@@ -33,7 +33,7 @@ public struct CodexParser: AgentParser {
 
     // A switch over the transcript's event types: every case is one shape the
     // agent writes, and counting them as branches says nothing useful.
-    // swiftlint:disable:next cyclomatic_complexity
+    // swiftlint:disable:next cyclomatic_complexity function_body_length
     public func parse(file: URL) throws -> ParseResult {
         var events: [Event] = []
         var skippedLines = 0
@@ -44,6 +44,7 @@ public struct CodexParser: AgentParser {
         var toolNamesByCallId: [String: String] = [:]
         var indexInLine = 0
         var tokens = TokenTracker()
+        var collector = TitleCollector()
 
         let source = Self.logicalPath(of: file)
         let fallbackTimestamp = Self.modificationDate(of: file) ?? Date(timeIntervalSince1970: 0)
@@ -132,6 +133,9 @@ public struct CodexParser: AgentParser {
                     // not part of the session's story.
                     let role = payload["role"] as? String ?? "assistant"
                     if role != "developer", let text = Self.text(from: payload["content"]) {
+                        if role == "user" {
+                            collector.firstMessage(text, session: sessionId)
+                        }
                         add(.message, preview: text)
                     }
 
@@ -196,7 +200,7 @@ public struct CodexParser: AgentParser {
         if tokens.sawRunningTotal, !tokens.recordIDs.isEmpty {
             events.removeAll { tokens.recordIDs.contains($0.id) }
         }
-        return ParseResult(events: events, skippedLines: skippedLines)
+        return ParseResult(events: events, skippedLines: skippedLines, titles: collector.titles)
     }
 
     /// What a rollout has said about tokens so far.

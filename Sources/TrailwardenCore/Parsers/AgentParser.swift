@@ -32,9 +32,13 @@ public struct ParseResult: Sendable, Equatable {
     public let events: [Event]
     /// Lines that were not valid JSON, or whose `type` the parser does not know.
     public let skippedLines: Int
+    /// Session id to the best title found in this file; an agent-written
+    /// title beats the first user message.
+    public let titles: [String: SessionTitle]
 
-    public init(events: [Event], skippedLines: Int) {
+    public init(events: [Event], skippedLines: Int, titles: [String: SessionTitle] = [:]) {
         self.events = events
         self.skippedLines = skippedLines
+        self.titles = titles
     }
 }

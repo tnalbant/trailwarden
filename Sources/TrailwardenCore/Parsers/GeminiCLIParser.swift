@@ -71,6 +71,7 @@ public struct GeminiCLIParser: AgentParser {
 
         var events: [Event] = []
         var skipped = 0
+        var collector = TitleCollector()
 
         for (index, message) in messages.enumerated() {
             guard let messageId = message["id"] as? String ?? Optional("m\(index)") else { continue }
@@ -85,6 +86,7 @@ public struct GeminiCLIParser: AgentParser {
             case "user", "gemini":
                 let text = Self.text(from: message["content"])
                 if type == "user", let text, !text.isEmpty {
+                    collector.firstMessage(text, session: sessionId)
                     events.append(Event(
                         id: "gemini:\(sessionId):\(messageId):u",
                         ts: date,
@@ -141,7 +143,7 @@ public struct GeminiCLIParser: AgentParser {
             }
         }
 
-        return ParseResult(events: events, skippedLines: skipped)
+        return ParseResult(events: events, skippedLines: skipped, titles: collector.titles)
     }
 
     // MARK: - Helpers

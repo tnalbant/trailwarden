@@ -1,0 +1,9 @@
+{
+  "sessionId": "gemini-title-session",
+  "startTime": "2026-11-25T10:00:00.000Z",
+  "messages": [
+    {"id": "m1", "timestamp": "2026-11-25T10:00:01.000Z", "type": "info", "content": "Update available"},
+    {"id": "m2", "timestamp": "2026-11-25T10:00:02.000Z", "type": "user", "content": [{"text": "summarise the changelog"}]},
+    {"id": "m3", "timestamp": "2026-11-25T10:00:03.000Z", "type": "gemini", "content": "Here is the summary."}
+  ]
+}

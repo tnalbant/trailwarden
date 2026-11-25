@@ -1,0 +1,4 @@
+{"timestamp": "2026-11-25T09:00:00.000Z", "type": "session_meta", "payload": {"id": "7d3e9a41-0b2c-4f58-a6d1-3c5e8f1b2a90", "cwd": "/tmp/codex-title", "cli_version": "0.60.0", "originator": "cli"}}
+{"timestamp": "2026-11-25T09:00:01.000Z", "type": "response_item", "payload": {"type": "message", "role": "user", "content": [{"type": "input_text", "text": "<environment_context>cwd: /tmp/codex-title</environment_context>"}]}}
+{"timestamp": "2026-11-25T09:00:02.000Z", "type": "response_item", "payload": {"type": "message", "role": "user", "content": [{"type": "input_text", "text": "add a dark mode toggle"}]}}
+{"timestamp": "2026-11-25T09:00:03.000Z", "type": "response_item", "payload": {"type": "message", "role": "assistant", "content": [{"type": "output_text", "text": "On it."}]}}
