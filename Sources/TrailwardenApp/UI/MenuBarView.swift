@@ -250,6 +250,18 @@ struct MenuBarView: View {
                     .foregroundStyle(Tokens.Palette.accentText)
                     .lineLimit(2)
             }
+            if model.snapshot.unreviewedCount > 0 {
+                Button {
+                    openMain(.inbox)
+                } label: {
+                    Text(Lf(.inboxWaiting, [model.snapshot.unreviewedCount]))
+                        .font(Tokens.Typography.font(.callout, weight: .medium))
+                        .foregroundStyle(Tokens.Palette.accentText)
+                        .lineLimit(1)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+            }
             if model.snapshot.messagesToday > 0 {
                 Text(Lf(.messagesToday, [model.snapshot.messagesToday]))
                     .font(Tokens.Typography.font(.caption))

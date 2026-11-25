@@ -19,6 +19,7 @@ struct MainWindowView: View {
 
     @StateObject private var timeline: TimelineModel
     @StateObject private var feed: FeedModel
+    @StateObject private var inbox: InboxModel
     @FocusState private var searchFocused: Bool
 
     init(model: AppModel, updates: UpdateChecker, router: DashboardRouter, loginItem: LoginItem) {
@@ -28,6 +29,7 @@ struct MainWindowView: View {
         self.loginItem = loginItem
         _timeline = StateObject(wrappedValue: TimelineModel(databaseURL: model.databaseURL))
         _feed = StateObject(wrappedValue: FeedModel(databaseURL: model.databaseURL))
+        _inbox = StateObject(wrappedValue: InboxModel(databaseURL: model.databaseURL))
     }
 
     var body: some View {
@@ -80,6 +82,16 @@ struct MainWindowView: View {
         }
         .onChange(of: model.findingsRequested) { _, _ in
             showFindings()
+        }
+        .onChange(of: model.inboxRequested) { _, _ in
+            inbox.reload()
+            router.tab = .inbox
+        }
+        .onChange(of: router.tab) { _, tab in
+            if tab == .inbox {
+                inbox.reload()
+                feed.reload()
+            }
         }
         .onChange(of: model.sessionToOpen) { _, sessionID in
             guard let sessionID else { return }
@@ -139,6 +151,7 @@ struct MainWindowView: View {
                     await model.scan()
                     timeline.reload()
                     feed.reload()
+                    inbox.reload()
                 }
             } label: {
                 Image(systemName: "arrow.clockwise")
@@ -245,10 +258,12 @@ struct MainWindowView: View {
     @ViewBuilder
     private var content: some View {
         switch router.tab {
-        case .today:
-            FeedView(model: feed) { item in
+        case .inbox:
+            InboxView(model: inbox, feed: feed, app: model, onOpenSession: { sessionID, eventID in
+                open(sessionID, event: eventID)
+            }, onOpenActivity: { item in
                 open(item.sessionID, event: item.id)
-            }
+            })
         case .timeline:
             timelineView
         case .report:

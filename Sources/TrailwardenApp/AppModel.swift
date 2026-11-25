@@ -15,6 +15,9 @@ struct Snapshot: Sendable, Equatable {
     var recentActions: [ActivityItem] = []
     var latestCritical: ActivityItem?
     var messagesToday = 0
+    /// Findings nobody has reviewed yet, and how many of them are critical.
+    var unreviewedCount = 0
+    var unreviewedCritical = 0
 }
 
 /// One transcript directory shown during onboarding.
@@ -43,6 +46,8 @@ final class AppModel: ObservableObject {
     /// Bumped when the reader asks to see today's criticals; the window watches
     /// it and switches to the timeline with the finding filter on.
     @Published var findingsRequested = 0
+    /// Bumped to show the inbox; the window watches it like `findingsRequested`.
+    @Published var inboxRequested = 0
     @Published private(set) var isScanning = false
     /// Byte-weighted progress of the running scan; nil when none is running.
     @Published private(set) var scanProgress: ScanProgress?
@@ -126,6 +131,12 @@ final class AppModel: ObservableObject {
         windowRequested += 1
     }
 
+    /// Opens the window on the inbox.
+    func openInbox() {
+        inboxRequested += 1
+        windowRequested += 1
+    }
+
     // MARK: - Reading
 
     func refresh() {
@@ -166,6 +177,9 @@ final class AppModel: ObservableObject {
             .filter { $0.activeRisk.contains { $0.severity == .critical } }
             .max { $0.ts < $1.ts }
         snapshot.latestCritical = worstToday.map { ActivityDigest.item(from: $0) }
+        let inbox = try Inbox.load(from: store, limit: Int.max)
+        snapshot.unreviewedCount = inbox.unreviewed.count
+        snapshot.unreviewedCritical = inbox.unreviewedCritical
         return snapshot
     }
 

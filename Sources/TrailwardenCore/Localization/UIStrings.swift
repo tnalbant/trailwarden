@@ -98,6 +98,10 @@ public enum UIString: String, CaseIterable, Sendable {
     // Scheduled update check
     case updateSchedule, updateScheduleNever, updateScheduleWeekly, updateScheduleMonthly
     case updateScheduleHint, updateLastChecked, updateNeverChecked, updateNotificationTitle
+    // Inbox
+    case inboxTab, inboxActivityHeading, inboxEmpty, inboxWaiting, inboxBacklogTitle
+    case inboxMarkAllReviewed, inboxShowThem, inboxReviewed, inboxExpectedHere, inboxFalseAlarm
+    case inboxOpen, inboxLine
 }
 
 public enum UITranslations {
@@ -126,6 +130,18 @@ public enum UITranslations {
         .whatHappened: "What happened",
         .nothingRiskyToday: "Nothing risky today",
         .todayFeed: "Today",
+        .inboxTab: "Inbox",
+        .inboxActivityHeading: "Today’s activity",
+        .inboxEmpty: "Nothing is waiting for review.",
+        .inboxWaiting: "%d findings waiting for review →",
+        .inboxBacklogTitle: "Trailwarden found %d findings from before today.",
+        .inboxMarkAllReviewed: "Mark them all reviewed",
+        .inboxShowThem: "Show them in the inbox",
+        .inboxReviewed: "Reviewed",
+        .inboxExpectedHere: "Expected in this project",
+        .inboxFalseAlarm: "False alarm",
+        .inboxOpen: "Open",
+        .inboxLine: "line %d",
         .timelineTab: "Timeline",
         .messagesToday: "%d messages",
         .clearFilters: "Clear filters",
