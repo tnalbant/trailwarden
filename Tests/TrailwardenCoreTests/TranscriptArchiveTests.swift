@@ -324,6 +324,16 @@ final class TranscriptArchiveTests: XCTestCase {
         XCTAssertFalse(rowPaths.isEmpty)
         XCTAssertEqual(files.count, rowPaths.count)
     }
+
+    func testUsedBytesSkipsEntriesItCannotMeasure() throws {
+        let root = directory.appendingPathComponent("Archive")
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        try Data("abcd".utf8).write(to: root.appendingPathComponent("a.jsonl"))
+        try FileManager.default.createSymbolicLink(
+            at: root.appendingPathComponent("gone"),
+            withDestinationURL: directory.appendingPathComponent("missing"))
+        XCTAssertEqual(try archive.usedBytes(), 4)
+    }
 }
 
 private final class Unchecked<Value>: @unchecked Sendable {

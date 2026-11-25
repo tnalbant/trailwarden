@@ -190,7 +190,12 @@ struct SettingsView: View {
 
     private func refreshArchiveSize() {
         let root = archiveRoot
-        archiveBytes = (try? TranscriptArchive(root: root).usedBytes()) ?? 0
+        Task {
+            let bytes = await Task.detached(priority: .utility) {
+                (try? TranscriptArchive(root: root).usedBytes()) ?? 0
+            }.value
+            archiveBytes = bytes
+        }
     }
 
     private var retentionSection: some View {
