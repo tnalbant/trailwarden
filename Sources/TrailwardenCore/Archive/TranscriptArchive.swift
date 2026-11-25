@@ -41,7 +41,9 @@ public struct TranscriptArchive: Sendable {
             includingPropertiesForKeys: [.isRegularFileKey, .fileSizeKey]) else { return 0 }
         var total: Int64 = 0
         for case let url as URL in enumerator {
-            let values = try url.resourceValues(forKeys: [.isRegularFileKey, .fileSizeKey])
+            // A file that vanishes or cannot be read mid-walk is skipped, not fatal.
+            guard let values = try? url.resourceValues(forKeys: [.isRegularFileKey, .fileSizeKey])
+            else { continue }
             if values.isRegularFile == true {
                 total += Int64(values.fileSize ?? 0)
             }

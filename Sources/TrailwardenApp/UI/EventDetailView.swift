@@ -127,7 +127,6 @@ struct EventDetailView: View {
 
     // MARK: - Resume
 
-    /// The one action people ask a history browser for: carry on from here.
     /// The full copy of a session whose source the agent deleted, if one exists.
     private var archivedFolder: URL? {
         guard let databaseURL else { return nil }
@@ -136,6 +135,7 @@ struct EventDetailView: View {
         return FileManager.default.fileExists(atPath: folder.path) ? folder : nil
     }
 
+    /// The one action people ask a history browser for: carry on from here.
     private func resumeSection(_ command: String, sourceDeleted: Bool) -> some View {
         VStack(alignment: .leading, spacing: 6) {
             SectionLabel(text: L(.resumeSession))
