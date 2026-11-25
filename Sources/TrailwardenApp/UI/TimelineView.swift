@@ -101,9 +101,12 @@ struct TimelineView: View {
             Section(L(.projects)) {
                 ForEach(model.projects) { project in
                     DisclosureGroup {
-                        ForEach(model.sessions(inProject: project.cwd)) { session in
-                            sessionLabel(session)
-                                .tag(TimelineSelection.session(session.id))
+                        ForEach(model.sessionGroups(inProject: project.cwd), id: \.0) { age, sessions in
+                            ageHeader(age)
+                            ForEach(sessions) { session in
+                                sessionLabel(session)
+                                    .tag(TimelineSelection.session(session.id))
+                            }
                         }
                         if model.sessions(inProject: project.cwd).isEmpty {
                             Text(L(.noSessionSelected))
@@ -139,30 +142,19 @@ struct TimelineView: View {
     }
 
     private func sessionLabel(_ session: SessionSummary) -> some View {
-        HStack(spacing: 6) {
-            if technical {
-                Text(EventFormatting.agentLabel(session.agent))
-                    .font(Tokens.Typography.font(.codeSmall))
-                    .padding(.horizontal, 4)
-                    .padding(.vertical, 0.5)
-                    .background(Tokens.Palette.surface)
-                    .clipShape(RoundedRectangle(cornerRadius: 2.5))
-                Text(Sessions.shortID(session.id))
-                    .font(Tokens.Typography.font(.codeSmall))
+        let title = session.title ?? L(.untitledSession)
+        let detail = sessionDetail(session)
+        return HStack(spacing: 6) {
+            VStack(alignment: .leading, spacing: 1) {
+                Text(title)
+                    .font(Tokens.Typography.font(.callout))
                     .lineLimit(1)
-            } else {
-                VStack(alignment: .leading, spacing: 1) {
-                    Text("\(session.agent.displayName) · \(EventFormatting.stamp(session.startedAt))")
-                        .font(Tokens.Typography.font(.callout))
-                        .lineLimit(1)
-                    if let branch = session.gitBranch, !branch.isEmpty {
-                        Text(branch)
-                            .font(Tokens.Typography.font(.caption))
-                            .foregroundStyle(Tokens.Palette.secondary)
-                            .lineLimit(1)
-                            .truncationMode(.middle)
-                    }
-                }
+                    .truncationMode(.tail)
+                Text(detail)
+                    .font(Tokens.Typography.font(.caption))
+                    .foregroundStyle(Tokens.Palette.secondary)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
             }
             Spacer(minLength: 2)
             if liveSessionIDs.contains(session.id) {
@@ -177,6 +169,40 @@ struct TimelineView: View {
                     .foregroundStyle(Tokens.Palette.accentText)
             }
         }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(session
+            .criticalCount > 0 ? "\(title), \(detail), \(session.criticalCount)" : "\(title), \(detail)")
+    }
+
+    /// Agent, branch and duration; the short id joins them only with technical details.
+    private func sessionDetail(_ session: SessionSummary) -> String {
+        var parts = [session.agent.displayName]
+        if let branch = session.gitBranch, !branch.isEmpty {
+            parts.append(branch)
+        }
+        if let duration = EventFormatting.duration(from: session.startedAt, to: session.endedAt) {
+            parts.append(duration)
+        }
+        if technical {
+            parts.append(Sessions.shortID(session.id))
+        }
+        return parts.joined(separator: " · ")
+    }
+
+    private func ageTitle(_ age: SessionAge) -> String {
+        switch age {
+        case .today: L(.groupToday)
+        case .yesterday: L(.groupYesterday)
+        case .thisWeek: L(.groupThisWeek)
+        case .older: L(.groupOlder)
+        }
+    }
+
+    private func ageHeader(_ age: SessionAge) -> some View {
+        Text(ageTitle(age))
+            .font(Tokens.Typography.font(.caption, weight: .medium))
+            .foregroundStyle(Tokens.Palette.secondary)
+            .accessibilityAddTraits(.isHeader)
     }
 
     // MARK: - Stream

@@ -43,6 +43,20 @@ enum EventFormatting {
         ActivityDigest.stamp(date, locale: LocalizationStore.current.locale)
     }
 
+    /// "5m", "1h 20m"; `nil` for a session that lasted under a second.
+    static func duration(from start: Date, to end: Date) -> String? {
+        let seconds = end.timeIntervalSince(start)
+        guard seconds >= 1 else { return nil }
+        let formatter = DateComponentsFormatter()
+        formatter.unitsStyle = .abbreviated
+        formatter.maximumUnitCount = 2
+        formatter.allowedUnits = seconds < 60 ? [.second] : [.day, .hour, .minute]
+        var calendar = Calendar.current
+        calendar.locale = LocalizationStore.current.locale
+        formatter.calendar = calendar
+        return formatter.string(from: seconds)
+    }
+
     static func day(_ date: Date) -> String {
         let formatter = DateFormatter()
         formatter.dateFormat = "d MMM"
