@@ -243,4 +243,16 @@ final class AllowanceTests: XCTestCase {
         XCTAssertEqual(scopes[2], .pattern(glob: "rm -rf ~/dist"))
         XCTAssertEqual(scopes[3], .everywhere)
     }
+
+    func testRescopingKeepsEndAndCreationAndChangesTheID() {
+        let end = now.addingTimeInterval(86400)
+        let original = Allowance(ruleId: "R1", scope: .command("rm -rf ~/dist"), until: end, created: now)
+        let moved = original.rescoped(to: .pattern(glob: "rm -rf ~/*"))
+        XCTAssertEqual(moved.until, end)
+        XCTAssertEqual(moved.created, now)
+        XCTAssertEqual(moved.scope, .pattern(glob: "rm -rf ~/*"))
+        XCTAssertNotEqual(moved.id, original.id)
+        XCTAssertEqual(original.patternPrefill, "rm -rf ~/dist")
+        XCTAssertEqual(original.rescoped(to: .projectRule(project: "/a")).patternPrefill, "/a")
+    }
 }

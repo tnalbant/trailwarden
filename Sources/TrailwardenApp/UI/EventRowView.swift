@@ -77,6 +77,7 @@ struct EventRowView: View {
                                 Text("\(badge(for: hit)) · \(L(.allowedBadge))")
                                     .font(Tokens.Typography.font(.caption))
                                     .foregroundStyle(Tokens.Palette.secondary)
+                                    .accessibilityLabel(Lf(.allowedAccessibility, [badge(for: hit)]))
                             } else {
                                 Text(badge(for: hit))
                                     .font(Tokens.Typography.font(.caption, weight: .medium))

@@ -46,6 +46,7 @@ public enum UIString: String, CaseIterable, Sendable {
     case scopeCommand, scopeProject, scopePattern, scopeEverywhere
     case kindCommand, kindProject, kindPattern, kindEverywhere, allowEverywhereValue
     case allowDurationLabel, durationOneDay, durationThirtyDays, durationForever, allowForeverRemaining
+    case scopeEditLabel, scopeEditPattern, scopeEditEverywhere, scopeEditApply
     case allowConfirm, cancel, allowedBadge, allowedAccessibility
     // Rules
     case rulesIntro, disableRule, enableRule, ruleHits, ruleMatchesAll, ruleTool
@@ -209,6 +210,10 @@ public enum UITranslations {
         .removeMute: "Remove",
         .daysLeft: "%d days",
         .muteExpired: "expired",
+        .scopeEditLabel: "Change scope",
+        .scopeEditPattern: "Pattern…",
+        .scopeEditEverywhere: "Everywhere",
+        .scopeEditApply: "Apply",
         .allowEllipsis: "Allow…",
         .allowHint: "Tell Trailwarden this is expected, for a scope and a time you choose",
         .allowSheetTitle: "Allow this finding",

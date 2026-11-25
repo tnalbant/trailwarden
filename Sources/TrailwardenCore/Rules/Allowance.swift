@@ -59,6 +59,21 @@ public struct Allowance: Codable, Sendable, Hashable, Identifiable {
         }
     }
 
+    /// The same decision for a different scope: a new id, the same end and creation date.
+    public func rescoped(to scope: AllowanceScope) -> Allowance {
+        Allowance(ruleId: ruleId, scope: scope, until: until, created: created)
+    }
+
+    /// What the pattern editor starts with: the current command, glob or project path.
+    public var patternPrefill: String {
+        switch scope {
+        case let .command(value): value
+        case let .pattern(glob): glob
+        case let .projectRule(project): project
+        case .everywhere: ""
+        }
+    }
+
     public func isActive(at date: Date) -> Bool {
         until.map { $0 > date } ?? true
     }
