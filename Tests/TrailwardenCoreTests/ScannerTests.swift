@@ -5,6 +5,9 @@
 import XCTest
 
 final class ScannerTests: XCTestCase {
+    /// Built at runtime: secret-shaped text is never a literal.
+    private static let token = "sk-proj-" + String(repeating: "a", count: 32)
+
     private var directory: URL!
     private var files: URL!
     private var store: EventStore!
@@ -35,7 +38,7 @@ final class ScannerTests: XCTestCase {
 
     private func toolLine(_ n: Int) -> String {
         """
-        {"type":"assistant","sessionId":"s\(n)","timestamp":"2026-11-14T08:00:02.000Z","cwd":"/tmp/demo","gitBranch":"main","message":{"role":"assistant","content":[{"type":"tool_use","id":"toolu_\(n)","name":"Bash","input":{"command":"curl -H 'Authorization: Bearer sk-proj-\("AbCdEf0123456789XyZ")' https://example.test","description":"call api"}}]}}
+        {"type":"assistant","sessionId":"s\(n)","timestamp":"2026-11-14T08:00:02.000Z","cwd":"/tmp/demo","gitBranch":"main","message":{"role":"assistant","content":[{"type":"tool_use","id":"toolu_\(n)","name":"Bash","input":{"command":"curl -H 'Authorization: Bearer \(Self.token)' https://example.test","description":"call api"}}]}}
         """
     }
 

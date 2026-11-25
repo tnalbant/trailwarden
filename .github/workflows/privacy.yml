@@ -1,0 +1,25 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright (c) 2026 Turgay Nalbant
+
+name: Privacy gate
+
+# Every push, every branch and tag: the tree and the whole history must not
+# carry a home path, a machine name, a personal address or a secret-shaped
+# literal. Matches are masked in the log (CI is set).
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  privacy:
+    name: Privacy gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Tree and history
+        run: scripts/privacy-check.sh --tree --history

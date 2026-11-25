@@ -47,9 +47,15 @@ final class EventPresentationTests: XCTestCase {
 
     func testDisplayPath() {
         let home = "/Users/demo"
-        let inside = EventPresentation.displayPath("/Users/demo/app/src/a.ts", cwd: "/Users/demo/app", home: home)
+        let inside = EventPresentation.displayPath(
+            "/Users/demo/app/src/a.ts",
+            cwd: "/Users/demo/app",
+            home: home)
         XCTAssertEqual(inside, DisplayPath(text: "src/a.ts", outsideProject: false))
-        let slash = EventPresentation.displayPath("/Users/demo/app/src/a.ts", cwd: "/Users/demo/app/", home: home)
+        let slash = EventPresentation.displayPath(
+            "/Users/demo/app/src/a.ts",
+            cwd: "/Users/demo/app/",
+            home: home)
         XCTAssertEqual(slash, inside)
         let same = EventPresentation.displayPath("/Users/demo/app", cwd: "/Users/demo/app", home: home)
         XCTAssertEqual(same, DisplayPath(text: ".", outsideProject: false))
@@ -59,7 +65,10 @@ final class EventPresentationTests: XCTestCase {
         XCTAssertEqual(noCwd, DisplayPath(text: "~/.zshrc", outsideProject: false))
         let tmp = EventPresentation.displayPath("/private/tmp/x", cwd: "/tmp", home: home)
         XCTAssertEqual(tmp, DisplayPath(text: "x", outsideProject: false))
-        let sibling = EventPresentation.displayPath("/Users/demo/app2/a.ts", cwd: "/Users/demo/app", home: home)
+        let sibling = EventPresentation.displayPath(
+            "/Users/demo/app2/a.ts",
+            cwd: "/Users/demo/app",
+            home: home)
         XCTAssertEqual(sibling, DisplayPath(text: "~/app2/a.ts", outsideProject: true))
     }
 

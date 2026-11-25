@@ -49,11 +49,18 @@ echo "== building app (Release) =="
 # wants a provisioning profile even for Developer ID, which a non-sandboxed app
 # does not have; codesign gives the same result with fewer moving parts.
 if ! xcodebuild -project Trailwarden.xcodeproj -scheme Trailwarden -configuration Release \
-  -derivedDataPath "$OUT" CODE_SIGNING_ALLOWED=NO build > "$OUT/build.log" 2>&1; then
+  -derivedDataPath "$OUT" CODE_SIGNING_ALLOWED=NO \
+  OTHER_SWIFT_FLAGS="\$(inherited) -debug-prefix-map $PWD=. -file-prefix-map $PWD=. -debug-prefix-map $HOME=." \
+  OTHER_LDFLAGS="\$(inherited) -Wl,-oso_prefix,$HOME" \
+  build > "$OUT/build.log" 2>&1; then
   echo "ERROR: build failed — see $OUT/build.log" >&2
   grep -E "error:" "$OUT/build.log" | head -10 >&2
   exit 1
 fi
+
+# Same as the CLI below: no local symbols, then a signature again.
+find "$APP/Contents/MacOS" -type f -perm -u+x -exec strip -S -x {} +
+[[ -n "$DEVELOPER_ID" ]] || codesign --force --deep --sign - "$APP"
 
 if [[ -n "$DEVELOPER_ID" ]]; then
   echo "== signing =="
@@ -97,8 +104,15 @@ if [[ -n "$DEVELOPER_ID" ]]; then
 fi
 
 echo "== building CLI + MCP (arm64 + x86_64) =="
-# One universal build serves the tarball and the npm package alike.
-UNIVERSAL=(-c release --arch arm64 --arch x86_64)
+# One universal build serves the tarball and the npm package alike. The prefix
+# maps keep this checkout's absolute path and $HOME out of debug info, #file
+# literals and the linker's object-file paths; strip removes what is left of the
+# local symbol table. scripts/privacy-check.sh reads the result as bytes.
+UNIVERSAL=(-c release --arch arm64 --arch x86_64
+  -Xswiftc -debug-prefix-map -Xswiftc "$PWD=."
+  -Xswiftc -file-prefix-map -Xswiftc "$PWD=."
+  -Xswiftc -debug-prefix-map -Xswiftc "$HOME=."
+  -Xlinker -oso_prefix -Xlinker "$HOME")
 swift build "${UNIVERSAL[@]}" --product trailwarden > /dev/null
 swift build "${UNIVERSAL[@]}" --product trailwarden-mcp > /dev/null
 BIN="$(swift build "${UNIVERSAL[@]}" --show-bin-path)"
@@ -106,6 +120,9 @@ CLI_DIR="$OUT/trailwarden-$VERSION-macos-universal"
 rm -rf "$CLI_DIR" "$TARBALL"
 mkdir -p "$CLI_DIR"
 cp "$BIN/trailwarden" "$BIN/trailwarden-mcp" "$CLI_DIR/"
+strip -S -x "$CLI_DIR/trailwarden" "$CLI_DIR/trailwarden-mcp"
+# strip drops the linker's ad-hoc signature; arm64 refuses to run unsigned code.
+[[ -n "$DEVELOPER_ID" ]] || codesign --force --sign - "$CLI_DIR/trailwarden" "$CLI_DIR/trailwarden-mcp"
 if [[ -n "$DEVELOPER_ID" ]]; then
   # A tarball opened from a browser is quarantined like any download; signed and
   # notarized binaries pass Gatekeeper instead of being refused as unidentified.
@@ -160,6 +177,9 @@ with open(out, "w", encoding="utf-8") as handle:
     handle.write("\n")
 print("   " + json.dumps(feed, ensure_ascii=False))
 PY
+
+echo "== privacy gate =="
+scripts/privacy-check.sh --artifacts "$DMG" "$TARBALL" "$OUT/latest.json"
 
 echo "== checksums =="
 ( cd "$OUT" && shasum -a 256 "$(basename "$DMG")" "$(basename "$TARBALL")" latest.json | tee SHA256SUMS )

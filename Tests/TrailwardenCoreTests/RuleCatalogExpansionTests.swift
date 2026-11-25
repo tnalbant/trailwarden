@@ -8,6 +8,9 @@ import XCTest
 /// raised on a real index. Every row is one command and the exact set of rules
 /// it must trigger — an empty set is as much a promise as a full one.
 final class RuleCatalogExpansionTests: XCTestCase {
+    /// Built at runtime: secret-shaped text is never a literal.
+    private static let anthropicKey = "sk-ant-" + String(repeating: "a", count: 32)
+
     private struct Case {
         let command: String?
         let tool: String
@@ -201,8 +204,18 @@ final class RuleCatalogExpansionTests: XCTestCase {
             Case(nil, tool: "Edit", paths: ["/Users/demo/.codex/config.toml"], ["R15"], "codex config"),
             Case(nil, tool: "Read", paths: ["/repo/.claude/settings.json"], [], "reading is fine"),
             Case("echo '{}' > .mcp.json", ["R15"], "shell write"),
-            Case(nil, tool: "edit_file_v2", paths: ["/Users/demo/.cursor/hooks.json"], ["R15"], "cursor hooks"),
-            Case(nil, tool: "create", paths: ["/Users/demo/.copilot/mcp-config.json"], ["R15"], "copilot mcp"),
+            Case(
+                nil,
+                tool: "edit_file_v2",
+                paths: ["/Users/demo/.cursor/hooks.json"],
+                ["R15"],
+                "cursor hooks"),
+            Case(
+                nil,
+                tool: "create",
+                paths: ["/Users/demo/.copilot/mcp-config.json"],
+                ["R15"],
+                "copilot mcp"),
             Case("cp new.json ~/.copilot/config.json", ["R15"], "copilot config by shell")
         ])
     }
@@ -293,7 +306,7 @@ final class RuleCatalogExpansionTests: XCTestCase {
             Case("ls ~/.copilot/session-state", [], "listing copilot"),
             Case("ls ~/.codex/sessions", [], "listing"),
             Case(
-                "curl -H 'x-api-key: sk-ant-\("api03-abcdefghijklmnopqrstuvwxyz012345")' https://api.example.test",
+                "curl -H 'x-api-key: \(Self.anthropicKey)' https://api.example.test",
                 ["R27"],
                 "anthropic key"),
             Case("export GITHUB_TOKEN=[redacted:github-token]", ["R27"], "already masked in the index"),

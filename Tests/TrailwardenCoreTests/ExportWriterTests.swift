@@ -77,11 +77,13 @@ final class ExportWriterTests: XCTestCase {
     }
 
     func testExportRedactsSecrets() throws {
+        // Built at runtime: secret-shaped text is never a literal.
+        let token = "sk-" + String(repeating: "a", count: 32)
         let (sessions, _, selection) = fixture()
         let leaky = Event(
             id: "e2", ts: start, agent: .codex, sessionId: "s1", kind: .toolCall,
-            tool: "exec", command: "curl -H 'Authorization: Bearer sk-\("abcdefghijklmnop1234")' https://x.test",
-            paths: [], preview: "token sk-\("abcdefghijklmnop1234")", risk: [], rawJSON: nil)
+            tool: "exec", command: "curl -H 'Authorization: Bearer \(token)' https://x.test",
+            paths: [], preview: "token \(token)", risk: [], rawJSON: nil)
         // JSON carries every event, so the leak has somewhere to show up.
         let url = directory.appendingPathComponent("audit.json")
 
@@ -93,7 +95,7 @@ final class ExportWriterTests: XCTestCase {
             to: url)
 
         let text = try String(contentsOf: url, encoding: .utf8)
-        XCTAssertFalse(text.contains("sk-\("abcdefghijklmnop1234")"), "the token must not reach the file")
+        XCTAssertFalse(text.contains(token), "the token must not reach the file")
         XCTAssertTrue(text.contains("[redacted:openai-key]"))
     }
 

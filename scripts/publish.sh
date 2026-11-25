@@ -60,6 +60,12 @@ fi
 for file in "$DMG" "$TARBALL" "$SUMS" "$FEED" docs/RELEASE_NOTES.md; do
   [[ -f "$file" ]] || { echo "ERROR: missing file: $file (run scripts/release.sh first)" >&2; exit 1; }
 done
+# Nothing that names this machine may ship: not in the tree, not anywhere in
+# the history the tag will point into, not inside the files to be uploaded.
+scripts/privacy-check.sh --tree --history --artifacts "$DMG" "$TARBALL" "$SUMS" "$FEED" || {
+  echo "ERROR: the privacy gate did not pass; nothing was published." >&2
+  exit 1
+}
 
 # release.sh skips notarization when NOTARY_PROFILE is unset and says so once;
 # that build must never reach users. The disk image has to carry its own
@@ -132,7 +138,17 @@ if [[ $DO_NPM -eq 1 ]]; then
   echo "== npm =="
   # prepack takes the signed binary from $OUT/signed and refuses anything that
   # Gatekeeper would reject; it needs to know where release.sh wrote.
-  ( cd packaging/npm && TRAILWARDEN_RELEASE_OUT="$OUT" npm publish --access public )
+  # Pack once, check that exact tarball, publish that file: what the gate read
+  # is byte for byte what npm receives.
+  PACK_DIR="$(mktemp -d)"
+  ( cd packaging/npm && TRAILWARDEN_RELEASE_OUT="$OUT" npm pack --pack-destination "$PACK_DIR" > /dev/null )
+  NPM_TGZ="$(ls "$PACK_DIR"/*.tgz)"
+  scripts/privacy-check.sh --artifacts "$NPM_TGZ" || {
+    echo "ERROR: the privacy gate rejected the npm tarball; nothing was published." >&2
+    rm -rf "$PACK_DIR"; exit 1
+  }
+  npm publish "$NPM_TGZ" --access public
+  rm -rf "$PACK_DIR"
 fi
 
 echo "done."
