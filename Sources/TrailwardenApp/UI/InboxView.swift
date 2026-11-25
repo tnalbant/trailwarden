@@ -123,11 +123,13 @@ struct InboxView: View {
             if let project = projectPath(finding) {
                 Button(L(.inboxExpectedHere)) {
                     Task {
-                        await app.allow(Allowance(
+                        let stored = await app.allow(Allowance(
                             ruleId: finding.ruleId,
                             scope: .projectRule(project: project),
                             until: nil))
-                        model.review(finding, as: .expected)
+                        if stored {
+                            model.review(finding, as: .expected)
+                        }
                     }
                 }
             }

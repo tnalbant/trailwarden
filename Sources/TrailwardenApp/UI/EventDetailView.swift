@@ -15,7 +15,7 @@ struct EventDetailView: View {
     @AppStorage(LocalizationStore.defaultsKey) private var language = AppLanguage.system.rawValue
     @AppStorage(TechnicalDetails.storageKey) private var technical = false
     let event: Event
-    var onMute: ((RiskHit, Event) -> Void)?
+    var onAllow: ((RiskHit, Event) -> Void)?
     /// Where to look up other agents' work on the same file.
     var databaseURL: URL?
     var onOpen: ((Event) -> Void)?
@@ -160,17 +160,21 @@ struct EventDetailView: View {
                         ruleId: hit.ruleId,
                         technical: technical))
                         .font(Tokens.Typography.font(.callout, weight: .medium))
-                        .foregroundStyle(hit.severity.textTint)
+                        .foregroundStyle(hit.allowed ? Tokens.Palette.secondary : hit.severity.textTint)
                     Text(hit.localizedMessage(LocalizationStore.current))
                         .font(Tokens.Typography.font(.callout))
                         .fixedSize(horizontal: false, vertical: true)
                     Spacer(minLength: 4)
-                    if let onMute {
-                        Button(L(.muteThirtyDays)) { onMute(hit, event) }
+                    if hit.allowed {
+                        Text(L(.allowedBadge))
+                            .font(Tokens.Typography.font(.caption, weight: .medium))
+                            .foregroundStyle(Tokens.Palette.secondary)
+                    } else if let onAllow {
+                        Button(L(.allowEllipsis)) { onAllow(hit, event) }
                             .buttonStyle(.plain)
                             .font(Tokens.Typography.font(.caption, weight: .medium))
                             .foregroundStyle(Tokens.Palette.accentText)
-                            .help(L(.muteThirtyDaysHint))
+                            .help(L(.allowHint))
                     }
                 }
             }

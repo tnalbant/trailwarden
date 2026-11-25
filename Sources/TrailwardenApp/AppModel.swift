@@ -262,7 +262,9 @@ final class AppModel: ObservableObject {
 
     /// Saves an allowance (a rule's hits in one scope are expected) and re-runs
     /// the rules so the timeline reflects it.
-    func allow(_ allowance: Allowance) async {
+    /// Returns whether the allowance was stored.
+    @discardableResult
+    func allow(_ allowance: Allowance) async -> Bool {
         rulesDirty = true
         do {
             let store = try EventStore(url: databaseURL)
@@ -270,9 +272,10 @@ final class AppModel: ObservableObject {
             allowances = try store.allowances()
         } catch {
             errorMessage = TechnicalDetails.errorText(error)
-            return
+            return false
         }
         await reapplyRules()
+        return true
     }
 
     func removeAllowance(_ allowance: Allowance) async {
