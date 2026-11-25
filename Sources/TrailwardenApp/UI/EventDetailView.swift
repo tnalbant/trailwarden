@@ -128,6 +128,14 @@ struct EventDetailView: View {
     // MARK: - Resume
 
     /// The one action people ask a history browser for: carry on from here.
+    /// The full copy of a session whose source the agent deleted, if one exists.
+    private var archivedFolder: URL? {
+        guard let databaseURL else { return nil }
+        let root = TranscriptArchive.archiveRoot(databaseURL: databaseURL)
+        let folder = TranscriptArchive(root: root).folder(for: event.sessionId, agent: event.agent)
+        return FileManager.default.fileExists(atPath: folder.path) ? folder : nil
+    }
+
     private func resumeSection(_ command: String, sourceDeleted: Bool) -> some View {
         VStack(alignment: .leading, spacing: 6) {
             SectionLabel(text: L(.resumeSession))
@@ -136,6 +144,14 @@ struct EventDetailView: View {
                     .font(Tokens.Typography.font(.caption))
                     .foregroundStyle(Tokens.Palette.secondary)
                     .fixedSize(horizontal: false, vertical: true)
+                if let folder = archivedFolder {
+                    Button(L(.showCopyInFinder)) {
+                        NSWorkspace.shared.activateFileViewerSelecting([folder])
+                    }
+                    .buttonStyle(.plain)
+                    .font(Tokens.Typography.font(.callout, weight: .medium))
+                    .foregroundStyle(Tokens.Palette.accentText)
+                }
             }
             HStack(alignment: .top, spacing: 8) {
                 Text(command)

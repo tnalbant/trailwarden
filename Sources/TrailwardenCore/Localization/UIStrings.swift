@@ -66,7 +66,9 @@ public enum UIString: String, CaseIterable, Sendable {
     case rangePickerLabel, agentPickerLabel, severityPickerLabel, languagePickerLabel
     case exportFormatLabel, updateSchedulePickerLabel, liveThresholdLabel, selected
     case languageSection, languageSystem, languageHint
-    case scannedDirs, dirsHint, retention, retentionDays, cleanupNow, retentionHint
+    case scannedDirs, dirsHint, retention, retentionKeep, retentionForever, retentionOneYear,
+         retentionNinetyDays, cleanupNow, retentionHint
+    case archiveToggle, archiveUsed, showArchiveInFinder, showCopyInFinder
     case exportSection, exportAction, exportRange, exportHint
     case privacySection, privacyText, privacyBadge, settingsVersion
     // Usage
@@ -283,7 +285,14 @@ public enum UITranslations {
         .scannedDirs: "Watched folders",
         .dirsHint: "Folders are read from their default locations. Files stay where they are — they are only read.",
         .retention: "Retention",
-        .retentionDays: "%d days",
+        .retentionKeep: "Keep Trailwarden's record",
+        .retentionForever: "Forever",
+        .retentionOneYear: "1 year",
+        .retentionNinetyDays: "90 days",
+        .archiveToggle: "Full-copy archive",
+        .archiveUsed: "Used: %@",
+        .showArchiveInFinder: "Show archive in Finder",
+        .showCopyInFinder: "Show copy in Finder",
         .cleanupNow: "Clean up now",
         .retentionHint: "Events older than this are dropped from the index. File signatures are kept on purpose, so the next scan does not bring deleted events back.",
         .exportSection: "Export",
