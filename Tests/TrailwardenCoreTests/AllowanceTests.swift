@@ -184,4 +184,45 @@ final class AllowanceTests: XCTestCase {
         XCTAssertTrue(stored.risk.allSatisfy(\.allowed))
         XCTAssertFalse(stored.risk.isEmpty)
     }
+
+    func testAllowedHitDoesNotHideALaterRealFinding() throws {
+        let command = "rm -rf ~"
+        let rule = try ruleID(for: command)
+        let engine = try RuleEngine.builtIn(allowances: [
+            Allowance(ruleId: rule, scope: .projectRule(project: "/Users/demo/app"), until: nil, created: now)
+        ])
+        let inside = makeEvent(command: command, cwd: "/Users/demo/app")
+        let outside = makeEvent(command: command, cwd: "/Users/demo/other")
+
+        let annotated = engine.annotate([inside, outside], now: now)
+
+        XCTAssertEqual(annotated[0].risk.map(\.allowed), [true])
+        XCTAssertEqual(annotated[1].risk.map(\.allowed), [false])
+    }
+
+    func testReAllowingAMigratedMuteKeepsOneRow() throws {
+        let store = try EventStore(inMemory: true)
+        let insert = try store.prepareRowStatement("""
+        INSERT INTO allowances (id, rule_id, scope, value, project, until, created)
+        VALUES ('mute:R1|rm -rf ~', 'R1', 'command', 'rm -rf ~', NULL, NULL, 0)
+        """)
+        _ = try insert.step()
+
+        try store.addAllowance(Allowance(ruleId: "R1", scope: .command("rm -rf ~"), until: nil, created: now))
+
+        XCTAssertEqual(try store.allowances(now: now).count, 1)
+    }
+
+    func testProjectPathTrailingSlashStillMatches() {
+        let allowance = Allowance(
+            ruleId: "R1",
+            scope: .projectRule(project: "/Users/demo/app/"),
+            until: nil,
+            created: now)
+        XCTAssertTrue(allowance.covers(ruleId: "R1", target: "x", cwd: "/Users/demo/app"))
+        XCTAssertTrue(allowance.covers(ruleId: "R1", target: "x", cwd: "/Users/demo/app/web"))
+        XCTAssertFalse(allowance.covers(ruleId: "R1", target: "x", cwd: "/Users/demo/application"))
+        XCTAssertEqual(allowance.id, Allowance(
+            ruleId: "R1", scope: .projectRule(project: "/Users/demo/app"), until: nil).id)
+    }
 }

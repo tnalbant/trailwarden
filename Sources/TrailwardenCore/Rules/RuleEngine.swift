@@ -202,7 +202,7 @@ public struct RuleEngine: Sendable {
         return events.map { event in
             let target = Self.target(for: event)
             let hits = hits(for: event, now: now).filter { hit in
-                seen.insert("\(hit.ruleId)|\(event.sessionId)|\(target)").inserted
+                seen.insert("\(hit.ruleId)|\(event.sessionId)|\(target)|\(hit.allowed)").inserted
             }
             return event.withRisk(hits)
         }

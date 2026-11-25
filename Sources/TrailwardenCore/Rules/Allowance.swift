@@ -31,11 +31,22 @@ public struct Allowance: Codable, Sendable, Hashable, Identifiable {
         until: Date?,
         created: Date = Date())
     {
+        let scope = Self.normalized(scope)
         self.id = id ?? Self.makeID(ruleId: ruleId, scope: scope)
         self.ruleId = ruleId
         self.scope = scope
         self.until = until
         self.created = created
+    }
+
+    /// A project path never ends in a slash (except the root itself).
+    private static func normalized(_ scope: AllowanceScope) -> AllowanceScope {
+        guard case let .projectRule(project) = scope else { return scope }
+        var trimmed = project
+        while trimmed.count > 1, trimmed.hasSuffix("/") {
+            trimmed.removeLast()
+        }
+        return .projectRule(project: trimmed)
     }
 
     /// Deterministic, so allowing the same thing twice replaces the first one.
@@ -59,7 +70,7 @@ public struct Allowance: Codable, Sendable, Hashable, Identifiable {
             return target == command
         case let .projectRule(project):
             guard let cwd else { return false }
-            return cwd == project || cwd.hasPrefix(project + "/")
+            return project == "/" || cwd == project || cwd.hasPrefix(project + "/")
         case let .pattern(glob):
             guard let regex = Glob.regex(for: glob) else { return false }
             return Glob.matches(regex, target)
