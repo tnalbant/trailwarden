@@ -78,11 +78,10 @@ public extension EventStore {
     @discardableResult
     func reapplyRulesIfCatalogueChanged(
         engine: RuleEngine,
-        fingerprint: String = RuleCatalog.builtInFingerprint,
-        now: Date = Date()) throws -> Bool
+        fingerprint: String = RuleCatalog.builtInFingerprint) throws -> Bool
     {
         guard try metaValue(Self.ruleCatalogueKey) != fingerprint else { return false }
-        try engine.reapply(to: self, now: now)
+        try engine.reapply(to: self)
         try setMetaValue(fingerprint, for: Self.ruleCatalogueKey)
         return true
     }

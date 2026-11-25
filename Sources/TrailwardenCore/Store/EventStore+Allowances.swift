@@ -9,32 +9,67 @@ import Foundation
 /// project path of a project allowance), so rows migrated from the old mutes
 /// read as command allowances.
 public extension EventStore {
+    /// Stores an allowance and bumps the rules generation in the same
+    /// transaction, so a running watcher never grades with half of the change.
     func addAllowance(_ allowance: Allowance) throws {
         let (kind, value, project) = Self.columns(for: allowance.scope)
-        // One row per (rule, scope, value): re-allowing replaces a migrated mute row too.
-        let clear = try database
-            .prepare("DELETE FROM allowances WHERE rule_id = ? AND scope = ? AND value = ?")
-        try clear.bind([.text(allowance.ruleId), .text(kind), .text(value)])
-        try clear.step()
-        let statement = try database.prepare("""
-        INSERT OR REPLACE INTO allowances (id, rule_id, scope, value, project, until, created)
-        VALUES (?,?,?,?,?,?,?)
-        """)
-        try statement.bind([
-            .text(allowance.id),
-            .text(allowance.ruleId),
-            .text(kind),
-            .text(value),
-            project.map { SQLValue.text($0) } ?? .null,
-            allowance.until.map { SQLValue.double($0.timeIntervalSince1970) } ?? .null,
-            .double(allowance.created.timeIntervalSince1970)
-        ])
-        try statement.step()
+        try database.transaction {
+            // One row per (rule, scope, value): re-allowing replaces a migrated mute row too.
+            let clear = try database
+                .prepare("DELETE FROM allowances WHERE rule_id = ? AND scope = ? AND value = ?")
+            try clear.bind([.text(allowance.ruleId), .text(kind), .text(value)])
+            try clear.step()
+            let statement = try database.prepare("""
+            INSERT OR REPLACE INTO allowances (id, rule_id, scope, value, project, until, created)
+            VALUES (?,?,?,?,?,?,?)
+            """)
+            try statement.bind([
+                .text(allowance.id),
+                .text(allowance.ruleId),
+                .text(kind),
+                .text(value),
+                project.map { SQLValue.text($0) } ?? .null,
+                allowance.until.map { SQLValue.double($0.timeIntervalSince1970) } ?? .null,
+                .double(allowance.created.timeIntervalSince1970)
+            ])
+            try statement.step()
+            try bumpRulesGeneration()
+        }
     }
 
     func removeAllowance(id: String) throws {
-        let statement = try database.prepare("DELETE FROM allowances WHERE id = ?")
-        try statement.bind([.text(id)])
+        try database.transaction {
+            let statement = try database.prepare("DELETE FROM allowances WHERE id = ?")
+            try statement.bind([.text(id)])
+            try statement.step()
+            try bumpRulesGeneration()
+        }
+    }
+
+    /// Every stored allowance, the ones that ran out included: the rule engine
+    /// judges each at the time of the event it grades, so an expired allowance
+    /// still covers what happened before its end.
+    func gradingAllowances() throws -> [Allowance] {
+        try allowances(now: .distantPast)
+    }
+
+    // MARK: - Rules generation
+
+    /// The `meta` key of a counter that changes whenever the rules the index is
+    /// graded with change: an allowance added or removed, a rule turned off or
+    /// re-graded. A long-running watcher compares it to rebuild its engine.
+    static let rulesGenerationKey = "rules_generation"
+
+    func rulesGeneration() throws -> Int {
+        try metaValue(Self.rulesGenerationKey).flatMap { Int($0) } ?? 0
+    }
+
+    func bumpRulesGeneration() throws {
+        let statement = try database.prepare("""
+        INSERT INTO meta (key, value) VALUES (?, '1')
+        ON CONFLICT(key) DO UPDATE SET value = CAST(CAST(value AS INTEGER) + 1 AS TEXT)
+        """)
+        try statement.bind([.text(Self.rulesGenerationKey)])
         try statement.step()
     }
 

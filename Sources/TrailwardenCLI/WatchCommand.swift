@@ -53,7 +53,8 @@ private final class WatchSession: @unchecked Sendable {
     private let json: Bool
     private var guardState: LiveGuard
     private var database: EventStore?
-    private var engine: RuleEngine?
+    /// Rebuilt when an allowance or a rule changes in the app while this runs.
+    private let rules = CurrentRules()
     private var watcher: TranscriptWatcher?
     private let lock = NSLock()
 
@@ -65,9 +66,8 @@ private final class WatchSession: @unchecked Sendable {
 
     func start() throws {
         let database = try EventStore(url: databaseURL)
-        let engine = try RuleEngine.builtIn(allowances: database.allowances())
+        let engine = try rules.engine(for: database)
         self.database = database
-        self.engine = engine
         // Bring the index up to date first, so the first live pass only reads
         // what the agents write from now on.
         _ = try TranscriptScanner(store: database, rules: engine)
@@ -90,7 +90,7 @@ private final class WatchSession: @unchecked Sendable {
     private func pass(_ urls: [URL]) {
         lock.lock()
         defer { lock.unlock() }
-        guard let database, let engine else { return }
+        guard let database, let engine = try? rules.engine(for: database) else { return }
         _ = TranscriptScanner(store: database, rules: engine)
             .scan(changed: urls, roots: ScanRoot.standard(), databases: ScanRoot.standardDatabases())
         guard let fresh = try? guardState.newFindings(in: database) else { return }
