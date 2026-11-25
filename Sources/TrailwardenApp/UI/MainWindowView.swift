@@ -94,6 +94,14 @@ struct MainWindowView: View {
                 feed.reload()
             }
         }
+        // A live pass or an answered notification changes what the open inbox
+        // shows. The inbox's own refresh call settles: a reload that finds the
+        // same findings does not ask for another snapshot.
+        .onChange(of: model.indexVersion) { _, _ in
+            if router.tab == .inbox {
+                inbox.reload()
+            }
+        }
         .onChange(of: model.sessionToOpen) { _, sessionID in
             guard let sessionID else { return }
             open(sessionID, event: model.eventToSelect)

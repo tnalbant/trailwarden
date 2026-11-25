@@ -157,9 +157,9 @@ final class LiveMonitor: ObservableObject {
     }
 }
 
-/// The part that runs off the main actor: one store connection, one rule engine
-/// and the guard's memory of what it already reported, all touched from the
-/// watcher's serial queue only.
+/// The part that runs off the main actor: one store connection, the rules it
+/// grades with and the guard's memory of what it already reported, all
+/// touched under `lock` only.
 private final class LiveWorker: @unchecked Sendable {
     private let databaseURL: URL
     private let threshold: Severity
@@ -167,7 +167,9 @@ private final class LiveWorker: @unchecked Sendable {
     private var watcher: TranscriptWatcher?
     private var guardState: LiveGuard
     private var store: EventStore?
-    private var engine: RuleEngine?
+    /// Rebuilt when the app stores an allowance or changes a rule, so a live
+    /// pass never re-grades a transcript with yesterday's rules.
+    private let rules = CurrentRules()
     private let lock = NSLock()
 
     init(databaseURL: URL, threshold: Severity, didPass: @escaping @Sendable () -> Void) {
@@ -184,9 +186,7 @@ private final class LiveWorker: @unchecked Sendable {
         defer { lock.unlock() }
         do {
             let store = try EventStore(url: databaseURL)
-            let engine = try RuleEngine(
-                rules: RulePreferences.effectiveRules(),
-                allowances: store.allowances())
+            let engine = try rules.engine(for: store)
             // After an update that changed the built-in rules, the history is
             // re-graded once, before the catch-up scan.
             try store.reapplyRulesIfCatalogueChanged(engine: engine)
@@ -195,9 +195,14 @@ private final class LiveWorker: @unchecked Sendable {
                 rules: engine,
                 archive: TranscriptArchive.ifEnabled(databaseURL: databaseURL, store: store))
                 .scan(roots: ScanRoot.standard(), databases: ScanRoot.standardDatabases())
+            // Settings files are checked once per full scan, never on the per-pass path.
+            do {
+                try AgentSettingsScan.refresh(store: store)
+            } catch {
+                NSLog("Trailwarden live guard could not check agent settings: %@", String(describing: error))
+            }
             _ = try guardState.newFindings(in: store)
             self.store = store
-            self.engine = engine
         } catch {
             NSLog("Trailwarden live guard could not start: %@", String(describing: error))
             return false
@@ -218,7 +223,14 @@ private final class LiveWorker: @unchecked Sendable {
     private func pass(_ urls: [URL]) {
         lock.lock()
         defer { lock.unlock() }
-        guard let store, let engine else { return }
+        guard let store else { return }
+        let engine: RuleEngine
+        do {
+            engine = try rules.engine(for: store)
+        } catch {
+            NSLog("Trailwarden live guard could not load the rules: %@", String(describing: error))
+            return
+        }
         let report = TranscriptScanner(
             store: store,
             rules: engine,
@@ -245,8 +257,8 @@ private final class LiveWorker: @unchecked Sendable {
         content.sound = event.activeRisk.contains { $0.severity == .critical } ? .default : nil
         content.threadIdentifier = event.sessionId
         var info: [String: Any] = ["event": event.id, "session": event.sessionId]
-        if let key = alert.findingKey {
-            info["key"] = key
+        if !alert.findingKeys.isEmpty {
+            info["keys"] = alert.findingKeys
         }
         if let cwd = event.cwd, !cwd.isEmpty {
             info["cwd"] = cwd

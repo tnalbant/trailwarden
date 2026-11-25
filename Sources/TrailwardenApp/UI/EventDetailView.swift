@@ -66,7 +66,9 @@ struct EventDetailView: View {
             }
             // Pinned: the one action this pane offers should not sit wherever the
             // text happens to end, leaving the rest of the column empty below it.
-            if let resumeCommand {
+            // A deleted source with a kept copy gets the Finder button even when
+            // the agent has no resume command.
+            if resumeCommand != nil || (sourceDeleted && archivedFolder != nil) {
                 Hairline()
                 resumeSection(resumeCommand, sourceDeleted: sourceDeleted)
                     .padding(.horizontal, 18)
@@ -136,41 +138,44 @@ struct EventDetailView: View {
     }
 
     /// The one action people ask a history browser for: carry on from here.
-    private func resumeSection(_ command: String, sourceDeleted: Bool) -> some View {
+    /// With no resume command, only what is left of a deleted source.
+    private func resumeSection(_ command: String?, sourceDeleted: Bool) -> some View {
         VStack(alignment: .leading, spacing: 6) {
-            SectionLabel(text: L(.resumeSession))
-            if sourceDeleted {
+            SectionLabel(text: command == nil ? L(.sourceDeleted) : L(.resumeSession))
+            if sourceDeleted, command != nil {
                 Text(L(.resumeSourceDeleted))
                     .font(Tokens.Typography.font(.caption))
                     .foregroundStyle(Tokens.Palette.secondary)
                     .fixedSize(horizontal: false, vertical: true)
-                if let folder = archivedFolder {
-                    Button(L(.showCopyInFinder)) {
-                        NSWorkspace.shared.activateFileViewerSelecting([folder])
-                    }
-                    .buttonStyle(.plain)
-                    .font(Tokens.Typography.font(.callout, weight: .medium))
-                    .foregroundStyle(Tokens.Palette.accentText)
-                }
             }
-            HStack(alignment: .top, spacing: 8) {
-                Text(command)
-                    .font(Tokens.Typography.font(.codeSmall))
-                    .lineLimit(3)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .textSelection(.enabled)
-                Spacer(minLength: 6)
-                Button(copiedResume ? L(.copied) : L(.copy)) {
-                    NSPasteboard.general.clearContents()
-                    NSPasteboard.general.setString(command, forType: .string)
-                    copiedResume = true
+            if sourceDeleted, let folder = archivedFolder {
+                Button(L(.showCopyInFinder)) {
+                    NSWorkspace.shared.activateFileViewerSelecting([folder])
                 }
                 .buttonStyle(.plain)
                 .font(Tokens.Typography.font(.callout, weight: .medium))
                 .foregroundStyle(Tokens.Palette.accentText)
             }
-            .disabled(sourceDeleted)
-            .opacity(sourceDeleted ? 0.5 : 1)
+            if let command {
+                HStack(alignment: .top, spacing: 8) {
+                    Text(command)
+                        .font(Tokens.Typography.font(.codeSmall))
+                        .lineLimit(3)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .textSelection(.enabled)
+                    Spacer(minLength: 6)
+                    Button(copiedResume ? L(.copied) : L(.copy)) {
+                        NSPasteboard.general.clearContents()
+                        NSPasteboard.general.setString(command, forType: .string)
+                        copiedResume = true
+                    }
+                    .buttonStyle(.plain)
+                    .font(Tokens.Typography.font(.callout, weight: .medium))
+                    .foregroundStyle(Tokens.Palette.accentText)
+                }
+                .disabled(sourceDeleted)
+                .opacity(sourceDeleted ? 0.5 : 1)
+            }
         }
     }
 

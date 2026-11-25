@@ -63,7 +63,7 @@ struct InboxView: View {
 
     private func banner(_ count: Int) -> some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text(Lf(.inboxBacklogTitle, [count]))
+            Text(count == 1 ? L(.inboxBacklogTitleOne) : Lf(.inboxBacklogTitle, [count]))
                 .font(Tokens.Typography.font(.body, weight: .medium))
             HStack(spacing: 12) {
                 Button(L(.inboxMarkAllReviewed)) {
@@ -90,6 +90,8 @@ struct InboxView: View {
                 .font(Tokens.Typography.font(.body))
             Button(L(.cleanupKeepCopies)) {
                 archiveEnabled = true
+                // The first copies come from a full scan, so make one now.
+                Task { await app.scan() }
             }
             .buttonStyle(.bordered)
             .controlSize(.small)
