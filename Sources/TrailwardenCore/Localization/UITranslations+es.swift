@@ -32,7 +32,7 @@ extension UITranslations {
         .inboxTab: "Bandeja",
         .inboxActivityHeading: "Actividad de hoy",
         .inboxEmpty: "No hay nada pendiente de revisar.",
-        .inboxWaiting: "%d hallazgos esperan revisión →",
+        .inboxWaiting: "%d hallazgos críticos esperan revisión →",
         .inboxBacklogTitle: "Trailwarden encontró %d hallazgos de antes de hoy.",
         .inboxMarkAllReviewed: "Marcarlos todos como revisados",
         .inboxShowThem: "Mostrarlos en la bandeja",

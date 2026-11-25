@@ -250,11 +250,11 @@ struct MenuBarView: View {
                     .foregroundStyle(Tokens.Palette.accentText)
                     .lineLimit(2)
             }
-            if model.snapshot.unreviewedCount > 0 {
+            if model.snapshot.unreviewedCritical > 0 {
                 Button {
                     openMain(.inbox)
                 } label: {
-                    Text(Lf(.inboxWaiting, [model.snapshot.unreviewedCount]))
+                    Text(Lf(.inboxWaiting, [model.snapshot.unreviewedCritical]))
                         .font(Tokens.Typography.font(.callout, weight: .medium))
                         .foregroundStyle(Tokens.Palette.accentText)
                         .lineLimit(1)

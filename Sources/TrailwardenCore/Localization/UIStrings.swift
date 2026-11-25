@@ -133,7 +133,7 @@ public enum UITranslations {
         .inboxTab: "Inbox",
         .inboxActivityHeading: "Today’s activity",
         .inboxEmpty: "Nothing is waiting for review.",
-        .inboxWaiting: "%d findings waiting for review →",
+        .inboxWaiting: "%d critical findings waiting for review →",
         .inboxBacklogTitle: "Trailwarden found %d findings from before today.",
         .inboxMarkAllReviewed: "Mark them all reviewed",
         .inboxShowThem: "Show them in the inbox",

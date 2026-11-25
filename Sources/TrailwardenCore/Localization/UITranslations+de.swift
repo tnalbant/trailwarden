@@ -32,7 +32,7 @@ extension UITranslations {
         .inboxTab: "Eingang",
         .inboxActivityHeading: "Heutige Aktivität",
         .inboxEmpty: "Nichts wartet auf Prüfung.",
-        .inboxWaiting: "%d Funde warten auf Prüfung →",
+        .inboxWaiting: "%d kritische Funde warten auf Prüfung →",
         .inboxBacklogTitle: "Trailwarden hat %d Funde von vor heute gefunden.",
         .inboxMarkAllReviewed: "Alle als geprüft markieren",
         .inboxShowThem: "Im Eingang anzeigen",

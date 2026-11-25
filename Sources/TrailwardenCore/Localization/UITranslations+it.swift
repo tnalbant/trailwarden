@@ -32,7 +32,7 @@ extension UITranslations {
         .inboxTab: "Posta in arrivo",
         .inboxActivityHeading: "Attività di oggi",
         .inboxEmpty: "Niente in attesa di revisione.",
-        .inboxWaiting: "%d rilevamenti in attesa di revisione →",
+        .inboxWaiting: "%d rilevamenti critici in attesa di revisione →",
         .inboxBacklogTitle: "Trailwarden ha trovato %d rilevamenti precedenti a oggi.",
         .inboxMarkAllReviewed: "Segnali tutti come rivisti",
         .inboxShowThem: "Mostrali nella posta in arrivo",
