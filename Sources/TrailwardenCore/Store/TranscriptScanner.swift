@@ -118,6 +118,8 @@ public struct TranscriptScanner {
             bytesTotal: files.reduce(0) { $0 + $1.2 } + sources.reduce(0) { $0 + Self.size(of: $1.database) })
         progress?(state)
 
+        // A file that came back after being gone is read in full this pass.
+        try? store.releaseReturnedSources(under: roots.map(\.directory))
         for (root, url, size) in files {
             scan(file: url, root: root, into: &report)
             state.filesDone += 1
