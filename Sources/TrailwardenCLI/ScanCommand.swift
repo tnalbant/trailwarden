@@ -37,6 +37,11 @@ struct ScanCommand: ParsableCommand {
                 + "critical (default), warn, info or none."))
     var failOn: FailThreshold = .critical
 
+    @Flag(
+        name: .long,
+        help: "Also list findings marked reviewed, expected or false alarm, and hits an allowance covers.")
+    var includeReviewed = false
+
     func run() throws {
         if json, md {
             throw ValidationError("choose one of --json or --md")
@@ -75,7 +80,12 @@ struct ScanCommand: ParsableCommand {
             agents: agents,
             minimumSeverity: severity,
             onlyFindings: !json && !md)
-        let events = try database.events(matching: query)
+        let found = try database.events(matching: query)
+        let allowedTotal = found.reduce(0) { $0 + $1.risk.filter(\.allowed).count }
+        var events = try visible(found, in: database)
+        if !json, !md {
+            events.removeAll { $0.risk.isEmpty }
+        }
         let sessions = try database.sessions(agents: agents)
         let until = Date()
         let selection = AuditSelection(
@@ -86,25 +96,53 @@ struct ScanCommand: ParsableCommand {
             generatedAt: until)
 
         if json {
-            let data = try JSONReport.data(sessions: sessions, events: events, selection: selection)
+            let extras = try JSONReport.Extras(
+                reviews: reviewStates(of: events, in: database),
+                allowedTotal: allowedTotal)
+            let data = try JSONReport.data(
+                sessions: sessions, events: events, selection: selection, extras: extras)
             Output.write(String(decoding: data, as: UTF8.self))
         } else if md {
             Output.write(MarkdownReport.render(sessions: sessions, events: events, selection: selection))
         } else {
-            Output.write(textReport(report: report, events: events, since: sinceDate))
+            Output.write(textReport(report: report, events: events, allowed: allowedTotal, since: sinceDate))
         }
 
-        // CI gate: same window and agents as the report, but its own severity,
-        // so `--severity critical --fail-on warn` still fails on a warning.
-        if let threshold = failOn.severity,
-           try database.eventCount(
-               matching: EventQuery(since: sinceDate, agents: agents, minimumSeverity: threshold)) > 0
-        {
-            throw ExitCode(1)
+        // CI gate: same window, agents and visibility as the report, but its own
+        // severity, so `--severity critical --fail-on warn` still fails on a warning.
+        // It counts only what the report prints.
+        if let threshold = failOn.severity {
+            let gate = try visible(
+                database.events(matching: EventQuery(
+                    since: sinceDate, agents: agents, minimumSeverity: threshold, onlyFindings: true,
+                    includeRawJSON: false)),
+                in: database)
+            if gate.contains(where: { !$0.activeRisk.isEmpty }) {
+                throw ExitCode(1)
+            }
         }
     }
 
-    private func textReport(report: ScanReport, events: [Event], since: Date?) -> String {
+    private func reviewStates(of events: [Event], in database: EventStore) throws -> [String: ReviewState] {
+        let keys = events.flatMap { event in
+            event.risk.map { FindingKey.event(event.id, rule: $0.ruleId) }
+        }
+        return try database.reviewStates(for: keys)
+    }
+
+    /// Without `--include-reviewed`, a hit that is allowed, or whose finding is
+    /// reviewed, expected or a false alarm, is left out.
+    private func visible(_ events: [Event], in database: EventStore) throws -> [Event] {
+        guard !includeReviewed else { return events }
+        let states = try reviewStates(of: events, in: database)
+        return events.map { event in
+            event.withRisk(event.risk.filter { hit in
+                !hit.allowed && (states[FindingKey.event(event.id, rule: hit.ruleId)] ?? .new) == .new
+            })
+        }
+    }
+
+    private func textReport(report: ScanReport, events: [Event], allowed: Int, since: Date?) -> String {
         var lines: [String] = []
         lines.append(
             "scanned \(report.filesSeen) files: \(report.filesParsed) parsed, "
@@ -117,10 +155,11 @@ struct ScanCommand: ParsableCommand {
         let summary = AuditReport.summarize(sessions: [], events: events)
         lines.append(
             "findings (\(window)): \(summary.findings)  critical \(summary.critical)  warn \(summary.warn)")
+        lines.append("allowed (covered by an allowance): \(allowed)")
         for event in events.prefix(30) {
-            let hits = event.activeRisk
+            let hits = event.risk
                 .sorted { $0.severity > $1.severity }
-                .map { "\($0.severity.rawValue) \($0.ruleId)" }
+                .map { "\($0.severity.rawValue) \($0.ruleId)\($0.allowed ? " (allowed)" : "")" }
                 .joined(separator: ", ")
             let detail = event.command ?? event.preview ?? "-"
             lines.append(

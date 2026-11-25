@@ -12,7 +12,25 @@ struct DoctorCommand: ParsableCommand {
 
     @OptionGroup var store: StoreOptions
 
+    @Flag(name: .long, help: "Print a block of counts that is safe to paste into a bug report.")
+    var share = false
+
+    @Flag(name: .long, help: "Count the record types and key names in each agent's transcripts.")
+    var formats = false
+
     func run() throws {
+        if share {
+            let database = try store.open()
+            try Output.write(ShareSummary.text(
+                store: database,
+                version: TrailwardenVersion.current,
+                osVersion: ProcessInfo.processInfo.operatingSystemVersionString))
+            return
+        }
+        if formats {
+            printFormats()
+            return
+        }
         var healthy = true
 
         Output.write("Trailwarden \(TrailwardenVersion.current)  schema \(TrailwardenVersion.schema)")
@@ -85,6 +103,17 @@ struct DoctorCommand: ParsableCommand {
 
         if !healthy {
             throw ExitCode(1)
+        }
+    }
+
+    private func printFormats() {
+        for root in ScanRoot.standard() {
+            guard let enumerator = FileManager.default.enumerator(
+                at: root.directory, includingPropertiesForKeys: nil) else { continue }
+            let files = enumerator.compactMap { $0 as? URL }.filter { root.parser.accepts($0) }
+            guard !files.isEmpty else { continue }
+            Output.write("\(root.agent.rawValue) (\(files.count) files)")
+            Output.write(FormatCensus.text(FormatCensus.census(of: files, agent: root.agent)))
         }
     }
 
