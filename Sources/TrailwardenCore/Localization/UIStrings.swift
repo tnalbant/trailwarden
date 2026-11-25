@@ -113,6 +113,8 @@ public enum UIString: String, CaseIterable, Sendable {
     case inboxTab, inboxActivityHeading, inboxEmpty, inboxWaiting, inboxBacklogTitle
     case inboxMarkAllReviewed, inboxShowThem, inboxReviewed, inboxExpectedHere, inboxFalseAlarm
     case inboxOpen, inboxLine
+    // Claude Code cleanup notice
+    case cleanupNoticeOne, cleanupNoticeMany, cleanupKeepCopies
 }
 
 public enum UITranslations {
@@ -153,6 +155,9 @@ public enum UITranslations {
         .inboxFalseAlarm: "False alarm",
         .inboxOpen: "Open",
         .inboxLine: "line %d",
+        .cleanupNoticeOne: "Claude Code will delete 1 session this week. Keep full copies?",
+        .cleanupNoticeMany: "Claude Code will delete %d sessions this week. Keep full copies?",
+        .cleanupKeepCopies: "Keep full copies",
         .timelineTab: "Timeline",
         .messagesToday: "%d messages",
         .clearFilters: "Clear filters",

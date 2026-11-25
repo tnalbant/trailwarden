@@ -10,6 +10,7 @@ import TrailwardenCore
 struct InboxView: View {
     @AppStorage(LocalizationStore.defaultsKey) private var language = AppLanguage.system.rawValue
     @AppStorage(TechnicalDetails.storageKey) private var technical = false
+    @AppStorage(ArchiveSetting.enabledKey) private var archiveEnabled = false
     @ObservedObject var model: InboxModel
     @ObservedObject var feed: FeedModel
     @ObservedObject var app: AppModel
@@ -21,6 +22,10 @@ struct InboxView: View {
             LazyVStack(alignment: .leading, spacing: 0) {
                 if let backlog = model.backlog {
                     banner(backlog)
+                }
+                if model.expiringClaudeSessions > 0, !archiveEnabled {
+                    cleanupNotice(model.expiringClaudeSessions)
+                    Hairline()
                 }
                 if let error = model.errorMessage {
                     Text(error)
@@ -74,6 +79,23 @@ struct InboxView: View {
         .padding(Tokens.Metrics.gutter)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(Tokens.Palette.surface)
+        .accessibilityElement(children: .contain)
+    }
+
+    // MARK: - Claude Code cleanup notice
+
+    private func cleanupNotice(_ count: Int) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(count == 1 ? L(.cleanupNoticeOne) : Lf(.cleanupNoticeMany, [count]))
+                .font(Tokens.Typography.font(.body))
+            Button(L(.cleanupKeepCopies)) {
+                archiveEnabled = true
+            }
+            .buttonStyle(.bordered)
+            .controlSize(.small)
+        }
+        .padding(Tokens.Metrics.gutter)
+        .frame(maxWidth: .infinity, alignment: .leading)
         .accessibilityElement(children: .contain)
     }
 
