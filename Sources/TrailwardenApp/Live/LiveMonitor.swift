@@ -190,7 +190,10 @@ private final class LiveWorker: @unchecked Sendable {
             // After an update that changed the built-in rules, the history is
             // re-graded once, before the catch-up scan.
             try store.reapplyRulesIfCatalogueChanged(engine: engine)
-            _ = try TranscriptScanner(store: store, rules: engine)
+            _ = try TranscriptScanner(
+                store: store,
+                rules: engine,
+                archive: TranscriptArchive.ifEnabled(databaseURL: databaseURL, store: store))
                 .scan(roots: ScanRoot.standard(), databases: ScanRoot.standardDatabases())
             _ = try guardState.newFindings(in: store)
             self.store = store
@@ -216,7 +219,10 @@ private final class LiveWorker: @unchecked Sendable {
         lock.lock()
         defer { lock.unlock() }
         guard let store, let engine else { return }
-        let report = TranscriptScanner(store: store, rules: engine)
+        let report = TranscriptScanner(
+            store: store,
+            rules: engine,
+            archive: TranscriptArchive.ifEnabled(databaseURL: databaseURL, store: store))
             .scan(changed: urls, roots: ScanRoot.standard(), databases: ScanRoot.standardDatabases())
         let fresh = (try? guardState.newFindings(in: store)) ?? []
         for event in fresh.suffix(3) {

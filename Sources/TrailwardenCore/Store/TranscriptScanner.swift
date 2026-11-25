@@ -246,6 +246,11 @@ public struct TranscriptScanner {
            abs(known.mtime - mtime) < 0.5
         {
             report.filesUnchanged += 1
+            // Back-fill: a file scanned before the archive was switched on, or
+            // whose copy failed last time, gets its copy now.
+            if let archive, archive.needsCopy(source: url, agent: root.agent, store: store) {
+                archiveCopy(url, agent: root.agent, sessionID: known.sessionId, report: &report)
+            }
             return
         }
 
@@ -257,6 +262,8 @@ public struct TranscriptScanner {
             let events = annotated.map { redactor.redact($0) }
             let stored = try store.insert(events: events)
             try store.setSessionTitles(result.titles)
+            // Before the signature is saved: a failed copy is retried next pass.
+            archiveCopy(url, agent: root.agent, sessionID: events.first?.sessionId, report: &report)
             try store.recordScan(
                 path: url.path,
                 agent: root.agent,
@@ -268,14 +275,17 @@ public struct TranscriptScanner {
             report.filesParsed += 1
             report.eventsStored += stored
             report.skippedLines += result.skippedLines
-            do {
-                try archive?.update(
-                    source: url, agent: root.agent, sessionID: events.first?.sessionId, store: store)
-            } catch {
-                report.failures.append("archive \(url.lastPathComponent): \(error)")
-            }
         } catch {
             report.failures.append("\(url.lastPathComponent): \(error)")
+        }
+    }
+
+    private func archiveCopy(_ url: URL, agent: Agent, sessionID: String?, report: inout ScanReport) {
+        guard let archive else { return }
+        do {
+            try archive.update(source: url, agent: agent, sessionID: sessionID, store: store)
+        } catch {
+            report.failures.append("archive \(url.lastPathComponent): \(error)")
         }
     }
 }
