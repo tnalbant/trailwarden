@@ -238,6 +238,9 @@ final class AppModel: ObservableObject {
         }
 
         let url = databaseURL
+        let archiveRoot: URL? = UserDefaults.standard.bool(forKey: ArchiveSetting.enabledKey)
+            ? url.deletingLastPathComponent().appendingPathComponent("Archive", isDirectory: true)
+            : nil
         // Built here, on the main actor, so the detached scan never captures `self`.
         let publish: @MainActor @Sendable (ScanProgress) -> Void = { [weak self] progress in
             self?.scanProgress = progress
@@ -251,7 +254,10 @@ final class AppModel: ObservableObject {
                 // The first scan of a long history takes minutes; show it moving,
                 // but only when the whole percent changes.
                 var shown = -1
-                let report = try TranscriptScanner(store: store, rules: engine)
+                let report = try TranscriptScanner(
+                    store: store,
+                    rules: engine,
+                    archive: archiveRoot.map { TranscriptArchive(root: $0, store: store) })
                     .scan(roots: ScanRoot.standard(), databases: ScanRoot.standardDatabases()) { progress in
                         let percent = Int(progress.fraction * 100)
                         guard percent != shown else { return }
