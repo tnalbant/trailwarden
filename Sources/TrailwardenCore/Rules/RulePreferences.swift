@@ -87,6 +87,7 @@ public extension Rule {
             severity: severity,
             match: match,
             message: message,
+            consequence: consequence,
             enabled: enabled,
             examples: examples)
     }
