@@ -241,7 +241,17 @@ struct SettingsView: View {
             }
         }
         .onAppear { refreshArchiveSize() }
-        .onChange(of: archiveEnabled) { _, _ in refreshArchiveSize() }
+        .onChange(of: archiveEnabled) { _, enabled in
+            refreshArchiveSize()
+            // Copies are made by a full scan; without one the switch would do
+            // nothing until the next manual scan.
+            if enabled {
+                Task {
+                    await model.scan()
+                    refreshArchiveSize()
+                }
+            }
+        }
     }
 
     private var exportSection: some View {

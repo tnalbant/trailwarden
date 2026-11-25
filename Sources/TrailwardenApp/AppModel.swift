@@ -59,10 +59,15 @@ final class AppModel: ObservableObject {
     @Published var eventToSelect: String?
     /// Bumped to ask the menu bar label (always on screen) to open the main window.
     @Published var windowRequested = 0
+    /// Bumped whenever the index changed under the views: a new snapshot, a
+    /// live pass, an answered notification. The open inbox reloads on it.
+    @Published private(set) var indexVersion = 0
+    private var isRefreshing = false
+    private var refreshPending = false
 
     /// The live guard. Lazy so its callback can refer back to the model.
     lazy var live = LiveMonitor(databaseURL: databaseURL) { [weak self] in
-        self?.refresh()
+        self?.indexChanged()
     }
 
     // Rules screen state: the effective rule list, the active allowances, and the
@@ -111,11 +116,11 @@ final class AppModel: ObservableObject {
             queue: .main)
         { [weak self] note in
             let action = note.userInfo?["action"] as? String
-            let key = note.userInfo?["key"] as? String
+            let keys = note.userInfo?["keys"] as? [String] ?? []
             let cwd = note.userInfo?["cwd"] as? String
             MainActor.assumeIsolated {
-                guard let key, let action else { return }
-                Task { await self?.answerFinding(key: key, action: action, cwd: cwd) }
+                guard !keys.isEmpty, let action else { return }
+                Task { await self?.answerFindings(keys: keys, action: action, cwd: cwd) }
             }
         }
         // A Dock click or ⌘-Tab on a windowless app asks for the dashboard; the
@@ -159,66 +164,72 @@ final class AppModel: ObservableObject {
     }
 
     /// A notification button: "Reviewed", or "Expected in this project", which
-    /// allows the rule in that project forever and marks the finding only once
-    /// the allowance is stored (the same order the inbox uses).
-    func answerFinding(key: String, action: String, cwd: String?) async {
-        var state = ReviewState.reviewed
-        if action == LiveMonitor.expectedAction {
-            guard let cwd, let ruleId = FindingKey.ruleID(of: key) else { return }
+    /// allows each rule in that project forever and marks a finding only once
+    /// its allowance is stored (the same order the inbox uses). The button
+    /// answers every active finding of the event, not just the worst one.
+    func answerFindings(keys: [String], action: String, cwd: String?) async {
+        var answered: [(key: String, state: ReviewState)] = []
+        for key in keys {
+            guard action == LiveMonitor.expectedAction else {
+                answered.append((key, .reviewed))
+                continue
+            }
+            guard let cwd, let ruleId = FindingKey.ruleID(of: key) else { continue }
             let stored = await allow(Allowance(ruleId: ruleId, scope: .projectRule(project: cwd), until: nil))
-            guard stored else { return }
-            state = .expected
+            if stored {
+                answered.append((key, .expected))
+            }
         }
         do {
-            try EventStore(url: databaseURL).setReview(state, for: key)
-            refresh()
+            let store = try EventStore(url: databaseURL)
+            for answer in answered {
+                try store.setReview(answer.state, for: answer.key)
+            }
         } catch {
             errorMessage = TechnicalDetails.errorText(error)
         }
+        indexChanged()
     }
 
     // MARK: - Reading
 
+    /// Reloads the snapshot off the main actor and publishes it. Requests that
+    /// arrive while a load runs are folded into one more load after it, so a
+    /// burst of live passes costs at most two reads of the index.
     func refresh() {
-        do {
-            snapshot = try Self.loadSnapshot(at: databaseURL)
-            liveSessions = try Self.loadLiveSessions(at: databaseURL)
-            errorMessage = nil
-        } catch {
-            errorMessage = TechnicalDetails.errorText(error)
-        }
+        refreshPending = true
+        guard !isRefreshing else { return }
+        isRefreshing = true
+        Task { await drainRefreshes() }
     }
 
-    private static func loadLiveSessions(at url: URL) throws -> Set<String> {
-        let store = try EventStore(url: url)
-        return try store.activeSessionIDs(within: 120)
+    /// Something wrote to the index (a live pass, an answered notification):
+    /// views that keep their own copy, like an open inbox, reload too.
+    func indexChanged() {
+        indexVersion += 1
+        refresh()
     }
 
-    private static func loadSnapshot(at url: URL) throws -> Snapshot {
-        let store = try EventStore(url: url)
-        var snapshot = Snapshot()
-        snapshot.sessions = try store.sessions()
-        snapshot.totalEvents = try store.eventCount()
-
-        let startOfDay = Calendar.current.startOfDay(for: Date())
-        let today = try store.events(matching: EventQuery(since: startOfDay, limit: 500))
-        for event in today {
-            switch event.activeRisk.map(\.severity).max() {
-            case .critical: snapshot.criticalToday += 1
-            case .warn: snapshot.warnToday += 1
-            default: break
+    private func drainRefreshes() async {
+        defer { isRefreshing = false }
+        while refreshPending {
+            refreshPending = false
+            let url = databaseURL
+            let loaded = await Task.detached(priority: .utility) {
+                Result { try Snapshot.load(at: url) }
+            }.value
+            switch loaded {
+            case let .success(result):
+                if result.snapshot != snapshot {
+                    snapshot = result.snapshot
+                    indexVersion += 1
+                }
+                liveSessions = result.liveSessions
+                errorMessage = nil
+            case let .failure(error):
+                errorMessage = TechnicalDetails.errorText(error)
             }
         }
-        snapshot.messagesToday = today.filter { $0.kind == .message }.count
-        snapshot.recentActions = ActivityDigest.items(from: today, limit: 6)
-        // Searched across the whole day, not across the six newest rows: a
-        // critical from 09:00 is still today's critical at 21:00.
-        let worstToday = today
-            .filter { $0.activeRisk.contains { $0.severity == .critical } }
-            .max { $0.ts < $1.ts }
-        snapshot.latestCritical = worstToday.map { ActivityDigest.item(from: $0) }
-        snapshot.unreviewedCritical = try Inbox.unreviewedCriticalCount(in: store)
-        return snapshot
     }
 
     // MARK: - Scanning
@@ -247,7 +258,7 @@ final class AppModel: ObservableObject {
             failure: String?) in
             do {
                 let store = try EventStore(url: url)
-                let engine = try RuleEngine.builtIn(allowances: store.allowances())
+                let engine = try RuleEngine.grading(store, rules: RulePreferences.effectiveRules())
                 // The first scan of a long history takes minutes; show it moving,
                 // but only when the whole percent changes.
                 var shown = -1
@@ -281,7 +292,7 @@ final class AppModel: ObservableObject {
             errorMessage = failure
         }
         lastScanSummary = LocalizationStore.current.format(.eventCount, outcome.events)
-        refresh()
+        indexChanged()
     }
 
     // MARK: - Rules
@@ -349,6 +360,8 @@ final class AppModel: ObservableObject {
             if let url = preferencesURL {
                 try RulePreferences.save(RulePreferences.preferences(from: rules), to: url)
             }
+            // The live guard rebuilds its rule engine when this moves.
+            try EventStore(url: databaseURL).bumpRulesGeneration()
         } catch {
             errorMessage = TechnicalDetails.errorText(error)
             return
@@ -360,12 +373,11 @@ final class AppModel: ObservableObject {
     /// built-in catalogue, with the reader's preferences and allowances.
     func reapplyIfCatalogueChanged() async {
         let rulesCopy = rules
-        let allowancesCopy = allowances
         let url = databaseURL
         let changed = await Task.detached(priority: .utility) { () -> Bool in
             do {
                 let store = try EventStore(url: url)
-                let engine = try RuleEngine(rules: rulesCopy, allowances: allowancesCopy)
+                let engine = try RuleEngine.grading(store, rules: rulesCopy)
                 return try store.reapplyRulesIfCatalogueChanged(engine: engine)
             } catch {
                 NSLog("Trailwarden could not re-apply the rules: %@", String(describing: error))
@@ -378,34 +390,39 @@ final class AppModel: ObservableObject {
     }
 
     /// Re-runs the rules over the stored index. Runs off the main actor because
-    /// the store is not `Sendable`; only the summary text comes back.
+    /// the store is not `Sendable`; only the summary text comes back. A call
+    /// while one runs is not dropped: it asks for one more run after it, and the
+    /// allowances are read from the store inside each run.
     func reapplyRules() async {
+        reapplyPending = true
         guard !isReapplying else { return }
         isReapplying = true
         defer { isReapplying = false }
-        rulesDirty = false
 
-        let rulesCopy = rules
-        let allowancesCopy = allowances
-        let url = databaseURL
-        let summary = await Task.detached(priority: .userInitiated) { () -> (String, [String: Int]) in
-            do {
-                let store = try EventStore(url: url)
-                let engine = try RuleEngine(rules: rulesCopy, allowances: allowancesCopy)
-                let report = try engine.reapply(to: store)
-                let counts = try store.ruleHitCounts(matching: EventQuery(onlyFindings: true))
-                let text = LocalizationStore.current.format(
-                    .statusScan, report.events, report.changed, report.duration)
-                return (text, counts)
-            } catch {
-                return (LocalizationStore.current.format(.statusError, "\(error)"), [:])
-            }
-        }.value
-
-        ruleStatus = summary.0
-        ruleHitCounts = summary.1
-        refresh()
+        while reapplyPending {
+            reapplyPending = false
+            rulesDirty = false
+            let rulesCopy = rules
+            let url = databaseURL
+            let summary = await Task.detached(priority: .userInitiated) { () -> (String, [String: Int]) in
+                do {
+                    let store = try EventStore(url: url)
+                    let report = try store.reapplyCurrentRules { rulesCopy }
+                    let counts = try store.ruleHitCounts(matching: EventQuery(onlyFindings: true))
+                    let text = LocalizationStore.current.format(
+                        .statusScan, report.events, report.changed, report.duration)
+                    return (text, counts)
+                } catch {
+                    return (LocalizationStore.current.format(.statusError, "\(error)"), [:])
+                }
+            }.value
+            ruleStatus = summary.0
+            ruleHitCounts = summary.1
+        }
+        indexChanged()
     }
+
+    private var reapplyPending = false
 
     /// Set when a rule or an allowance changed and the stored events have not been
     /// re-run yet (true at launch, so the first visit fills the hit counts);
@@ -530,42 +547,6 @@ final class AppModel: ObservableObject {
         UserDefaults.standard.set(true, forKey: Self.onboardingKey)
         onboardingDone = true
         live.sync()
-    }
-
-    /// What the app will read, with a live count per transcript root. Agents
-    /// that keep one history database count as one file.
-    static func transcriptRoots() -> [TranscriptRoot] {
-        let folders = ScanRoot.standard().map { root in
-            let exists = FileManager.default.fileExists(atPath: root.directory.path)
-            return TranscriptRoot(
-                agent: root.agent,
-                path: root.directory.path,
-                files: exists ? countTranscripts(in: root) : 0,
-                exists: exists)
-        }
-        let databases = ScanRoot.standardDatabases().map { source in
-            let exists = FileManager.default.fileExists(atPath: source.database.path)
-            return TranscriptRoot(
-                agent: source.agent,
-                path: source.database.path,
-                files: exists ? 1 : 0,
-                exists: exists)
-        }
-        return folders + databases
-    }
-
-    private static func countTranscripts(in root: ScanRoot) -> Int {
-        guard let enumerator = FileManager.default.enumerator(
-            at: root.directory,
-            includingPropertiesForKeys: nil)
-        else {
-            return 0
-        }
-        var count = 0
-        for case let url as URL in enumerator where root.parser.accepts(url) {
-            count += 1
-        }
-        return count
     }
 }
 
