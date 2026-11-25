@@ -1,4 +1,39 @@
 <!-- SPDX-License-Identifier: Apache-2.0 -->
+# Trailwarden 0.3.0
+
+Your agents delete their history. Trailwarden keeps it. This release adds an inbox for what needs a look, allowances that say what is fine, titles for every session, and an optional archive of the transcripts themselves.
+
+## New
+
+- **Inbox replaces Today.** Findings you have not reviewed come first, worst first. Each has four actions: Reviewed, Expected in this project, False alarm, Open. The first time, you choose whether to mark findings from before today as reviewed. The menu bar badge and the panel count only unreviewed critical findings.
+- **Allowances replace 30-day mutes.** Allow this command, this rule in this project, a glob pattern, or a rule everywhere, for 1 day, 30 days or forever. Old mutes carry over as command allowances. The Rules tab lists every allowance and lets you change its scope and duration. An allowed match never notifies, stays out of the inbox and is counted as allowed.
+- **Notifications say what happens.** "Claude Code · Deletes your whole home folder": the project is the subtitle, the command is the body, and there is no rule id. Buttons: Reviewed, Expected in this project, Open. A tap on the summary opens the inbox. Every rule has a one-sentence consequence, in all six languages.
+- **Session titles.** Claude Code's own title or summary if the session has one, otherwise the first thing you asked, redacted and cut to 60 characters, otherwise "Untitled session". The sidebar groups sessions into Today, Yesterday, This week and Older.
+- **Source deleted, kept in Trailwarden.** When an agent removes a transcript, the session stays, with a badge. Resume is off and says why.
+- **A heads-up before Claude Code cleans up.** When `cleanupPeriodDays` is about to delete old sessions, the inbox shows an info row. It reads your Claude Code settings and never changes them. It never sends a notification.
+- **Archive (off by default).** Settings › Archive keeps a compressed copy of Claude Code, Codex, Gemini CLI and Copilot transcripts under `~/Library/Application Support/Trailwarden/Archive/`. Files are 0600, folders 0700. It only adds: if a transcript is shortened or rewritten, the earlier copy is kept as a version. Settings shows the space used and Show in Finder. Cursor, opencode and Hermes are not archived.
+- **Retention: Forever, 1 year or 90 days.** Forever is the default.
+- **R29: secrets left in agent settings files.** `~/.claude/settings*.json`, a project's `.claude/settings*.json`, `~/.codex/config.toml` and `~/.gemini/settings.json` are checked for keys and tokens. A hit is a warning in the inbox, never a notification, and only a masked preview is stored. It shows in the app; `trailwarden scan` does not list it in 0.3. The rule list stays at 28.
+- **CLI.** `scan --include-reviewed` also lists reviewed findings. `--fail-on` counts only the findings that are printed. JSON output gains `review` and `allowed`. `doctor --share` prints versions, counts and false-alarm counts per rule id, with no paths, commands or names, so it is safe to paste into a bug report. `doctor --formats` counts the record types and keys in your transcripts, never their values.
+
+## Changed
+
+- **The index moves to schema 9.** The first start after the update re-reads every transcript once, so existing sessions get titles. Nothing is lost.
+- **A rotated secret keeps its finding.** An R29 finding is keyed by file, rule and a digest of the masked line, so replacing a key on the same line does not bring a reviewed finding back.
+
+## Before publishing, check on a Mac
+
+None of this can run in CI. Go through it once on a real Mac.
+
+- **Upgrade from 0.2.5.** Open a 0.2.5 database with 0.3.0. Mutes are kept as command allowances. The "mark findings from before today reviewed" choice appears once.
+- **Notification buttons.** Reviewed, Expected in this project and Open, from the lock screen and from Notification Center. A tap on the summary opens the inbox.
+- **Larger text and a narrow window.** The inbox and the sidebar at Text size = Larger, and at 960 pt wide: nothing clipped or overlapping.
+- **VoiceOver.** An inbox row and the Allow… sheet are read in full, in a sensible order.
+- **Archive.** Turn it on: copies appear for existing, unchanged transcripts too. Delete a test transcript: the session shows the "Source deleted" badge and Show in Finder opens the copy.
+- **Titles.** `trailwarden doctor --formats` on real transcripts shows `type=custom-title` (seen on the owner's Mac). Confirm that titles appear in the sidebar.
+- **Privacy prompt.** macOS may ask for access to Files & Folders when R29 reads project settings under ~/Desktop or ~/Documents during a background scan. Confirm the prompt is clear, then decide whether to allow it.
+- **`doctor --share`.** Read the output once for private text before it goes into any report.
+
 # Trailwarden 0.2.5
 
 Fewer false alarms, an interface that reads plainly and can be made larger, and the app starts when you log in if you want it to.

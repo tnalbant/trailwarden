@@ -6,6 +6,8 @@
 
 [English](README.md) · [Türkçe](README.tr.md) · [Deutsch](README.de.md) · [Español](README.es.md) · [Italiano](README.it.md) · **Français**
 
+**Tes agents effacent leur historique. Trailwarden le garde.**
+
 **Le journal d'audit de tes agents de code.** Claude Code, Codex, Gemini CLI,
 opencode, Cursor, GitHub Copilot et Hermes Agent notent déjà tout ce qu'ils font sur ton Mac. Trailwarden lit
 ces transcriptions, te prévient dès qu'un agent lance quelque chose de risqué, montre quel
@@ -21,7 +23,7 @@ défaut). « Mettre à jour les prix » est un GET pour le `prices.json` public 
 dépôt, utilisé pour l'estimation du coût, fait seulement quand tu cliques. La CI
 échoue si une API réseau apparaît ailleurs dans `Sources/`.
 
-> État : **v0.2.5** — veille en direct, 28 règles, agent blame, rapport, garde-fou CI.
+> État : **v0.3.0** — boîte de réception, autorisations ciblées, titres de session, archive optionnelle, 28 règles.
 > Interface en anglais (US), turc, allemand, espagnol, italien et français.
 
 ![Rapport](docs/screenshots/report-light.png)
@@ -55,6 +57,11 @@ donc aucun vrai projet n'y apparaît.
 
 ## Ce qu'il fait
 
+- **Boîte de réception** — les alertes que tu n'as pas encore vues, les pires d'abord. Marque-les Vérifié, Attendu dans ce projet ou Fausse alerte ; le badge de la barre des menus ne compte que les alertes critiques non vérifiées.
+- **Autorisations** — dis qu'une commande, une règle dans un projet, un motif ou une règle partout est acceptable, pour un jour, 30 jours ou pour toujours. Une correspondance autorisée ne notifie jamais et reste hors de la boîte. L'onglet Règles les liste.
+- **Titres** — les sessions portent le nom de leur sujet, et la barre latérale les range en Aujourd'hui, Hier, Cette semaine, Plus ancien. Si le fichier source disparaît, la session reste, marquée « Source supprimée — conservée dans Trailwarden ».
+- **Archive (désactivée par défaut)** — une copie compressée des transcriptions de Claude Code, Codex, Gemini CLI et Copilot, pour que le nettoyage de l'agent ne les efface pas. Privée (0600/0700), en ajout seul, sous `~/Library/Application Support/Trailwarden/Archive/`.
+- **Conservation** — le journal est gardé pour toujours par défaut ; choisis 1 an ou 90 jours dans les Réglages.
 - **Veille en direct** — FSEvents prévient Trailwarden dès qu'un agent ajoute des lignes à sa
   transcription ; les nouvelles lignes sont analysées, les règles s'exécutent, et un constat
   critique devient une notification macOS. Clique dessus et la chronologie s'ouvre sur cet événement.
@@ -152,6 +159,9 @@ trailwarden scan --since 1d --fail-on warn # CI gate: exit 1 on a warning or wor
 trailwarden export --md --since 7d > audit.md
 trailwarden rules test "git push --force origin main"
 trailwarden rules apply                    # re-run the rules over the whole index
+trailwarden scan --include-reviewed       # liste aussi les alertes déjà vérifiées
+trailwarden doctor --share                 # chiffres pour un rapport de bug : ni chemins, ni commandes, ni noms
+trailwarden doctor --formats               # quels types d'enregistrement écrivent tes agents
 trailwarden doctor
 ```
 

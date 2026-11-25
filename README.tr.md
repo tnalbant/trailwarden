@@ -6,6 +6,8 @@
 
 [English](README.md) · **Türkçe** · [Deutsch](README.de.md) · [Español](README.es.md) · [Italiano](README.it.md) · [Français](README.fr.md)
 
+**Ajanların geçmişini siler. Trailwarden saklar.**
+
 **Kodlama ajanların için denetim kaydı.** Claude Code, Codex, Gemini CLI,
 opencode, Cursor, GitHub Copilot ve Hermes Agent yaptıkları her şeyi zaten Mac'inde
 bir yere yazıyor. Trailwarden bu transkriptleri okur, bir ajan riskli bir şey
@@ -22,7 +24,7 @@ maliyet tahmini için bu depodaki herkese açık `prices.json` dosyasını çeke
 GET'tir ve yalnızca sen tıkladığında yapılır. `Sources/` altında başka herhangi bir
 yerde ağ API'si görünürse CI başarısız olur.
 
-> Durum: **v0.2.5** — canlı bekçi, 28 kural, ajan izi, karne, CI kapısı.
+> Durum: **v0.3.0** — gelen kutusu, kapsamlı izinler, oturum başlıkları, isteğe bağlı arşiv, 28 kural.
 > Arayüz İngilizce (ABD), Türkçe, Almanca, İspanyolca, İtalyanca ve Fransızca.
 
 ![Karne](docs/screenshots/report-light.tr.png)
@@ -56,6 +58,11 @@ bu yüzden hiçbirinde gerçek bir proje görünmez.
 
 ## Ne yapar
 
+- **Gelen kutusu** — henüz bakmadığın bulgular, en kötüsü başta. Birini Gözden geçirildi, Bu projede beklenen ya da Yanlış alarm diye işaretle; menü çubuğundaki rozet yalnızca gözden geçirilmemiş kritik bulguları sayar.
+- **İzinler** — bir komutun, bir projedeki bir kuralın, bir desenin ya da her yerde bir kuralın sorun olmadığını bir gün, 30 gün ya da süresiz söyle. İzinli eşleşmeler bildirim üretmez, gelen kutusuna girmez. Kurallar sekmesi hepsini listeler.
+- **Başlıklar** — oturumlar ne hakkında olduklarıyla adlanır; kenar çubuğu onları Bugün, Dün, Bu hafta, Daha eski diye gruplar. Kaynak dosyası silinen oturum kalır, "Kaynak silindi — Trailwarden'da saklanıyor" diye işaretlenir.
+- **Arşiv (varsayılan kapalı)** — Claude Code, Codex, Gemini CLI ve Copilot transkriptlerinin sıkıştırılmış kopyası; ajan temizlik yapsa da silinmez. Özel (0600/0700), yalnızca eklenir, `~/Library/Application Support/Trailwarden/Archive/` altında.
+- **Saklama** — kayıt varsayılan olarak sonsuza kadar tutulur; Ayarlar'dan 1 yıl ya da 90 gün seçilebilir.
 - **Canlı bekçi** — Bir ajan transkriptine satır eklediği anda FSEvents bunu
   Trailwarden'a bildirir. Yeni satırlar ayrıştırılır, kurallar çalışır ve kritik
   bir bulgu macOS bildirimine dönüşür. Bildirime tıklayınca zaman çizelgesi o
@@ -159,6 +166,9 @@ trailwarden scan --since 1d --fail-on warn # CI gate: exit 1 on a warning or wor
 trailwarden export --md --since 7d > audit.md
 trailwarden rules test "git push --force origin main"
 trailwarden rules apply                    # re-run the rules over the whole index
+trailwarden scan --include-reviewed       # gözden geçirdiğin bulguları da listele
+trailwarden doctor --share                 # hata raporu için sayılar: yol, komut ya da ad yok
+trailwarden doctor --formats               # ajanların hangi kayıt türlerini yazıyor
 trailwarden doctor
 ```
 
