@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
-// Copyright (c) 2026 Turgay Nalbant
+// Copyright (c) 2026 tnalbant
 
 import AppKit
 import TrailwardenCore

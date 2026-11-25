@@ -1,6 +1,6 @@
 #!/bin/bash
 # SPDX-License-Identifier: Apache-2.0
-# Copyright (c) 2026 Turgay Nalbant
+# Copyright (c) 2026 tnalbant
 #
 # Builds everything a release needs: the app (signed and notarized when a
 # Developer ID is present), a DMG, the CLI/MCP binaries as a tarball, and their

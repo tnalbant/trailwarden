@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // SPDX-License-Identifier: Apache-2.0
-// Copyright (c) 2026 Turgay Nalbant
+// Copyright (c) 2026 tnalbant
 //
 // Thin wrapper: the MCP server is the Swift binary in vendor/. Keeping this file
 // tiny means `npm install -g trailwarden-mcp` fetches no dependencies at all.

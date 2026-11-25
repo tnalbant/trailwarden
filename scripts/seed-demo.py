@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: Apache-2.0
-# Copyright (c) 2026 Turgay Nalbant
+# Copyright (c) 2026 tnalbant
 """Fills a throwaway database with invented sessions, so screenshots and demos
 never show a real user's projects. Run: python3 scripts/seed-demo.py /tmp/demo.sqlite
 """

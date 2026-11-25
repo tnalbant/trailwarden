@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // SPDX-License-Identifier: Apache-2.0
-// Copyright (c) 2026 Turgay Nalbant
+// Copyright (c) 2026 tnalbant
 //
 // Puts the release's own MCP binary into the package, so `npm install` needs no
 // network beyond the registry itself and installs the same file the release

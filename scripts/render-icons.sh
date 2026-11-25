@@ -1,6 +1,6 @@
 #!/bin/sh
 # SPDX-License-Identifier: Apache-2.0
-# Copyright (c) 2026 Turgay Nalbant
+# Copyright (c) 2026 tnalbant
 #
 # Renders the app icon and the menu bar glyph from docs/brand/*.svg into the
 # asset catalogue. Needs rsvg-convert (brew install librsvg).
