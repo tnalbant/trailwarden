@@ -95,11 +95,18 @@ public struct TranscriptScanner {
     private let store: EventStore
     private let redactor: Redactor
     private let rules: RuleEngine?
+    private let archive: TranscriptArchive?
 
-    public init(store: EventStore, redactor: Redactor = Redactor(), rules: RuleEngine? = nil) {
+    public init(
+        store: EventStore,
+        redactor: Redactor = Redactor(),
+        rules: RuleEngine? = nil,
+        archive: TranscriptArchive? = nil)
+    {
         self.store = store
         self.redactor = redactor
         self.rules = rules
+        self.archive = archive
     }
 
     public func scan(
@@ -261,6 +268,12 @@ public struct TranscriptScanner {
             report.filesParsed += 1
             report.eventsStored += stored
             report.skippedLines += result.skippedLines
+            do {
+                try archive?.update(
+                    source: url, agent: root.agent, sessionID: events.first?.sessionId, store: store)
+            } catch {
+                report.failures.append("archive \(url.lastPathComponent): \(error)")
+            }
         } catch {
             report.failures.append("\(url.lastPathComponent): \(error)")
         }
