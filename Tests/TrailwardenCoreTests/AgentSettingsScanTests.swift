@@ -101,11 +101,10 @@ final class AgentSettingsScanTests: XCTestCase {
     }
 
     func testAllowanceHidesAFileFinding() throws {
-        let url = try writeSettings(leakyJSON)
+        _ = try writeSettings(leakyJSON)
         let store = try EventStore(inMemory: true)
         try AgentSettingsScan.refresh(store: store, home: home, sessionCwds: [])
         XCTAssertEqual(try Inbox.load(from: store).unreviewed.count, 1)
-        _ = url
         try store.addAllowance(Allowance(ruleId: "R29", scope: .pattern(glob: "~/.claude/*"), until: nil))
         XCTAssertEqual(try Inbox.load(from: store).unreviewed.count, 0)
     }
@@ -123,5 +122,62 @@ final class AgentSettingsScanTests: XCTestCase {
         let lines = Redactor().secretLines(in: text)
         XCTAssertEqual(lines.map(\.line), [2])
         XCTAssertFalse(lines[0].redacted.contains(secret))
+    }
+
+    func testNarrowAllowancesDoNotHideAFileFinding() throws {
+        _ = try writeSettings(leakyJSON)
+        let store = try EventStore(inMemory: true)
+        try AgentSettingsScan.refresh(store: store, home: home, sessionCwds: [])
+        try store.addAllowance(Allowance(ruleId: "R29", scope: .command("anything"), until: nil))
+        try store.addAllowance(Allowance(ruleId: "R29", scope: .projectRule(project: "/"), until: nil))
+        XCTAssertEqual(try Inbox.load(from: store).unreviewed.count, 1)
+    }
+
+    func testReviewOfAPresentFileFindingSurvivesCleanup() throws {
+        _ = try writeSettings(leakyJSON)
+        let store = try EventStore(inMemory: true)
+        try AgentSettingsScan.refresh(store: store, home: home, sessionCwds: [])
+        let key = try XCTUnwrap(Inbox.load(from: store).unreviewed.first?.id)
+        try store.setReview(.reviewed, for: key)
+        try store.removeOrphanEventReviews()
+        XCTAssertEqual(try store.reviewStates(for: [key])[key], .reviewed)
+    }
+
+    func testFindingsOfDroppedProjectsAreRemoved() throws {
+        let project = home.appendingPathComponent("proj")
+        try FileManager.default.createDirectory(
+            at: project.appendingPathComponent(".claude"), withIntermediateDirectories: true)
+        try leakyJSON.write(
+            to: project.appendingPathComponent(".claude/settings.json"), atomically: true, encoding: .utf8)
+        let store = try EventStore(inMemory: true)
+        try AgentSettingsScan.refresh(store: store, home: home, sessionCwds: [project.path])
+        XCTAssertEqual(try Inbox.load(from: store).unreviewed.count, 1)
+        try AgentSettingsScan.refresh(store: store, home: home, sessionCwds: [])
+        XCTAssertEqual(try Inbox.load(from: store).unreviewed.count, 0)
+    }
+
+    func testJSONEscapedSecretIsRedacted() throws {
+        let escaped = "  \"env\": \"GITHUB_TOKEN=\(secret)\\n\""
+        let url = try writeSettings("{\n\(escaped)\n}")
+        let findings = AgentSettingsScan.scan([url], home: home)
+        XCTAssertEqual(findings.count, 1)
+        XCTAssertFalse(findings[0].preview.contains(secret))
+        XCTAssertFalse(findings[0].key.contains(secret))
+    }
+
+    func testPEMKeyInTOMLNeverStoredInClear() throws {
+        let body = String(repeating: "QUJDREVGR0hJSktMTU5PUFFSU1RVVldYWVo", count: 3)
+        let toml = "key = \"\"\"\n-----\("BEGIN PRIVATE KEY-----")\n\(body)\n-----END PRIVATE KEY-----\n\"\"\"\n"
+        let codex = home.appendingPathComponent(".codex")
+        try FileManager.default.createDirectory(at: codex, withIntermediateDirectories: true)
+        let url = codex.appendingPathComponent("config.toml")
+        try toml.write(to: url, atomically: true, encoding: .utf8)
+        let findings = AgentSettingsScan.scan([url], home: home)
+        XCTAssertFalse(findings.isEmpty)
+        for finding in findings {
+            XCTAssertFalse(finding.preview.contains(body))
+            XCTAssertFalse(finding.key.contains(body))
+            XCTAssertFalse(finding.preview.contains("QUJDREVG"))
+        }
     }
 }

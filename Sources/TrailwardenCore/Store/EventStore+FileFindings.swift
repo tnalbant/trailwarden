@@ -36,4 +36,21 @@ public extension EventStore {
             }
         }
     }
+
+    /// Deletes stored file findings whose path is not in `paths`.
+    func removeFileFindings(notIn paths: [String]) throws {
+        let known = Set(paths)
+        let select = try database.prepare("SELECT DISTINCT path FROM file_findings")
+        var stale: [String] = []
+        while try select.step() {
+            if let path = select.text(0), !known.contains(path) {
+                stale.append(path)
+            }
+        }
+        let delete = try database.prepare("DELETE FROM file_findings WHERE path = ?")
+        for path in stale {
+            try delete.bind([.text(path)])
+            try delete.step()
+        }
+    }
 }

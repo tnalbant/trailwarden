@@ -262,8 +262,15 @@ final class AppModel: ObservableObject {
                         Task { @MainActor in publish(progress) }
                     }
                 // Settings files are checked once per full scan, never on the live path.
-                try? AgentSettingsScan.refresh(store: store)
+                // A store error here is shown like a scan failure but does not fail the scan.
+                var settingsFailure: String?
+                do {
+                    try AgentSettingsScan.refresh(store: store)
+                } catch {
+                    settingsFailure = TechnicalDetails.errorText(error)
+                }
                 let failure = report.failures.first.map { TechnicalDetails.errorText(raw: $0) }
+                    ?? settingsFailure
                 return (report.eventsStored, failure)
             } catch {
                 return (0, TechnicalDetails.errorText(error))

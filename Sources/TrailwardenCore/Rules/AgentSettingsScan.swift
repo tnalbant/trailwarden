@@ -94,9 +94,9 @@ public enum AgentSettingsScan {
     {
         let cwds = try sessionCwds ?? store.projects().map(\.cwd)
         let files = candidateFiles(home: home, sessionCwds: cwds)
-        try store.replaceFileFindings(
-            scan(files, home: home),
-            for: files.map { shortPath($0, home: home) },
-            at: now)
+        let paths = files.map { shortPath($0, home: home) }
+        try store.replaceFileFindings(scan(files, home: home), for: paths, at: now)
+        // A project that is no longer known leaves its settings file out of the list.
+        try store.removeFileFindings(notIn: paths)
     }
 }
