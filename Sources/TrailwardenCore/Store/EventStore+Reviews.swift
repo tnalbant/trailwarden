@@ -80,6 +80,32 @@ public extension EventStore {
         return changed
     }
 
+    /// Events with at least one active hit that has no review yet, without their
+    /// raw JSON. A superset of what the inbox shows per hit: the caller still
+    /// checks each (event, rule) key.
+    internal func eventsWithUnreviewedFindings() throws -> [Event] {
+        let decided = ReviewState.allCases.filter { $0 != .new }.map { "'\($0.rawValue)'" }
+            .joined(separator: ",")
+        let statement = try database.prepare("""
+        SELECT \(Self.eventColumnsWithoutRaw) FROM events
+        WHERE events.severity_rank IS NOT NULL
+          AND EXISTS (
+            SELECT 1 FROM json_each(events.risk) AS hit
+            WHERE COALESCE(json_extract(hit.value, '$.allowed'), 0) = 0
+              AND NOT EXISTS (
+                SELECT 1 FROM finding_reviews AS review
+                WHERE review.finding_key = 'event:' || events.id || ':' || json_extract(hit.value, '$.ruleId')
+                  AND review.state IN (\(decided))))
+        """)
+        var result: [Event] = []
+        while try statement.step() {
+            if let event = Self.event(from: statement) {
+                result.append(event)
+            }
+        }
+        return result
+    }
+
     /// Rule id to the number of findings marked false alarm, for tuning hints.
     func falsePositiveCounts() throws -> [String: Int] {
         let statement = try database.prepare("SELECT finding_key FROM finding_reviews WHERE state = ?")

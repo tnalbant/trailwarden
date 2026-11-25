@@ -138,4 +138,31 @@ final class InboxTests: XCTestCase {
         XCTAssertEqual(loaded, 3)
         XCTAssertEqual(try Inbox.unreviewedCriticalCount(in: store), loaded)
     }
+
+    func testEqualSeverityAndTimeSortById() throws {
+        try store.insert(events: [
+            event("b", ago: 10, risk: [hit("R1", .warn)]),
+            event("a", ago: 10, risk: [hit("R1", .warn)]),
+            event("c", ago: 10, risk: [hit("R1", .warn)])
+        ])
+        let snapshot = try Inbox.load(from: store, now: launch)
+        XCTAssertEqual(snapshot.unreviewed.map(\.id), ["event:a:R1", "event:b:R1", "event:c:R1"])
+    }
+
+    func testPartlyReviewedEventKeepsItsOpenHit() throws {
+        try store.insert(events: [
+            event("e1", ago: 10, risk: [hit("R1", .critical), hit("R2", .warn)]),
+            event("e2", ago: 20, risk: [hit("R1", .warn)])
+        ])
+        try store.setReview(.reviewed, for: "event:e1:R1", at: launch)
+        try store.setReview(.falsePositive, for: "event:e2:R1", at: launch)
+        XCTAssertEqual(
+            try store.eventsWithUnreviewedFindings().map(\.id),
+            ["e1"],
+            "fully reviewed events are skipped")
+        let snapshot = try Inbox.load(from: store, now: launch)
+        XCTAssertEqual(snapshot.unreviewed.map(\.id), ["event:e1:R2"])
+        XCTAssertEqual(snapshot.unreviewedCritical, 0)
+        XCTAssertEqual(try Inbox.unreviewedCriticalCount(in: store), 0)
+    }
 }

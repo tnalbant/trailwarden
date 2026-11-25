@@ -19,11 +19,15 @@ final class SchemaNineTests: XCTestCase {
     }
 
     /// Writes a schema 8 file: the nine-only tables and columns are gone, the mute is in place.
-    private func makeSchemaEightFile(mute: (ruleId: String, target: String, until: Date)? = nil) throws
+    private func makeSchemaEightFile(
+        mute: (ruleId: String, target: String, until: Date)? = nil,
+        prepare: (EventStore) throws -> Void = { _ in }) throws
         -> URL
     {
         let url = temporaryDirectory.appendingPathComponent("trailwarden.sqlite")
         let store = try EventStore(url: url)
+        try prepare(store)
+        _ = try store.prepareRowStatement("DELETE FROM meta WHERE key = 'inbox.firstLaunch'").step()
         for table in ["finding_reviews", "allowances", "file_findings", "archive_copies"] {
             _ = try store.prepareRowStatement("DROP TABLE \(table)").step()
         }
@@ -127,5 +131,67 @@ final class SchemaNineTests: XCTestCase {
         XCTAssertTrue(try row.step())
         XCTAssertEqual(row.text(0), "T")
         XCTAssertEqual(row.text(1), "summary")
+    }
+
+    // MARK: - Upgrade moment and sources gone before it
+
+    func testUpgradeRecordsTheBacklogCutoff() throws {
+        let url = try makeSchemaEightFile()
+        let before = Date()
+        let store = try EventStore(url: url)
+        let stored = try XCTUnwrap(store.metaValue(Inbox.firstLaunchKey).flatMap(Double.init))
+        XCTAssertGreaterThanOrEqual(stored, before.timeIntervalSince1970 - 1)
+        XCTAssertLessThanOrEqual(stored, Date().timeIntervalSince1970 + 1)
+
+        // Opening the inbox much later keeps the upgrade moment.
+        _ = try Inbox.load(from: store, now: Date().addingTimeInterval(86400))
+        XCTAssertEqual(try store.metaValue(Inbox.firstLaunchKey).flatMap(Double.init), stored)
+    }
+
+    func testNewIndexRecordsTheBacklogCutoffAtCreation() throws {
+        let store = try EventStore(url: temporaryDirectory.appendingPathComponent("fresh.sqlite"))
+        XCTAssertNotNil(try store.metaValue(Inbox.firstLaunchKey))
+    }
+
+    func testSourceGoneBeforeUpgradeIsMarkedAndTitled() throws {
+        let gone = temporaryDirectory.appendingPathComponent("projects/gone.jsonl").path
+        let kept = temporaryDirectory.appendingPathComponent("kept.jsonl")
+        try "{}\n".write(to: kept, atomically: true, encoding: .utf8)
+        let userLine = #"{"type":"user","sessionId":"s-gone","message":{"role":"user","content":"Fix the login page"}}"#
+        let url = try makeSchemaEightFile { store in
+            try store.insert(events: [
+                Event(
+                    id: "m1", ts: Date(timeIntervalSince1970: 1_700_000_000), agent: .claudeCode,
+                    sessionId: "s-gone", kind: .message, preview: "Fix the login page", rawJSON: userLine),
+                Event(
+                    id: "m2", ts: Date(timeIntervalSince1970: 1_700_000_100), agent: .claudeCode,
+                    sessionId: "s-kept", kind: .message, preview: "hi")
+            ])
+            for (path, session) in [(gone, "s-gone"), (kept.path, "s-kept")] {
+                let insert = try store.prepareRowStatement("""
+                INSERT INTO scanned_files (path, agent, size, mtime, session_id, events, skipped, scanned_at)
+                VALUES (?, 'claude-code', 10, 0, ?, 1, 0, 0)
+                """)
+                try insert.bind([.text(path), .text(session)])
+                _ = try insert.step()
+            }
+        }
+
+        let store = try EventStore(url: url)
+
+        let rows = try store.prepareRowStatement("SELECT path, missing_since FROM scanned_files")
+        var remaining: [String: Double?] = [:]
+        while try rows.step() {
+            try remaining[XCTUnwrap(rows.text(0))] = rows.double(1)
+        }
+        XCTAssertEqual(Array(remaining.keys), [gone], "the existing file is forgotten so it is read again")
+        XCTAssertNotNil(remaining[gone].flatMap(\.self), "the gone file is marked missing")
+        XCTAssertEqual(try store.sessionsWithDeletedSources(), ["s-gone"])
+
+        let title = try store
+            .prepareRowStatement("SELECT title, title_source FROM sessions WHERE id = 's-gone'")
+        XCTAssertTrue(try title.step())
+        XCTAssertEqual(title.text(0), "Fix the login page")
+        XCTAssertEqual(title.text(1), SessionTitle.Source.firstMessage.rawValue)
     }
 }

@@ -177,7 +177,7 @@ public extension EventStore {
 
     // MARK: - SQL
 
-    private static let eventColumnsWithoutRaw = """
+    static let eventColumnsWithoutRaw = """
     events.id, events.ts, events.agent, events.session_id, events.kind, events.cwd,
     events.git_branch, events.tool, events.command, events.paths, events.preview,
     events.risk, NULL AS raw_json, \(usageColumns)
