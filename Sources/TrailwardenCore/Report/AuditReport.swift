@@ -237,6 +237,8 @@ public enum JSONReport {
             public let critical: Int
             public let warn: Int
             public let info: Int
+            /// Hits an allowance covers; present when the report knows about allowances.
+            public let allowed: Int?
         }
 
         public struct SessionRow: Encodable {
@@ -268,7 +270,24 @@ public enum JSONReport {
                 public let ruleId: String
                 public let severity: String
                 public let message: String
+                /// An allowance covers this hit; present with `Extras`.
+                public let allowed: Bool?
+                /// The finding's review state; present with `Extras`.
+                public let review: String?
             }
+        }
+    }
+
+    /// What a report that knows about reviews and allowances adds: every hit is
+    /// listed with its `allowed` flag and review state, and the summary counts
+    /// the allowed ones.
+    public struct Extras: Sendable {
+        public let reviews: [String: ReviewState]
+        public let allowedTotal: Int
+
+        public init(reviews: [String: ReviewState], allowedTotal: Int) {
+            self.reviews = reviews
+            self.allowedTotal = allowedTotal
         }
     }
 
@@ -276,6 +295,7 @@ public enum JSONReport {
         sessions: [SessionSummary],
         events: [Event],
         selection: AuditSelection,
+        extras: Extras? = nil,
         redactor: Redactor = Redactor(level: .normal)) -> Document
     {
         let summary = AuditReport.summarize(sessions: sessions, events: events)
@@ -297,7 +317,8 @@ public enum JSONReport {
                 findings: summary.findings,
                 critical: summary.critical,
                 warn: summary.warn,
-                info: summary.info),
+                info: summary.info,
+                allowed: extras?.allowedTotal),
             sessions: orderedSessions.map {
                 .init(
                     id: $0.id,
@@ -323,8 +344,15 @@ public enum JSONReport {
                     command: safe.command,
                     paths: safe.paths,
                     preview: safe.preview,
-                    risk: safe.activeRisk.map {
-                        .init(ruleId: $0.ruleId, severity: $0.severity.rawValue, message: $0.englishMessage)
+                    risk: (extras == nil ? safe.activeRisk : safe.risk).map { hit in
+                        .init(
+                            ruleId: hit.ruleId,
+                            severity: hit.severity.rawValue,
+                            message: hit.englishMessage,
+                            allowed: extras.map { _ in hit.allowed },
+                            review: extras.map {
+                                ($0.reviews[FindingKey.event(safe.id, rule: hit.ruleId)] ?? .new).rawValue
+                            })
                     })
             })
     }
@@ -333,6 +361,7 @@ public enum JSONReport {
         sessions: [SessionSummary],
         events: [Event],
         selection: AuditSelection,
+        extras: Extras? = nil,
         redactor: Redactor = Redactor(level: .normal)) throws -> Data
     {
         let encoder = JSONEncoder()
@@ -340,6 +369,8 @@ public enum JSONReport {
         encoder.dateEncodingStrategy = .iso8601
         encoder.keyEncodingStrategy = .convertToSnakeCase
         return try encoder.encode(
-            makeDocument(sessions: sessions, events: events, selection: selection, redactor: redactor))
+            makeDocument(
+                sessions: sessions, events: events, selection: selection, extras: extras,
+                redactor: redactor))
     }
 }
