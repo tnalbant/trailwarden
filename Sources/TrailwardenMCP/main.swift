@@ -30,7 +30,7 @@ do {
 // After an update that changed the built-in rules, the history is re-graded
 // once, so the answers use the rules this binary ships.
 do {
-    let engine = try RuleEngine(rules: RulePreferences.effectiveRules(), mutes: store.mutes())
+    let engine = try RuleEngine(rules: RulePreferences.effectiveRules(), allowances: store.allowances())
     try store.reapplyRulesIfCatalogueChanged(engine: engine)
 } catch {
     FileHandle.standardError.write(Data("trailwarden-mcp: cannot re-apply the rules: \(error)\n".utf8))

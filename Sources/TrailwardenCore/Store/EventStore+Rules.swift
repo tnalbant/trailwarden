@@ -3,45 +3,9 @@
 
 import Foundation
 
-/// Mutes and stored rule hits: the part of the store that changes when the
-/// reader silences a finding or the rules themselves change.
+/// Stored rule hits: the part of the store that changes when the
+/// reader allows a finding or the rules themselves change.
 public extension EventStore {
-    // MARK: - Mutes
-
-    /// Silences one `(rule, target)` pair until `mute.until`.
-    func addMute(_ mute: Mute) throws {
-        let statement = try database.prepare("""
-        INSERT OR REPLACE INTO mutes (rule_id, target, until) VALUES (?,?,?)
-        """)
-        try statement.bind([
-            .text(mute.ruleId),
-            .text(mute.target),
-            .double(mute.until.timeIntervalSince1970)
-        ])
-        try statement.step()
-    }
-
-    func removeMute(_ mute: Mute) throws {
-        let statement = try database.prepare("DELETE FROM mutes WHERE rule_id = ? AND target = ?")
-        try statement.bind([.text(mute.ruleId), .text(mute.target)])
-        try statement.step()
-    }
-
-    func mutes(now: Date = Date()) throws -> [Mute] {
-        let statement = try database.prepare("SELECT rule_id, target, until FROM mutes WHERE until > ?")
-        try statement.bind([.double(now.timeIntervalSince1970)])
-        var result: [Mute] = []
-        while try statement.step() {
-            guard let ruleId = statement.text(0), let target = statement.text(1) else { continue }
-            result.append(
-                Mute(
-                    ruleId: ruleId,
-                    target: target,
-                    until: Date(timeIntervalSince1970: statement.double(2) ?? 0)))
-        }
-        return result
-    }
-
     /// Rewrites the rule hits of the listed events and re-derives the session
     /// rows that count them. The rule set changed, so stored hits are stale.
     @discardableResult
@@ -70,7 +34,7 @@ public extension EventStore {
                 "UPDATE events SET risk = ?, severity = ?, severity_rank = ? WHERE id = ?")
             for (id, hits) in hitsByEventID {
                 let risk = try String(decoding: encoder.encode(hits), as: UTF8.self)
-                let worst = hits.map(\.severity).max()
+                let worst = hits.filter { !$0.allowed }.map(\.severity).max()
                 try update.bind([
                     .text(risk),
                     worst.map { SQLValue.text($0.rawValue) } ?? .null,
@@ -85,15 +49,6 @@ public extension EventStore {
             try refreshSession(session)
         }
         return hitsByEventID.count
-    }
-
-    /// Drops mutes that have run out; called at the start of a scan.
-    @discardableResult
-    func removeExpiredMutes(now: Date = Date()) throws -> Int {
-        let statement = try database.prepare("DELETE FROM mutes WHERE until <= ?")
-        try statement.bind([.double(now.timeIntervalSince1970)])
-        try statement.step()
-        return try count("mutes")
     }
 
     // MARK: - Rule catalogue
@@ -119,7 +74,7 @@ public extension EventStore {
     /// from the one that last graded it (or none is recorded), then records
     /// `fingerprint`. An update that changes a rule thus reaches the history
     /// once, at the first start after it. `engine` should carry the reader's
-    /// rule preferences and mutes. Returns whether the rules were re-applied.
+    /// rule preferences and allowances. Returns whether the rules were re-applied.
     @discardableResult
     func reapplyRulesIfCatalogueChanged(
         engine: RuleEngine,
@@ -130,10 +85,5 @@ public extension EventStore {
         try engine.reapply(to: self, now: now)
         try setMetaValue(fingerprint, for: Self.ruleCatalogueKey)
         return true
-    }
-
-    private func count(_ table: String) throws -> Int {
-        let statement = try database.prepare("SELECT COUNT(*) FROM \(table)")
-        return try statement.step() ? (statement.int(0) ?? 0) : 0
     }
 }

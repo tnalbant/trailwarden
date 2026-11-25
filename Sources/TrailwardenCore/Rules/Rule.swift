@@ -106,29 +106,6 @@ public struct Rule: Codable, Sendable, Identifiable, Equatable {
     }
 }
 
-/// A silenced `(rule, target)` pair. `target` is the normalized command (or the
-/// first path when there is no command), so muting is per situation, not global.
-public struct Mute: Codable, Sendable, Hashable, Identifiable {
-    public let ruleId: String
-    public let target: String
-    /// The mute stops applying after this moment.
-    public let until: Date
-
-    public var id: String {
-        "\(ruleId)|\(target)"
-    }
-
-    public init(ruleId: String, target: String, until: Date) {
-        self.ruleId = ruleId
-        self.target = target
-        self.until = until
-    }
-
-    public func isActive(at date: Date) -> Bool {
-        until > date
-    }
-}
-
 public enum RuleError: Error, CustomStringConvertible, Sendable {
     case missingCatalog
     case invalidPattern(String)

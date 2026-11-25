@@ -171,8 +171,8 @@ public struct MCPRouter: @unchecked Sendable {
                 if !event.paths.isEmpty {
                     row["paths"] = event.paths
                 }
-                if !event.risk.isEmpty {
-                    row["findings"] = event.risk.map {
+                if !event.activeRisk.isEmpty {
+                    row["findings"] = event.activeRisk.map {
                         ["rule": $0.ruleId, "severity": $0.severity.rawValue, "message": $0.englishMessage]
                     }
                 }
@@ -244,7 +244,7 @@ public struct MCPRouter: @unchecked Sendable {
             if !event.paths.isEmpty {
                 row["paths"] = event.paths
             }
-            row["findings"] = event.risk.map {
+            row["findings"] = event.activeRisk.map {
                 ["rule": $0.ruleId, "severity": $0.severity.rawValue, "message": $0.englishMessage]
             }
             return Self.text(id, row)
@@ -284,8 +284,11 @@ public struct MCPRouter: @unchecked Sendable {
                 if touch.action == .command, let command = event.command {
                     row["command"] = String(command.prefix(300))
                 }
-                if !event.risk.isEmpty {
-                    row["findings"] = event.risk.map { ["rule": $0.ruleId, "severity": $0.severity.rawValue] }
+                if !event.activeRisk.isEmpty {
+                    row["findings"] = event.activeRisk.map { [
+                        "rule": $0.ruleId,
+                        "severity": $0.severity.rawValue
+                    ] }
                 }
                 return row
             }
@@ -314,11 +317,11 @@ public struct MCPRouter: @unchecked Sendable {
             let findings = try store.events(matching: EventQuery(since: since, onlyFindings: true))
             var byRule: [String: Int] = [:]
             for event in findings {
-                for hit in event.risk {
+                for hit in event.activeRisk {
                     byRule[hit.ruleId, default: 0] += 1
                 }
             }
-            let critical = findings.filter { $0.risk.contains { $0.severity == .critical } }.count
+            let critical = findings.filter { $0.activeRisk.contains { $0.severity == .critical } }.count
             return try Self.text(id, [
                 "window_days": days,
                 "events": store.eventCount(matching: EventQuery(since: since)),

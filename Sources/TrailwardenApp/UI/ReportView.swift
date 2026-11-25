@@ -238,7 +238,7 @@ struct ReportView: View {
     }
 
     private func findingRow(_ event: Event) -> some View {
-        let worst = event.risk.max { $0.severity < $1.severity }
+        let worst = event.activeRisk.max { $0.severity < $1.severity }
         let localizer = LocalizationStore.current
         let title = worst
             .flatMap { RuleLocalization.text(forRule: $0.ruleId, language: localizer.language)?.title }

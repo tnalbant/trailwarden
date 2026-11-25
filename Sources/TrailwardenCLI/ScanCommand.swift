@@ -44,11 +44,11 @@ struct ScanCommand: ParsableCommand {
         let sinceDate = try TimeWindow.parse(since)
         let agents = agent.agents
         let database = try store.open()
-        let engine = try RuleEngine.builtIn(mutes: database.mutes())
+        let engine = try RuleEngine.builtIn(allowances: database.allowances())
         // After an update that changed the built-in rules, the history is
         // re-graded once, with the reader's preferences, before the scan.
         try database.reapplyRulesIfCatalogueChanged(
-            engine: RuleEngine(rules: RulePreferences.effectiveRules(), mutes: database.mutes()))
+            engine: RuleEngine(rules: RulePreferences.effectiveRules(), allowances: database.allowances()))
         let scanner = TranscriptScanner(store: database, rules: engine)
 
         // A progress line on a terminal only: scripts and CI read stdout and a
@@ -118,7 +118,7 @@ struct ScanCommand: ParsableCommand {
         lines.append(
             "findings (\(window)): \(summary.findings)  critical \(summary.critical)  warn \(summary.warn)")
         for event in events.prefix(30) {
-            let hits = event.risk
+            let hits = event.activeRisk
                 .sorted { $0.severity > $1.severity }
                 .map { "\($0.severity.rawValue) \($0.ruleId)" }
                 .joined(separator: ", ")

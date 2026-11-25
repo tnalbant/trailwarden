@@ -354,7 +354,7 @@ final class RuleEngineTests: XCTestCase {
         XCTAssertTrue(engine.hits(for: makeEvent(command: "rm -rf ~")).isEmpty)
     }
 
-    // MARK: - De-duplication and mutes
+    // MARK: - De-duplication
 
     func testHitsAreDeduplicatedPerSession() throws {
         let engine = try RuleEngine(rules: RuleCatalog.builtIn())
@@ -380,33 +380,6 @@ final class RuleEngineTests: XCTestCase {
         let annotated = engine.annotate(events)
 
         XCTAssertEqual(annotated.filter { !$0.risk.isEmpty }.count, 2)
-    }
-
-    func testMuteSuppressesOneRuleUntilItExpires() throws {
-        let now = Date(timeIntervalSince1970: 1_700_000_000)
-        let target = RuleEngine.normalizedCommand("rm -rf ~")
-        let mute = Mute(ruleId: "R1", target: target, until: now.addingTimeInterval(86400))
-        let engine = try RuleEngine(rules: RuleCatalog.builtIn(), mutes: [mute])
-
-        XCTAssertTrue(engine.hits(for: makeEvent(command: "rm -rf ~"), now: now).isEmpty)
-        XCTAssertFalse(
-            engine.hits(for: makeEvent(command: "rm -rf ~"), now: now.addingTimeInterval(2 * 86400)).isEmpty,
-            "the mute must expire")
-    }
-
-    // MARK: - Mute storage
-
-    func testMutesRoundTripThroughTheStore() throws {
-        let store = try EventStore(inMemory: true)
-        let now = Date()
-        try store.addMute(Mute(ruleId: "R1", target: "rm -rf ~", until: now.addingTimeInterval(3600)))
-        try store.addMute(Mute(ruleId: "R4", target: "old", until: now.addingTimeInterval(-60)))
-
-        let active = try store.mutes(now: now)
-        XCTAssertEqual(active.map(\.ruleId), ["R1"])
-
-        let remaining = try store.removeExpiredMutes(now: now)
-        XCTAssertEqual(remaining, 1)
     }
 
     // MARK: - Scope

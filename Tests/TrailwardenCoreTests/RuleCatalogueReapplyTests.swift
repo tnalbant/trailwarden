@@ -62,22 +62,26 @@ final class RuleCatalogueReapplyTests: XCTestCase {
         XCTAssertEqual(try store.metaValue(EventStore.ruleCatalogueKey), "new")
     }
 
-    func testReapplyKeepsMutesAndPreferences() throws {
+    func testReapplyKeepsAllowancesAndPreferences() throws {
         let store = try EventStore(inMemory: true)
         try store.insert(events: [
             makeEvent(id: "muted", command: "rm -rf /"),
             makeEvent(id: "off", command: "git push --force origin main")
         ])
-        let mute = Mute(ruleId: "R1", target: "rm -rf /", until: Date().addingTimeInterval(86400))
-        try store.addMute(mute)
+        try store.addAllowance(Allowance(
+            ruleId: "R1",
+            scope: .command("rm -rf /"),
+            until: Date().addingTimeInterval(86400)))
         let rules = try RuleCatalog.builtIn().map { rule in
             rule.id == "R5" ? rule.with(enabled: false, severity: rule.severity) : rule
         }
-        let engine = try RuleEngine(rules: rules, mutes: store.mutes())
+        let engine = try RuleEngine(rules: rules, allowances: store.allowances())
 
         XCTAssertTrue(try store.reapplyRulesIfCatalogueChanged(engine: engine))
 
-        XCTAssertEqual(try ruleIDs(store, "muted"), [], "a muted situation stays muted")
+        let allowed = try XCTUnwrap(store.events(ids: ["muted"]).first).risk
+        XCTAssertEqual(allowed.map(\.ruleId), ["R1"])
+        XCTAssertTrue(allowed.allSatisfy(\.allowed), "an allowed situation stays allowed")
         XCTAssertEqual(try ruleIDs(store, "off"), [], "a rule the reader turned off stays off")
     }
 

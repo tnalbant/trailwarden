@@ -87,21 +87,27 @@ final class RuleRefreshTests: XCTestCase {
         XCTAssertEqual(try XCTUnwrap(store.sessions().first).criticalCount, 1)
     }
 
-    func testMuteRemovesTheHitOnReapply() throws {
+    func testAllowanceMarksTheHitOnReapply() throws {
         let muted = event(id: "e1", command: "rm -rf /")
         try store.insert(events: [muted])
         try RuleEngine.builtIn().reapply(to: store)
 
         let target = RuleEngine.target(for: muted)
-        let mute = Mute(ruleId: "R1", target: target, until: Date().addingTimeInterval(30 * 86400))
-        try store.addMute(mute)
+        let allowance = Allowance(
+            ruleId: "R1",
+            scope: .command(target),
+            until: Date().addingTimeInterval(30 * 86400))
+        try store.addAllowance(allowance)
 
-        let engine = try RuleEngine(rules: RuleCatalog.builtIn(), mutes: store.mutes())
+        let engine = try RuleEngine(rules: RuleCatalog.builtIn(), allowances: store.allowances())
         try engine.reapply(to: store)
 
         XCTAssertEqual(target, "rm -rf /")
-        XCTAssertTrue(try XCTUnwrap(store.events(ids: ["e1"]).first).risk.isEmpty)
-        XCTAssertEqual(try store.mutes().count, 1, "the mute survives the rewrite")
+        let hits = try XCTUnwrap(store.events(ids: ["e1"]).first).risk
+        XCTAssertEqual(hits.map(\.ruleId), ["R1"])
+        XCTAssertTrue(hits.allSatisfy(\.allowed))
+        XCTAssertEqual(try store.eventCount(matching: EventQuery(onlyFindings: true)), 0)
+        XCTAssertEqual(try store.allowances().count, 1, "the allowance survives the rewrite")
     }
 
     func testRawTextIsNotLoadedDuringReevaluation() throws {

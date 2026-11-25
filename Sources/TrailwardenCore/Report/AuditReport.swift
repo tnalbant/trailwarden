@@ -42,9 +42,9 @@ public enum AuditReport {
         var summary = AuditSummary()
         summary.sessions = sessions.count
         summary.events = events.count
-        for event in events where !event.risk.isEmpty {
+        for event in events where !event.activeRisk.isEmpty {
             summary.findings += 1
-            if let worst = event.risk.map(\.severity).max() {
+            if let worst = event.activeRisk.map(\.severity).max() {
                 switch worst {
                 case .critical: summary.critical += 1
                 case .warn: summary.warn += 1
@@ -60,7 +60,7 @@ public enum AuditReport {
         var severities: [String: Severity] = [:]
         var counts: [String: Int] = [:]
         for event in events {
-            for hit in event.risk {
+            for hit in event.activeRisk {
                 counts[hit.ruleId, default: 0] += 1
                 severities[hit.ruleId] = max(severities[hit.ruleId] ?? hit.severity, hit.severity)
             }
@@ -86,7 +86,7 @@ public enum MarkdownReport {
         let summary = AuditReport.summarize(sessions: sessions, events: events)
         let orderedSessions = sessions.sorted { ($0.startedAt, $0.id) > ($1.startedAt, $1.id) }
         let orderedEvents = ordered(events: events)
-        let findings = orderedEvents.filter { !$0.risk.isEmpty }
+        let findings = orderedEvents.filter { !$0.activeRisk.isEmpty }
 
         var lines: [String] = []
         lines.append("# Trailwarden audit record")
@@ -135,7 +135,7 @@ public enum MarkdownReport {
             lines.append("| Time (UTC) | Agent | Tool | Rule | Severity | Detail |")
             lines.append("|---|---|---|---|---|---|")
             for event in findings {
-                for hit in event.risk.sorted(by: { $0.severity > $1.severity }) {
+                for hit in event.activeRisk.sorted(by: { $0.severity > $1.severity }) {
                     let detail = event.command ?? event.preview ?? hit.englishMessage
                     lines.append(
                         "| \(timestamp(event.ts)) | \(event.agent.rawValue) | \(cell(event.tool ?? "-")) | "
@@ -323,7 +323,7 @@ public enum JSONReport {
                     command: safe.command,
                     paths: safe.paths,
                     preview: safe.preview,
-                    risk: safe.risk.map {
+                    risk: safe.activeRisk.map {
                         .init(ruleId: $0.ruleId, severity: $0.severity.rawValue, message: $0.englishMessage)
                     })
             })

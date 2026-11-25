@@ -17,7 +17,7 @@ struct RulesView: View {
             Hairline()
             ruleList
             Hairline()
-            muteList
+            allowanceList
             Hairline()
             footer
         }
@@ -162,37 +162,37 @@ struct RulesView: View {
         return parts.isEmpty ? L(.ruleMatchesAll) : parts.joined(separator: " · ")
     }
 
-    // MARK: - Mutes
+    // MARK: - Allowances
 
-    private var muteList: some View {
+    private var allowanceList: some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack {
                 SectionLabel(text: L(.mutedRules))
                 Spacer()
-                Text("\(model.mutes.count)")
+                Text("\(model.allowances.count)")
                     .font(Tokens.Typography.font(.codeSmall))
                     .foregroundStyle(Tokens.Palette.secondary)
             }
-            if model.mutes.isEmpty {
+            if model.allowances.isEmpty {
                 Text(L(.noMutes))
                     .font(Tokens.Typography.font(.callout))
                     .foregroundStyle(Tokens.Palette.secondary)
             } else {
-                ForEach(model.mutes) { mute in
+                ForEach(model.allowances) { allowance in
                     HStack(spacing: 8) {
-                        Text(muteName(mute))
+                        Text(allowanceName(allowance))
                             .font(Tokens.Typography.font(.codeSmall, weight: .medium))
                             .foregroundStyle(Tokens.Palette.accentText)
-                        Text(mute.target)
+                        Text(scopeText(allowance.scope))
                             .font(Tokens.Typography.font(.codeSmall))
                             .lineLimit(1)
                             .truncationMode(.middle)
                         Spacer(minLength: 6)
-                        Text(remainingDays(mute))
+                        Text(remainingText(allowance))
                             .font(Tokens.Typography.font(.caption))
                             .foregroundStyle(Tokens.Palette.secondary)
                         Button(L(.removeMute)) {
-                            Task { await model.removeMute(mute) }
+                            Task { await model.removeAllowance(allowance) }
                         }
                         .buttonStyle(.plain)
                         .font(Tokens.Typography.font(.caption, weight: .medium))
@@ -206,14 +206,24 @@ struct RulesView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    private func muteName(_ mute: Mute) -> String {
-        guard !technical else { return mute.ruleId }
-        let rule = model.rules.first { $0.id == mute.ruleId }
-        return rule?.localizedTitle(LocalizationStore.current) ?? mute.ruleId
+    private func allowanceName(_ allowance: Allowance) -> String {
+        guard !technical else { return allowance.ruleId }
+        let rule = model.rules.first { $0.id == allowance.ruleId }
+        return rule?.localizedTitle(LocalizationStore.current) ?? allowance.ruleId
     }
 
-    private func remainingDays(_ mute: Mute) -> String {
-        let days = Int(ceil(mute.until.timeIntervalSinceNow / 86400))
+    private func scopeText(_ scope: AllowanceScope) -> String {
+        switch scope {
+        case let .command(command): command
+        case let .projectRule(project): project
+        case let .pattern(glob): glob
+        case .everywhere: "*"
+        }
+    }
+
+    private func remainingText(_ allowance: Allowance) -> String {
+        guard let until = allowance.until else { return "" }
+        let days = Int(ceil(until.timeIntervalSinceNow / 86400))
         return days > 0 ? Lf(.daysLeft, [days]) : L(.muteExpired)
     }
 

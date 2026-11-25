@@ -17,8 +17,9 @@ import Foundation
 ///    text from that command's start (so `\A` anchors at the command). In
 ///    `ls ~/.ssh && git status` the path belongs to `ls`, not to `git`.
 ///
-/// Hits are de-duplicated per `(rule, session, normalized command)` and muted
-/// pairs are dropped, so the timeline shows one entry per situation.
+/// Hits are de-duplicated per `(rule, session, normalized command)`, so the
+/// timeline shows one entry per situation. A hit an allowance covers is kept and
+/// marked `allowed`.
 public struct RuleEngine: Sendable {
     /// One `RuleMatch`, compiled. Alternatives are compiled the same way, so an
     /// `anyOf` entry has exactly the semantics of a top-level match.
@@ -44,12 +45,12 @@ public struct RuleEngine: Sendable {
     }
 
     public let rules: [Rule]
-    public let mutes: [Mute]
+    public let allowances: [Allowance]
     private let compiled: [CompiledRule]
 
-    public init(rules: [Rule], mutes: [Mute] = []) throws {
+    public init(rules: [Rule], allowances: [Allowance] = []) throws {
         self.rules = rules
-        self.mutes = mutes
+        self.allowances = allowances
 
         var compiled: [CompiledRule] = []
         for rule in rules where rule.isEnabled {
@@ -135,9 +136,9 @@ public struct RuleEngine: Sendable {
             && !match.excludes.contains { Glob.matches($0, candidate) }
     }
 
-    /// Built-in catalogue with no mutes. Used by the CLI and by tests.
-    public static func builtIn(mutes: [Mute] = []) throws -> RuleEngine {
-        try RuleEngine(rules: RuleCatalog.builtIn(), mutes: mutes)
+    /// Built-in catalogue with no allowances unless given. Used by the CLI and by tests.
+    public static func builtIn(allowances: [Allowance] = []) throws -> RuleEngine {
+        try RuleEngine(rules: RuleCatalog.builtIn(), allowances: allowances)
     }
 
     // MARK: - Evaluation
@@ -168,10 +169,12 @@ public struct RuleEngine: Sendable {
             else {
                 continue
             }
-            if isMuted(rule.id, target: target, now: now) {
-                continue
-            }
-            result.append(RiskHit(ruleId: rule.id, severity: rule.severity, message: rule.message))
+            let allowed = isAllowed(rule.id, target: target, cwd: event.cwd, now: now)
+            result.append(RiskHit(
+                ruleId: rule.id,
+                severity: rule.severity,
+                message: rule.message,
+                allowed: allowed))
         }
         return result.sorted { lhs, rhs in
             lhs.severity == rhs.severity ? lhs.ruleId < rhs.ruleId : lhs.severity > rhs.severity
@@ -583,7 +586,7 @@ public struct RuleEngine: Sendable {
         return value
     }
 
-    private func isMuted(_ ruleId: String, target: String, now: Date) -> Bool {
-        mutes.contains { $0.ruleId == ruleId && $0.target == target && $0.isActive(at: now) }
+    private func isAllowed(_ ruleId: String, target: String, cwd: String?, now: Date) -> Bool {
+        allowances.contains { $0.isActive(at: now) && $0.covers(ruleId: ruleId, target: target, cwd: cwd) }
     }
 }

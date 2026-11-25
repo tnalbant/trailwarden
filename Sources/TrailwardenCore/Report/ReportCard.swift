@@ -126,7 +126,7 @@ public struct ReportCard: Sendable, Equatable {
                 break
             }
 
-            guard let worst = event.risk.map(\.severity).max() else { continue }
+            guard let worst = event.activeRisk.map(\.severity).max() else { continue }
             switch worst {
             case .critical: card.critical += 1
             case .warn: card.warnings += 1
@@ -135,7 +135,7 @@ public struct ReportCard: Sendable, Equatable {
             if worst >= .warn {
                 findings.append(event)
             }
-            for hit in event.risk {
+            for hit in event.activeRisk {
                 let current = ruleCounts[hit.ruleId] ?? (hit.severity, 0)
                 ruleCounts[hit.ruleId] = (max(current.0, hit.severity), current.1 + 1)
             }
@@ -171,8 +171,8 @@ public struct ReportCard: Sendable, Equatable {
             }
         card.worthALook = findings
             .sorted { lhs, rhs in
-                let left = lhs.risk.map(\.severity).max() ?? .info
-                let right = rhs.risk.map(\.severity).max() ?? .info
+                let left = lhs.activeRisk.map(\.severity).max() ?? .info
+                let right = rhs.activeRisk.map(\.severity).max() ?? .info
                 return left == right ? lhs.ts > rhs.ts : left > right
             }
         card.worthALook = Array(card.worthALook.prefix(findingLimit))

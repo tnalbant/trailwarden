@@ -266,7 +266,12 @@ struct MainWindowView: View {
         TimelineView(model: timeline, onMute: { hit, event in
             let target = RuleEngine.target(for: event)
             Task {
-                await model.mute(ruleId: hit.ruleId, target: target)
+                let now = Date()
+                await model.allow(Allowance(
+                    ruleId: hit.ruleId,
+                    scope: .command(target),
+                    until: AllowanceDuration.thirtyDays.until(from: now),
+                    created: now))
                 timeline.reload()
             }
         }, liveSessionIDs: model.liveSessions)
