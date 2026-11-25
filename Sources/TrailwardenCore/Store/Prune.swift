@@ -37,6 +37,7 @@ public extension EventStore {
         let delete = try prepareRowStatement("DELETE FROM events WHERE ts < ?")
         try delete.bind([.double(cutoff.timeIntervalSince1970)])
         try delete.step()
+        try removeOrphanEventReviews()
 
         // Sessions are derived, so rebuild the rows that lost events and drop the
         // ones with nothing left.
