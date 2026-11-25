@@ -27,9 +27,15 @@ extension EventStore {
     }
 
     /// The next scan reads every source in full: files by forgetting their
-    /// signatures, databases by ignoring their watermark once.
+    /// signatures, databases by ignoring their watermark once. Rows of files
+    /// already marked missing stay: there is nothing to reread, and dropping
+    /// them would make a deleted source look like it never had a file.
     func requestFullReread() throws {
-        try database.execute("DELETE FROM scanned_files")
+        // Migrations from before schema 9 get here without the column: every row goes.
+        let keepMissing = try columnExists("missing_since", in: "scanned_files")
+        try database.execute(
+            keepMissing ? "DELETE FROM scanned_files WHERE missing_since IS NULL" :
+                "DELETE FROM scanned_files")
         let reread = try database.prepare("INSERT OR IGNORE INTO rereads (agent) VALUES (?)")
         for agent in Agent.allCases {
             try reread.bind([.text(agent.rawValue)])

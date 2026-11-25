@@ -30,6 +30,8 @@ public enum UIString: String, CaseIterable, Sendable {
     case events, event, findings, sessions, eventCount, sessionMeta, sessionCritical
     case projectMeta, liveCount, liveTooltip, eventsRatio
     /// Session sidebar: the fallback title and the day groups
+    /// A transcript the agent deleted: the sidebar badge and the reason resume is off
+    case sourceDeleted, resumeSourceDeleted
     case untitledSession, groupToday, groupYesterday, groupThisWeek, groupOlder
     // Empty states
     case noDataYet, noSessionsFound, noSessionSelected, noEventsInRange, noEventsHint
@@ -167,6 +169,8 @@ public enum UITranslations {
         .sessionMeta: "%@ · %d events",
         .sessionCritical: "%d critical",
         .projectMeta: "%d sessions · %d events",
+        .sourceDeleted: "Source deleted — kept in Trailwarden",
+        .resumeSourceDeleted: "The agent deleted this session's file, so it cannot be resumed. Trailwarden still has its history.",
         .untitledSession: "Untitled session",
         .groupToday: "Today",
         .groupYesterday: "Yesterday",

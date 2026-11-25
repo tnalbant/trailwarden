@@ -57,6 +57,8 @@ extension UITranslations {
         .sessionMeta: "%@ · %d Ereignisse",
         .sessionCritical: "%d kritisch",
         .projectMeta: "%d Sitzungen · %d Ereignisse",
+        .sourceDeleted: "Quelle gelöscht — in Trailwarden aufbewahrt",
+        .resumeSourceDeleted: "Der Agent hat die Datei dieser Sitzung gelöscht, sie lässt sich nicht fortsetzen. Trailwarden hat den Verlauf noch.",
         .untitledSession: "Unbenannte Sitzung",
         .groupToday: "Heute",
         .groupYesterday: "Gestern",

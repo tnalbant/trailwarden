@@ -130,6 +130,13 @@ public struct TranscriptScanner {
             state.bytesDone += Self.size(of: source.database)
             progress?(state)
         }
+        // Only a full pass may call a file gone; the live watcher sees files
+        // mid-rewrite and must not flicker.
+        do {
+            try store.markMissingSources(under: roots.map(\.directory), now: Date())
+        } catch {
+            report.failures.append("missing sources: \(error)")
+        }
         return report
     }
 

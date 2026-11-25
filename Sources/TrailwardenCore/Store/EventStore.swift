@@ -15,6 +15,9 @@ public struct SessionSummary: Sendable, Identifiable, Equatable {
     public let criticalCount: Int
     /// What the session is called; `nil` until a title was found.
     public var title: String?
+    /// Every transcript file of the session has vanished from disk; the index
+    /// still has what it read.
+    public var sourceDeleted = false
 }
 
 /// What the incremental scanner remembers about a file it already parsed.
@@ -464,6 +467,7 @@ public final class EventStore {
         SELECT id, agent, cwd, git_branch, started_at, ended_at, event_count, critical_count, title
         FROM sessions ORDER BY started_at DESC
         """)
+        let deleted = try sessionsWithDeletedSources()
         var result: [SessionSummary] = []
         while try statement.step() {
             guard let id = statement.text(0),
@@ -479,7 +483,8 @@ public final class EventStore {
                     endedAt: Date(timeIntervalSince1970: statement.double(5) ?? 0),
                     eventCount: statement.int(6) ?? 0,
                     criticalCount: statement.int(7) ?? 0,
-                    title: statement.text(8)))
+                    title: statement.text(8),
+                    sourceDeleted: deleted.contains(id)))
         }
         return result
     }

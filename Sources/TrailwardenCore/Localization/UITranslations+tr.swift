@@ -57,6 +57,8 @@ extension UITranslations {
         .sessionMeta: "%@ · %d olay",
         .sessionCritical: "%d kritik",
         .projectMeta: "%d oturum · %d olay",
+        .sourceDeleted: "Kaynak silindi — Trailwarden'da saklanıyor",
+        .resumeSourceDeleted: "Ajan bu oturumun dosyasını sildi, bu yüzden devam ettirilemez. Geçmişi Trailwarden'da duruyor.",
         .untitledSession: "Başlıksız oturum",
         .groupToday: "Bugün",
         .groupYesterday: "Dün",
