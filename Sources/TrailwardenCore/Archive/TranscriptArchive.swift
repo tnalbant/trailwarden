@@ -50,98 +50,168 @@ public struct TranscriptArchive: Sendable {
     public func update(source: URL, agent: Agent, sessionID: String?, store: EventStore) throws -> Outcome {
         guard Self.archived.contains(agent) else { return .unchanged }
         let last = try lastCopy(of: source.standardizedFileURL.path, store: store)
-
-        guard let last else {
-            return try write(
-                source: source, version: 1,
-                agent: agent, sessionID: sessionID, store: store, outcome: .created)
-        }
-        let present = FileManager.default.fileExists(atPath: last.path)
-        let check = try Self.digests(of: source, prefixLength: last.size)
-        let prefixMatches = check.size >= last.size && check.prefix == last.digest
-        if prefixMatches, check.size == last.size, present {
+        // Cheap exit: same size and same bytes as the copy that is on disk.
+        if let last, FileManager.default.fileExists(atPath: last.path),
+           Self.fileSize(source) == last.size,
+           try Self.digests(of: source, prefixLength: last.size).prefix == last.digest
+        {
             return .unchanged
         }
-        if prefixMatches {
-            return try write(
-                source: source, version: last.version,
-                agent: agent, sessionID: sessionID, store: store,
-                outcome: present ? .extended : .created)
-        }
-        return try write(
-            source: source, version: last.version + 1,
-            agent: agent, sessionID: sessionID, store: store, outcome: .newVersion)
+        return try write(source: source, agent: agent, sessionID: sessionID, last: last, store: store)
+    }
+
+    /// True when the source has no copy yet, or its newest copy is missing or
+    /// has another size. A size check only: the scanner uses it for files it
+    /// considers unchanged, where hashing every file each pass would cost too much.
+    func needsCopy(source: URL, agent: Agent, store: EventStore) -> Bool {
+        guard Self.archived.contains(agent) else { return false }
+        guard let last = try? lastCopy(of: source.standardizedFileURL.path, store: store) else { return true }
+        return !FileManager.default.fileExists(atPath: last.path) || Self.fileSize(source) != last.size
     }
 
     // MARK: - Writing
 
     private static let archived: Set<Agent> = [.claudeCode, .codex, .gemini, .copilot]
 
+    typealias Copy = (version: Int, path: String, size: Int64, digest: String)
+
+    /// What to do with the bytes that were just compressed. Decided only after
+    /// the whole stream has passed, from the same bytes that were written.
+    static func commit(
+        last: Copy?, copyExists: Bool, agent: Agent, total: Int64,
+        prefix: String?) -> (replaceLast: Bool, Outcome)
+    {
+        guard let last else { return (false, .created) }
+        guard copyExists else { return (false, .newVersion) }
+        // Gemini rewrites its whole JSON document: bigger or equal replaces.
+        if agent == .gemini {
+            return total >= last.size ? (true, .extended) : (false, .newVersion)
+        }
+        if total >= last.size, prefix == last.digest {
+            return (true, .extended)
+        }
+        return (false, .newVersion)
+    }
+
     private func write(
-        source: URL, version: Int, agent: Agent,
-        sessionID: String?, store: EventStore, outcome: Outcome) throws -> Outcome
+        source: URL, agent: Agent, sessionID: String?, last: Copy?, store: EventStore) throws -> Outcome
     {
         let key = source.standardizedFileURL.path
-        let folder = folder(
-            for: sessionID ?? source.deletingPathExtension().lastPathComponent, agent: agent)
+        let folder = sourceFolder(for: source, sessionID: sessionID, agent: agent)
         try makePrivateDirectory(folder)
-        let target = folder.appendingPathComponent("\(version).jsonl.lzfse")
-        let temporary = folder.appendingPathComponent(".\(version).\(UUID().uuidString).tmp")
+        let temporary = folder.appendingPathComponent(".\(UUID().uuidString).tmp")
         guard FileManager.default.createFile(
             atPath: temporary.path, contents: nil, attributes: [.posixPermissions: 0o600])
         else {
             throw CocoaError(.fileWriteNoPermission, userInfo: [NSFilePathErrorKey: temporary.path])
         }
-        let size: Int64
-        let digest: String
         do {
             let output = try FileHandle(forWritingTo: temporary)
             defer { try? output.close() }
-            let result = try Self.compress(source: source, into: output)
-            size = result.size
-            digest = result.digest
+            let result = try Self.compress(source: source, into: output, prefixLength: last?.size ?? 0)
             try output.synchronize()
+            let copyExists = last.map { FileManager.default.fileExists(atPath: $0.path) } ?? false
+            let plan = Self.commit(
+                last: last, copyExists: copyExists, agent: agent, total: result.size, prefix: result.prefix)
+            let version: Int
+            let target: URL
+            if plan.replaceLast, let last {
+                version = last.version
+                target = URL(fileURLWithPath: last.path)
+            } else {
+                // Never rename over a file the index does not know about.
+                var next = (last?.version ?? 0) + 1
+                var candidate = folder.appendingPathComponent(Self.fileName(next, source))
+                while FileManager.default.fileExists(atPath: candidate.path) {
+                    next += 1
+                    candidate = folder.appendingPathComponent(Self.fileName(next, source))
+                }
+                version = next
+                target = candidate
+            }
             if rename(temporary.path, target.path) != 0 {
                 throw CocoaError(.fileWriteUnknown, userInfo: [NSFilePathErrorKey: target.path])
             }
+            try record(
+                key: key, copy: (version, target.path, result.size, result.digest),
+                sessionID: sessionID, agent: agent, store: store)
+            return plan.1
         } catch {
             try? FileManager.default.removeItem(at: temporary)
             throw error
         }
+    }
+
+    private func record(
+        key: String, copy: Copy, sessionID: String?, agent: Agent, store: EventStore) throws
+    {
         let statement = try store.database.prepare("""
         INSERT OR REPLACE INTO archive_copies
             (source_path, version, archive_path, session_id, agent, source_size, prefix_digest, created_at)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         """)
         try statement.bind([
-            .text(key), .int(version), .text(target.path),
+            .text(key), .int(copy.version), .text(copy.path),
             sessionID.map { .text($0) } ?? .null, .text(agent.rawValue),
-            .int(Int(size)), .text(digest), .double(Date().timeIntervalSince1970)
+            .int(Int(copy.size)), .text(copy.digest), .double(Date().timeIntervalSince1970)
         ])
         try statement.step()
-        return outcome
+    }
+
+    /// `<session folder>/<source stem>-<8 hex of SHA-256(source path)>/`: two
+    /// sources of one session (a Claude subagent file, Copilot's
+    /// `events.jsonl`) never share a copy.
+    private func sourceFolder(for source: URL, sessionID: String?, agent: Agent) -> URL {
+        let stem = Self.stem(source)
+        let hash = Self.hex(SHA256.hash(data: Data(source.standardizedFileURL.path.utf8))).prefix(8)
+        return folder(for: sessionID ?? stem, agent: agent)
+            .appendingPathComponent("\(stem)-\(hash)", isDirectory: true)
+    }
+
+    private static func stem(_ source: URL) -> String {
+        let name = source.lastPathComponent
+        let stem = name.split(separator: ".", maxSplits: 1, omittingEmptySubsequences: false).first ?? ""
+        return stem.isEmpty ? "source" : String(stem)
+    }
+
+    /// `1.jsonl.lzfse`: the source's own extension(s) stay in the name.
+    private static func fileName(_ version: Int, _ source: URL) -> String {
+        let name = source.lastPathComponent
+        guard let dot = name.firstIndex(of: "."), name.index(after: dot) < name.endIndex else {
+            return "\(version).lzfse"
+        }
+        return "\(version).\(name[name.index(after: dot)...]).lzfse"
+    }
+
+    private static func fileSize(_ url: URL) -> Int64 {
+        // Not `resourceValues`: a URL caches the size it reported first.
+        ((try? FileManager.default.attributesOfItem(atPath: url.path))?[.size] as? NSNumber)?.int64Value ?? -1
     }
 
     private func makePrivateDirectory(_ url: URL) throws {
         let manager = FileManager.default
-        for directory in [root, url.deletingLastPathComponent(), url]
-            where !manager.fileExists(atPath: directory.path)
-        {
+        var chain = [url]
+        while chain[0].path != root.path, chain[0].pathComponents.count > root.pathComponents.count {
+            chain.insert(chain[0].deletingLastPathComponent(), at: 0)
+        }
+        for directory in chain where !manager.fileExists(atPath: directory.path) {
             try manager.createDirectory(
                 at: directory, withIntermediateDirectories: directory == root,
                 attributes: [.posixPermissions: 0o700])
         }
     }
 
-    /// Streams the source through LZFSE into `output`; the digest and size
-    /// describe exactly the bytes that were compressed.
+    /// Streams the source through LZFSE into `output`. The digest and size
+    /// describe exactly the bytes compressed; `prefix` is the digest of the
+    /// first `prefixLength` of them, or nil when fewer arrived.
     private static func compress(
-        source: URL,
-        into output: FileHandle) throws -> (size: Int64, digest: String)
+        source: URL, into output: FileHandle, prefixLength: Int64) throws
+        -> (size: Int64, digest: String, prefix: String?)
     {
         let input = try FileHandle(forReadingFrom: source)
         defer { try? input.close() }
         var hasher = SHA256()
+        var prefix: String? = prefixLength == 0 ? hex(hasher.finalize()) : nil
         var size: Int64 = 0
         let filter = try OutputFilter(.compress, using: .lzfse) { data in
             if let data {
@@ -149,12 +219,18 @@ public struct TranscriptArchive: Sendable {
             }
         }
         while let chunk = try input.read(upToCount: chunkSize), !chunk.isEmpty {
+            if prefix == nil, size + Int64(chunk.count) >= prefixLength {
+                let head = chunk.prefix(Int(prefixLength - size))
+                var snapshot = hasher
+                snapshot.update(data: head)
+                prefix = hex(snapshot.finalize())
+            }
             hasher.update(data: chunk)
             size += Int64(chunk.count)
             try filter.write(chunk)
         }
         try filter.finalize()
-        return (size, hex(hasher.finalize()))
+        return (size, hex(hasher.finalize()), prefix)
     }
 
     /// Size of the source and the SHA-256 of its first `prefixLength` bytes.
@@ -181,9 +257,7 @@ public struct TranscriptArchive: Sendable {
 
     // MARK: - Index
 
-    private func lastCopy(of key: String, store: EventStore) throws -> (
-        version: Int, path: String, size: Int64, digest: String)?
-    {
+    private func lastCopy(of key: String, store: EventStore) throws -> Copy? {
         let statement = try store.database.prepare("""
         SELECT version, archive_path, source_size, prefix_digest FROM archive_copies
         WHERE source_path = ? ORDER BY version DESC LIMIT 1
