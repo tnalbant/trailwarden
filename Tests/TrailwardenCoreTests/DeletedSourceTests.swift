@@ -113,4 +113,29 @@ final class DeletedSourceTests: XCTestCase {
         _ = try store.markMissingSources(under: [files], now: Date())
         XCTAssertEqual(try sourceDeleted(), false)
     }
+
+    func testMissingRootMarksNothing() throws {
+        _ = try writeTranscript()
+        _ = try scanner.scan(roots: roots)
+        try FileManager.default.removeItem(at: files)
+
+        let marked = try store.markMissingSources(under: [files], now: Date())
+
+        XCTAssertEqual(marked, 0)
+        XCTAssertEqual(try sourceDeleted(), false)
+    }
+
+    func testReturnedFileIsReadAgainInTheSameScan() throws {
+        let url = try writeTranscript()
+        _ = try scanner.scan(roots: roots)
+        try FileManager.default.removeItem(at: url)
+        _ = try scanner.scan(roots: roots)
+        try store.requestFullReread()
+
+        try writeTranscript()
+        let report = try scanner.scan(roots: roots)
+
+        XCTAssertEqual(report.filesParsed, 1)
+        XCTAssertEqual(try sourceDeleted(), false)
+    }
 }
