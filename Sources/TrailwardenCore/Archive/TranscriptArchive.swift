@@ -20,6 +20,8 @@ public struct TranscriptArchive: Sendable {
     /// One writer at a time in this process: the app's manual scan and the live
     /// watcher both archive, and decide, write and record must not interleave.
     private static let writer = NSLock()
+    /// When this process last swept leftover temporary files; guarded by `writer`.
+    private nonisolated(unsafe) static var lastSweep: Date?
 
     public init(root: URL, store _: EventStore? = nil) {
         self.root = root
@@ -34,7 +36,8 @@ public struct TranscriptArchive: Sendable {
             .appendingPathComponent(name.isEmpty ? "_" : name, isDirectory: true)
     }
 
-    /// Bytes on disk, every version counted.
+    /// Bytes on disk, every version counted. A temporary file of a write in
+    /// progress (or one a crash left behind) is not a copy and does not count.
     public func usedBytes() throws -> Int64 {
         guard let enumerator = FileManager.default.enumerator(
             at: root,
@@ -44,7 +47,7 @@ public struct TranscriptArchive: Sendable {
             // A file that vanishes or cannot be read mid-walk is skipped, not fatal.
             guard let values = try? url.resourceValues(forKeys: [.isRegularFileKey, .fileSizeKey])
             else { continue }
-            if values.isRegularFile == true {
+            if values.isRegularFile == true, !Self.isTemporary(url) {
                 total += Int64(values.fileSize ?? 0)
             }
         }
@@ -56,6 +59,11 @@ public struct TranscriptArchive: Sendable {
         guard Self.archived.contains(agent) else { return .unchanged }
         Self.writer.lock()
         defer { Self.writer.unlock() }
+        let now = Date()
+        if Self.lastSweep.map({ now.timeIntervalSince($0) > 3600 }) ?? true {
+            Self.lastSweep = now
+            sweepTemporaryFiles(now: now)
+        }
         // Read inside the lock, so the decision sees the newest row.
         let last = try lastCopy(of: source.standardizedFileURL.path, store: store)
         // Cheap exit: same size and same bytes as the copy that is on disk.
@@ -66,6 +74,30 @@ public struct TranscriptArchive: Sendable {
             return .unchanged
         }
         return try write(source: source, agent: agent, sessionID: sessionID, last: last, store: store)
+    }
+
+    /// Removes `.<uuid>.tmp` files older than `age`: a write that crashed
+    /// before its rename. A newer one may belong to a write running in another
+    /// process, so it stays. Call with `writer` held. Returns how many went.
+    @discardableResult
+    func sweepTemporaryFiles(olderThan age: TimeInterval = 3600, now: Date = Date()) -> Int {
+        guard let enumerator = FileManager.default.enumerator(
+            at: root, includingPropertiesForKeys: [.contentModificationDateKey]) else { return 0 }
+        var removed = 0
+        for case let url as URL in enumerator where Self.isTemporary(url) {
+            guard let modified = try? url.resourceValues(forKeys: [.contentModificationDateKey])
+                .contentModificationDate,
+                now.timeIntervalSince(modified) > age else { continue }
+            if (try? FileManager.default.removeItem(at: url)) != nil {
+                removed += 1
+            }
+        }
+        return removed
+    }
+
+    private static func isTemporary(_ url: URL) -> Bool {
+        let name = url.lastPathComponent
+        return name.hasPrefix(".") && name.hasSuffix(".tmp")
     }
 
     /// True when the source has no copy yet, or its newest copy is missing or
