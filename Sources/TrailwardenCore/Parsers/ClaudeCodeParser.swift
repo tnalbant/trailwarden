@@ -17,7 +17,7 @@ public struct ClaudeCodeParser: AgentParser {
 
     // A switch over the transcript's event types: every case is one shape the
     // agent writes, and counting them as branches says nothing useful.
-    // swiftlint:disable:next cyclomatic_complexity
+    // swiftlint:disable:next cyclomatic_complexity function_body_length
     public func parse(file: URL) throws -> ParseResult {
         var events: [Event] = []
         var skippedLines = 0
@@ -31,6 +31,9 @@ public struct ClaudeCodeParser: AgentParser {
         // each repeating the same usage; the last copy of each is kept.
         var usageByRequest: [String: PendingUsage] = [:]
         var requestOrder: [String] = []
+        var collector = TitleCollector()
+        // Title records often come before the first line that names the session.
+        var agentTitle: (text: String, session: String?)?
 
         let source = file.path
         let fallbackTimestamp = Self.modificationDate(of: file) ?? Date(timeIntervalSince1970: 0)
@@ -104,6 +107,9 @@ public struct ClaudeCodeParser: AgentParser {
             switch type {
             case "user", "assistant":
                 guard let message = object["message"] as? [String: Any] else { return }
+                if type == "user", object["isMeta"] as? Bool != true {
+                    collector.firstMessage(Self.userText(message["content"]), session: sessionId)
+                }
                 if type == "assistant", let usage = Self.usage(message),
                    let request = object["requestId"] as? String ?? message["id"] as? String
                 {
@@ -150,6 +156,12 @@ public struct ClaudeCodeParser: AgentParser {
                     }
                 }
 
+            case "summary", "ai-title":
+                let key = type == "summary" ? "summary" : "title"
+                if let text = object[key] as? String ?? object["aiTitle"] as? String {
+                    agentTitle = (text, object["sessionId"] as? String)
+                }
+
             case "permission-mode":
                 if let mode = object["permissionMode"] as? String {
                     add(.permission, preview: "permission mode: \(mode)")
@@ -168,7 +180,21 @@ public struct ClaudeCodeParser: AgentParser {
         }
 
         events += requestOrder.compactMap { usageByRequest[$0] }.map { usageEvent($0, source: source) }
-        return ParseResult(events: events, skippedLines: skippedLines)
+        if let agentTitle {
+            collector.summary(agentTitle.text, session: agentTitle.session ?? sessionId)
+        }
+        return ParseResult(events: events, skippedLines: skippedLines, titles: collector.titles)
+    }
+
+    /// The typed text of a user line: a string, or its text blocks. Tool
+    /// results are not something the user wrote.
+    static func userText(_ content: Any?) -> String? {
+        if let text = content as? String {
+            return text
+        }
+        guard let blocks = content as? [[String: Any]] else { return nil }
+        let parts = blocks.filter { $0["type"] as? String == "text" }.compactMap { $0["text"] as? String }
+        return parts.isEmpty ? nil : parts.joined(separator: "\n")
     }
 
     private func usageEvent(_ pending: PendingUsage, source: String) -> Event {
@@ -219,7 +245,7 @@ public struct ClaudeCodeParser: AgentParser {
     static let knownTypes: Set<String> = [
         "user", "assistant", "system", "attachment",
         "file-history-snapshot", "mode", "permission-mode",
-        "last-prompt", "ai-title"
+        "last-prompt", "ai-title", "summary"
     ]
 
     static let previewLimit = 500

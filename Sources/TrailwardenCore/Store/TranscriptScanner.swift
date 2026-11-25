@@ -167,6 +167,7 @@ public struct TranscriptScanner {
             let annotated = rules?.annotate(result.events) ?? result.events
             let events = annotated.map { redactor.redact($0) }
             let stored = try store.insert(events: events)
+            try store.setSessionTitles(result.titles)
             try store.markReread(agent: source.agent)
             report.filesParsed += 1
             report.eventsStored += stored
@@ -239,6 +240,7 @@ public struct TranscriptScanner {
             let annotated = rules?.annotate(result.events) ?? result.events
             let events = annotated.map { redactor.redact($0) }
             let stored = try store.insert(events: events)
+            try store.setSessionTitles(result.titles)
             try store.recordScan(
                 path: url.path,
                 agent: root.agent,

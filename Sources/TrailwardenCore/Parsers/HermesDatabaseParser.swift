@@ -119,6 +119,7 @@ public struct HermesDatabaseParser: DatabaseAgentParser {
                     usage: usage)
             }
         var activeSessions = Set<String>()
+        var collector = TitleCollector()
 
         try query(
             handle,
@@ -138,6 +139,7 @@ public struct HermesDatabaseParser: DatabaseAgentParser {
 
             if role == "user" {
                 guard let content, !content.isEmpty else { return }
+                collector.firstMessage(content, session: sessionId)
                 events.append(Event(
                     id: "hermes:\(sessionId):\(messageId):u",
                     ts: ts,
@@ -188,7 +190,7 @@ public struct HermesDatabaseParser: DatabaseAgentParser {
             return event.withCwd(cwd)
         }
 
-        return ParseResult(events: resolved, skippedLines: 0)
+        return ParseResult(events: resolved, skippedLines: 0, titles: collector.titles)
     }
 
     // MARK: - Helpers

@@ -13,6 +13,8 @@ public struct SessionSummary: Sendable, Identifiable, Equatable {
     public let endedAt: Date
     public let eventCount: Int
     public let criticalCount: Int
+    /// What the session is called; `nil` until a title was found.
+    public var title: String?
 }
 
 /// What the incremental scanner remembers about a file it already parsed.
@@ -459,7 +461,7 @@ public final class EventStore {
 
     public func sessions() throws -> [SessionSummary] {
         let statement = try database.prepare("""
-        SELECT id, agent, cwd, git_branch, started_at, ended_at, event_count, critical_count
+        SELECT id, agent, cwd, git_branch, started_at, ended_at, event_count, critical_count, title
         FROM sessions ORDER BY started_at DESC
         """)
         var result: [SessionSummary] = []
@@ -476,7 +478,8 @@ public final class EventStore {
                     startedAt: Date(timeIntervalSince1970: statement.double(4) ?? 0),
                     endedAt: Date(timeIntervalSince1970: statement.double(5) ?? 0),
                     eventCount: statement.int(6) ?? 0,
-                    criticalCount: statement.int(7) ?? 0))
+                    criticalCount: statement.int(7) ?? 0,
+                    title: statement.text(8)))
         }
         return result
     }

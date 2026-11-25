@@ -54,6 +54,7 @@ public struct CursorDatabaseParser: DatabaseAgentParser {
         let cutoff = since.map { ($0.timeIntervalSince1970 - Self.rereadWindow) * 1000 } ?? 0
         var events: [Event] = []
         var skipped = 0
+        var collector = TitleCollector()
 
         var composers: [(id: String, data: [String: Any])] = []
         try Self.rows(handle, prefix: "composerData:") { key, value in
@@ -84,8 +85,14 @@ public struct CursorDatabaseParser: DatabaseAgentParser {
                 composer: composer.data,
                 bubbles: bubbles,
                 cutoffMillis: cutoff))
+            let asked = bubbles.map { (millis: Self.millis(of: $0.data), key: $0.key, data: $0.data) }
+                .filter { Int(saturating: Self.number($0.data["type"]) ?? 0) == 1 }
+                .sorted { ($0.millis, $0.key) < ($1.millis, $1.key) }
+            for bubble in asked {
+                collector.firstMessage(bubble.data["text"] as? String, session: composer.id)
+            }
         }
-        return ParseResult(events: events, skippedLines: skipped)
+        return ParseResult(events: events, skippedLines: skipped, titles: collector.titles)
     }
 
     // MARK: - Mapping

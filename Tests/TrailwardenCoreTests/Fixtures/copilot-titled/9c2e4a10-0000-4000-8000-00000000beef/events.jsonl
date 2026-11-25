@@ -1,0 +1,3 @@
+{"type":"session.start","data":{"sessionId":"9c2e4a10-0000-4000-8000-00000000beef","copilotVersion":"1.0.0","context":{"cwd":"/Users/demo/dev/aurora","branch":"main"}},"id":"e1","timestamp":"2026-11-25T11:00:00.000Z","parentId":null}
+{"type":"user.message","data":{"content":"write a README for the aurora project"},"id":"e2","timestamp":"2026-11-25T11:00:05.000Z"}
+{"type":"assistant.message","data":{"content":"Sure."},"id":"e3","timestamp":"2026-11-25T11:00:06.000Z"}

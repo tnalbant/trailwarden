@@ -58,6 +58,10 @@ extension EventStore {
         if try !columnExists("missing_since", in: "scanned_files") {
             try database.execute("ALTER TABLE scanned_files ADD COLUMN missing_since REAL")
         }
+        // Existing sessions have no title yet: every source is read once more.
+        // Event ids are stable, so the reread replaces rows in place and keeps
+        // review states, allowances and the titles of surviving events.
+        try requestFullReread()
         // Mutes become command allowances. The mutes table stays, unread, so a
         // downgrade does not crash.
         try database.execute("""

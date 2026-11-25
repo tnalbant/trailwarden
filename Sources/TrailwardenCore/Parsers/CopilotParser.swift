@@ -46,6 +46,7 @@ public struct CopilotParser: AgentParser {
         var cwd: String?
         var gitBranch: String?
         var toolNames: [String: String] = [:]
+        var collector = TitleCollector()
         let source = file.path
         let formatter = CodexParser.fractionalFormatter()
         var lastTimestamp = CodexParser.modificationDate(of: file) ?? Date(timeIntervalSince1970: 0)
@@ -105,6 +106,7 @@ public struct CopilotParser: AgentParser {
                 add(.sessionStart, preview: ["copilot", version].compactMap(\.self).joined(separator: " "))
             case "user.message":
                 if let text = payload["content"] as? String, !text.isEmpty {
+                    collector.firstMessage(text, session: sessionId)
                     add(.message, preview: text)
                 }
             case "assistant.message":
@@ -152,7 +154,7 @@ public struct CopilotParser: AgentParser {
                 }
             }
         }
-        return ParseResult(events: events, skippedLines: skippedLines)
+        return ParseResult(events: events, skippedLines: skippedLines, titles: collector.titles)
     }
 
     /// `inputTokens` includes the cache reads and writes; `reasoningTokens` is
