@@ -15,8 +15,7 @@ struct Snapshot: Sendable, Equatable {
     var recentActions: [ActivityItem] = []
     var latestCritical: ActivityItem?
     var messagesToday = 0
-    /// Findings nobody has reviewed yet, and how many of them are critical.
-    var unreviewedCount = 0
+    /// Critical findings nobody has reviewed yet.
     var unreviewedCritical = 0
 }
 
@@ -177,9 +176,7 @@ final class AppModel: ObservableObject {
             .filter { $0.activeRisk.contains { $0.severity == .critical } }
             .max { $0.ts < $1.ts }
         snapshot.latestCritical = worstToday.map { ActivityDigest.item(from: $0) }
-        let inbox = try Inbox.load(from: store, limit: Int.max)
-        snapshot.unreviewedCount = inbox.unreviewed.count
-        snapshot.unreviewedCritical = inbox.unreviewedCritical
+        snapshot.unreviewedCritical = try Inbox.unreviewedCriticalCount(in: store)
         return snapshot
     }
 

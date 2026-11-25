@@ -32,7 +32,7 @@ extension UITranslations {
         .inboxTab: "Gelen kutusu",
         .inboxActivityHeading: "Bugünkü etkinlik",
         .inboxEmpty: "İncelenmeyi bekleyen bir şey yok.",
-        .inboxWaiting: "%d bulgu incelenmeyi bekliyor →",
+        .inboxWaiting: "%d kritik bulgu incelenmeyi bekliyor →",
         .inboxBacklogTitle: "Trailwarden bugünden önceye ait %d bulgu buldu.",
         .inboxMarkAllReviewed: "Hepsini incelendi say",
         .inboxShowThem: "Gelen kutusunda göster",

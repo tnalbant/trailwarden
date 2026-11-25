@@ -91,6 +91,35 @@ public enum Inbox {
             backlog: backlog)
     }
 
+    /// How many unreviewed critical findings there are, without building events
+    /// or the list: only rows whose stored hits mention `critical` are looked at.
+    /// Counts the same (event, hit) pairs and file findings as `load`.
+    public static func unreviewedCriticalCount(in store: EventStore) throws -> Int {
+        var keys: [String] = []
+        let events = try store.database.prepare("""
+        SELECT id, risk FROM events WHERE risk LIKE '%"critical"%'
+        """)
+        let decoder = JSONDecoder()
+        while try events.step() {
+            guard let id = events.text(0), let json = events.text(1),
+                  let hits = try? decoder.decode([RiskHit].self, from: Data(json.utf8))
+            else { continue }
+            for hit in hits where hit.severity == .critical && !hit.allowed {
+                keys.append(FindingKey.event(id, rule: hit.ruleId))
+            }
+        }
+        let files = try store.database.prepare("""
+        SELECT finding_key FROM file_findings WHERE severity = 'critical'
+        """)
+        while try files.step() {
+            if let key = files.text(0) {
+                keys.append(key)
+            }
+        }
+        let states = try store.reviewStates(for: keys)
+        return Set(keys).filter { (states[$0] ?? .new) == .new }.count
+    }
+
     /// The reader's one-time choice about findings from before the first 0.3
     /// launch: mark them all reviewed, or leave them in the inbox.
     public static func resolveBacklog(_ store: EventStore, markReviewed: Bool, now: Date = Date()) throws {

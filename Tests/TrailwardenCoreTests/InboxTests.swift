@@ -121,4 +121,21 @@ final class InboxTests: XCTestCase {
         XCTAssertEqual(snapshot.unreviewed.map(\.id), [key])
         XCTAssertEqual(snapshot.unreviewedCritical, 1)
     }
+
+    func testCountOnlyPathAgreesWithLoad() throws {
+        try store.insert(events: [
+            event("c1", ago: 10, risk: [hit("R1", .critical), hit("R2", .critical)]),
+            event("c2", ago: 20, risk: [hit("R1", .critical)]),
+            event("c3", ago: 30, risk: [hit("R1", .critical, allowed: true), hit("R3", .warn)]),
+            event("w1", ago: 40, risk: [hit("R3", .warn)])
+        ])
+        try store.database.execute("""
+        INSERT INTO file_findings (finding_key, path, rule_id, severity, line, preview, found_at)
+        VALUES ('file:~/a:R9:abc', '~/a', 'R9', 'critical', 1, 'x', \(launch.timeIntervalSince1970))
+        """)
+        try store.setReview(.reviewed, for: "event:c2:R1", at: launch)
+        let loaded = try Inbox.load(from: store, now: launch).unreviewedCritical
+        XCTAssertEqual(loaded, 3)
+        XCTAssertEqual(try Inbox.unreviewedCriticalCount(in: store), loaded)
+    }
 }

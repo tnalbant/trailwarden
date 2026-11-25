@@ -32,7 +32,7 @@ extension UITranslations {
         .inboxTab: "Boîte de réception",
         .inboxActivityHeading: "Activité du jour",
         .inboxEmpty: "Rien n’attend d’être examiné.",
-        .inboxWaiting: "%d constats à examiner →",
+        .inboxWaiting: "%d constats critiques à examiner →",
         .inboxBacklogTitle: "Trailwarden a trouvé %d constats antérieurs à aujourd’hui.",
         .inboxMarkAllReviewed: "Tout marquer comme examiné",
         .inboxShowThem: "Les afficher dans la boîte",
