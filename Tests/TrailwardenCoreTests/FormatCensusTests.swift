@@ -38,4 +38,13 @@ final class FormatCensusTests: XCTestCase {
         XCTAssertEqual(census["type=user"], 1)
         XCTAssertEqual(census["key=message"], 1)
     }
+
+    func testOddNamesAreCountedAsOther() throws {
+        let long = String(repeating: "a", count: 41)
+        let url = try write([#"{"type":"my secret plan","\#(long)":1}"#])
+        let census = FormatCensus.census(of: [url], agent: .claudeCode)
+        XCTAssertEqual(census["type=<other>"], 1)
+        XCTAssertEqual(census["key=<other>"], 1)
+        XCTAssertFalse(FormatCensus.text(census).contains("secret"))
+    }
 }

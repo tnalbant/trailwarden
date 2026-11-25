@@ -81,7 +81,7 @@ struct ScanCommand: ParsableCommand {
             minimumSeverity: severity,
             onlyFindings: !json && !md)
         let found = try database.events(matching: query)
-        let allowedTotal = found.reduce(0) { $0 + $1.risk.filter(\.allowed).count }
+        let allowedTotal = ScanVisibility.allowedTotal(of: found)
         var events = try visible(found, in: database)
         if !json, !md {
             events.removeAll { $0.risk.isEmpty }
@@ -97,7 +97,7 @@ struct ScanCommand: ParsableCommand {
 
         if json {
             let extras = try JSONReport.Extras(
-                reviews: reviewStates(of: events, in: database),
+                reviews: database.reviewStates(for: ScanVisibility.reviewKeys(of: events)),
                 allowedTotal: allowedTotal)
             let data = try JSONReport.data(
                 sessions: sessions, events: events, selection: selection, extras: extras)
@@ -117,29 +117,16 @@ struct ScanCommand: ParsableCommand {
                     since: sinceDate, agents: agents, minimumSeverity: threshold, onlyFindings: true,
                     includeRawJSON: false)),
                 in: database)
-            if gate.contains(where: { !$0.activeRisk.isEmpty }) {
+            if ScanVisibility.gateFails(visibleEvents: gate, threshold: threshold) {
                 throw ExitCode(1)
             }
         }
     }
 
-    private func reviewStates(of events: [Event], in database: EventStore) throws -> [String: ReviewState] {
-        let keys = events.flatMap { event in
-            event.risk.map { FindingKey.event(event.id, rule: $0.ruleId) }
-        }
-        return try database.reviewStates(for: keys)
-    }
-
-    /// Without `--include-reviewed`, a hit that is allowed, or whose finding is
-    /// reviewed, expected or a false alarm, is left out.
     private func visible(_ events: [Event], in database: EventStore) throws -> [Event] {
-        guard !includeReviewed else { return events }
-        let states = try reviewStates(of: events, in: database)
-        return events.map { event in
-            event.withRisk(event.risk.filter { hit in
-                !hit.allowed && (states[FindingKey.event(event.id, rule: hit.ruleId)] ?? .new) == .new
-            })
-        }
+        let states = includeReviewed
+            ? [:] : try database.reviewStates(for: ScanVisibility.reviewKeys(of: events))
+        return ScanVisibility.visible(events, states: states, includeReviewed: includeReviewed)
     }
 
     private func textReport(report: ScanReport, events: [Event], allowed: Int, since: Date?) -> String {
