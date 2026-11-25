@@ -112,7 +112,7 @@ public enum UIString: String, CaseIterable, Sendable {
     case updateSchedule, updateScheduleNever, updateScheduleWeekly, updateScheduleMonthly
     case updateScheduleHint, updateLastChecked, updateNeverChecked, updateNotificationTitle
     // Inbox
-    case inboxTab, inboxActivityHeading, inboxEmpty, inboxWaiting, inboxBacklogTitle
+    case inboxTab, inboxActivityHeading, inboxEmpty, inboxWaiting, inboxBacklogTitle, inboxBacklogTitleOne
     case inboxMarkAllReviewed, inboxShowThem, inboxReviewed, inboxExpectedHere, inboxFalseAlarm
     case inboxOpen, inboxLine
     // Claude Code cleanup notice
@@ -149,7 +149,8 @@ public enum UITranslations {
         .inboxActivityHeading: "Today’s activity",
         .inboxEmpty: "Nothing is waiting for review.",
         .inboxWaiting: "%d critical findings waiting for review →",
-        .inboxBacklogTitle: "Trailwarden found %d findings from before today.",
+        .inboxBacklogTitle: "Trailwarden found %d findings from before you updated.",
+        .inboxBacklogTitleOne: "Trailwarden found 1 finding from before you updated.",
         .inboxMarkAllReviewed: "Mark them all reviewed",
         .inboxShowThem: "Show them in the inbox",
         .inboxReviewed: "Reviewed",

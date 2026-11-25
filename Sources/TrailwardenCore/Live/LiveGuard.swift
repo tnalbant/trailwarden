@@ -60,8 +60,11 @@ public struct LiveAlert: Sendable, Equatable {
     public let title: String
     public let subtitle: String
     public let body: String
-    /// The finding this alert is about (the worst active hit), for the notification's actions.
+    /// The finding this alert is about (the worst active hit).
     public let findingKey: String?
+    /// Every active finding of the event, worst first: the notification's
+    /// buttons answer all of them, not only the one the title names.
+    public let findingKeys: [String]
 
     /// The command and its project on one line, for the command line.
     public var detailLine: String {
@@ -74,6 +77,11 @@ public struct LiveAlert: Sendable, Equatable {
             lhs.severity == rhs.severity ? lhs.ruleId > rhs.ruleId : lhs.severity < rhs.severity
         }
         findingKey = worst.map { FindingKey.event(event.id, rule: $0.ruleId) }
+        var seen = Set<String>()
+        findingKeys = event.activeRisk
+            .sorted { $0.severity == $1.severity ? $0.ruleId < $1.ruleId : $0.severity > $1.severity }
+            .map { FindingKey.event(event.id, rule: $0.ruleId) }
+            .filter { seen.insert($0).inserted }
         let consequence = worst.map { $0.localizedConsequence(localizer) } ?? ""
         title = "\(event.agent.displayName) · \(consequence)"
         subtitle = ActivityDigest.project(from: event.cwd) ?? ""

@@ -58,4 +58,24 @@ final class LiveSessionTests: XCTestCase {
         XCTAssertEqual(alert.title, "Claude Code · \(consequence)")
         XCTAssertFalse(alert.title.contains("R1"))
     }
+
+    func testLiveAlertCarriesEveryActiveFindingKey() {
+        let event = Event(
+            id: "e",
+            ts: Date(),
+            agent: .claudeCode,
+            sessionId: "s",
+            kind: .toolCall,
+            tool: "Bash",
+            command: "ls",
+            preview: "ls",
+            risk: [
+                RiskHit(ruleId: "R5", severity: .warn, message: "m"),
+                RiskHit(ruleId: "R1", severity: .critical, message: "m"),
+                RiskHit(ruleId: "R2", severity: .critical, message: "m", allowed: true)
+            ])
+        let alert = LiveAlert(event: event, localizer: Localizer(language: .english))
+        XCTAssertEqual(alert.findingKey, "event:e:R1")
+        XCTAssertEqual(alert.findingKeys, ["event:e:R1", "event:e:R5"], "allowed hits are not answered")
+    }
 }

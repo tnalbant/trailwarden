@@ -334,6 +334,28 @@ final class TranscriptArchiveTests: XCTestCase {
             withDestinationURL: directory.appendingPathComponent("missing"))
         XCTAssertEqual(try archive.usedBytes(), 4)
     }
+
+    func testLeftoverTemporaryFilesAreSweptAndNotCounted() throws {
+        let folder = directory.appendingPathComponent("Archive/claude-code/s1", isDirectory: true)
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        let stale = folder.appendingPathComponent(".\(UUID().uuidString).tmp")
+        let fresh = folder.appendingPathComponent(".\(UUID().uuidString).tmp")
+        let copy = folder.appendingPathComponent("v1.jsonl.lzfse")
+        for url in [stale, fresh, copy] {
+            try Data(repeating: 1, count: 100).write(to: url)
+        }
+        let now = Date()
+        try FileManager.default.setAttributes(
+            [.modificationDate: now.addingTimeInterval(-7200)], ofItemAtPath: stale.path)
+
+        XCTAssertEqual(try archive.usedBytes(), 100, "only the copy counts")
+        XCTAssertEqual(archive.sweepTemporaryFiles(now: now), 1)
+        XCTAssertFalse(FileManager.default.fileExists(atPath: stale.path))
+        XCTAssertTrue(
+            FileManager.default.fileExists(atPath: fresh.path),
+            "a write in progress elsewhere stays")
+        XCTAssertTrue(FileManager.default.fileExists(atPath: copy.path))
+    }
 }
 
 private final class Unchecked<Value>: @unchecked Sendable {
