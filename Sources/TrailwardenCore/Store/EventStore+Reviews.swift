@@ -93,8 +93,14 @@ public extension EventStore {
         return counts
     }
 
-    /// Drops reviews of event findings whose event no longer exists.
+    /// Drops reviews of event findings whose event no longer exists, and of file
+    /// findings whose row is gone.
     func removeOrphanEventReviews() throws {
+        try database.execute("""
+        DELETE FROM finding_reviews
+        WHERE finding_key LIKE 'file:%'
+          AND finding_key NOT IN (SELECT finding_key FROM file_findings)
+        """)
         let select = try database
             .prepare("SELECT finding_key FROM finding_reviews WHERE finding_key LIKE 'event:%'")
         var keys: [String] = []

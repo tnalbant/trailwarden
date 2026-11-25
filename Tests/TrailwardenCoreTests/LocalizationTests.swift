@@ -70,8 +70,8 @@ final class LocalizationTests: XCTestCase {
 
     func testEveryRuleIsTranslatedInEveryLanguage() throws {
         // Every built-in rule, so a rule added later (R28) cannot ship in one language only.
-        let ids = try RuleCatalog.builtIn().map(\.id)
-        XCTAssertGreaterThanOrEqual(ids.count, 28)
+        let ids = try RuleCatalog.builtIn().map(\.id) + [AgentSettingsScan.ruleID]
+        XCTAssertGreaterThanOrEqual(ids.count, 29)
         for id in ids {
             for language in languages {
                 let text = RuleLocalization.text(forRule: id, language: language)
@@ -86,15 +86,17 @@ final class LocalizationTests: XCTestCase {
         let rules = try RuleCatalog.builtIn()
         XCTAssertEqual(rules.count, 28)
         for rule in rules {
+            XCTAssertFalse((rule.consequence ?? "").isEmpty, "\(rule.id) fallback")
+        }
+        for id in rules.map(\.id) + [AgentSettingsScan.ruleID] {
             for language in languages {
                 let text = try XCTUnwrap(
-                    RuleLocalization.text(forRule: rule.id, language: language), "\(rule.id) \(language)")
-                XCTAssertFalse(text.consequence.isEmpty, "\(rule.id) \(language)")
-                XCTAssertNotEqual(text.consequence, text.title, "\(rule.id) \(language)")
-                XCTAssertLessThanOrEqual(text.consequence.count, 60, "\(rule.id) \(language)")
-                XCTAssertFalse(text.consequence.contains(rule.id), "\(rule.id) \(language)")
+                    RuleLocalization.text(forRule: id, language: language), "\(id) \(language)")
+                XCTAssertFalse(text.consequence.isEmpty, "\(id) \(language)")
+                XCTAssertNotEqual(text.consequence, text.title, "\(id) \(language)")
+                XCTAssertLessThanOrEqual(text.consequence.count, 60, "\(id) \(language)")
+                XCTAssertFalse(text.consequence.contains(id), "\(id) \(language)")
             }
-            XCTAssertFalse((rule.consequence ?? "").isEmpty, "\(rule.id) fallback")
         }
     }
 

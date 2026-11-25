@@ -77,7 +77,18 @@ public enum Inbox {
                     source: .event(event)))
             }
         }
-        candidates += try fileFindings(store)
+        // An allowance by pattern or everywhere also covers a file finding, matched
+        // against its (home-shortened) path.
+        let fileAllowances = try store.allowances(now: now).filter {
+            switch $0.scope {
+            case .pattern, .everywhere: true
+            case .command, .projectRule: false
+            }
+        }
+        candidates += try fileFindings(store).filter { finding in
+            guard case let .file(path, _, _) = finding.source else { return true }
+            return !fileAllowances.contains { $0.covers(ruleId: finding.ruleId, target: path, cwd: nil) }
+        }
 
         let states = try store.reviewStates(for: candidates.map(\.id))
         let open = candidates

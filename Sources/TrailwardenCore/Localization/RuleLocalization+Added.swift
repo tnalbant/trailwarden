@@ -497,6 +497,32 @@ extension RuleLocalization {
                 message: "Une table est supprimée ou vidée, ou un déploiement est retiré ou appliqué sans "
                     + "relecture",
                 consequence: "Vide une table ou retire un déploiement en production")
+        ],
+        "R29": [
+            .english: RuleText(
+                title: "Secret in an agent settings file",
+                message: "A token or password is saved in plain text in an agent's settings file",
+                consequence: "Leaves a secret readable in a settings file"),
+            .turkish: RuleText(
+                title: "Ajan ayar dosyasında gizli bilgi",
+                message: "Bir ajanın ayar dosyasında jeton veya parola düz metin olarak kayıtlı",
+                consequence: "Ayar dosyasında okunabilir bir sır bırakır"),
+            .german: RuleText(
+                title: "Geheimnis in einer Agent-Einstellungsdatei",
+                message: "Ein Token oder Passwort steht im Klartext in der Einstellungsdatei eines Agenten",
+                consequence: "Lässt ein Geheimnis lesbar in einer Einstellungsdatei"),
+            .spanish: RuleText(
+                title: "Secreto en un archivo de ajustes del agente",
+                message: "Un token o contraseña está guardado en texto plano en el archivo de ajustes de un agente",
+                consequence: "Deja un secreto legible en un archivo de ajustes"),
+            .italian: RuleText(
+                title: "Segreto in un file di impostazioni dell'agente",
+                message: "Un token o una password è salvato in chiaro nel file di impostazioni di un agente",
+                consequence: "Lascia un segreto leggibile in un file di impostazioni"),
+            .french: RuleText(
+                title: "Secret dans un fichier de réglages d'agent",
+                message: "Un jeton ou un mot de passe est enregistré en clair dans le fichier de réglages d'un agent",
+                consequence: "Laisse un secret lisible dans un fichier de réglages")
         ]
     ]
 }
