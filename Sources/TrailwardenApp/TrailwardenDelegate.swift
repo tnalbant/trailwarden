@@ -110,11 +110,25 @@ final class TrailwardenDelegate: NSObject, NSApplicationDelegate, UNUserNotifica
         }
         let session = info["session"] as? String
         let event = info["event"] as? String
+        let key = info["key"] as? String
+        let cwd = info["cwd"] as? String
+        let isInbox = info["inbox"] as? Bool ?? false
+        let action = response.actionIdentifier
         DispatchQueue.main.async {
-            NotificationCenter.default.post(
-                name: .trailwardenOpenEvent,
-                object: nil,
-                userInfo: ["session": session as Any, "event": event as Any])
+            let center = NotificationCenter.default
+            if isInbox {
+                center.post(name: .trailwardenOpenInbox, object: nil)
+            } else if action == LiveMonitor.reviewedAction || action == LiveMonitor.expectedAction {
+                var answer: [String: Any] = ["action": action]
+                answer["key"] = key
+                answer["cwd"] = cwd
+                center.post(name: .trailwardenFindingAnswered, object: nil, userInfo: answer)
+            } else {
+                center.post(
+                    name: .trailwardenOpenEvent,
+                    object: nil,
+                    userInfo: ["session": session as Any, "event": event as Any])
+            }
         }
         completionHandler()
     }

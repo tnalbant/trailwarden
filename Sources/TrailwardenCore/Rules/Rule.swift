@@ -78,6 +78,8 @@ public struct Rule: Codable, Sendable, Identifiable, Equatable {
     public let severity: Severity
     public let match: RuleMatch
     public let message: String
+    /// What happens, in plain words; the fallback when no translation carries one.
+    public let consequence: String?
     /// User rules may switch a built-in rule off without deleting it.
     public let enabled: Bool?
     /// Documented behaviour; optional, so user rule files need not carry it.
@@ -89,6 +91,7 @@ public struct Rule: Codable, Sendable, Identifiable, Equatable {
         severity: Severity,
         match: RuleMatch,
         message: String,
+        consequence: String? = nil,
         enabled: Bool? = nil,
         examples: RuleExamples? = nil)
     {
@@ -97,6 +100,7 @@ public struct Rule: Codable, Sendable, Identifiable, Equatable {
         self.severity = severity
         self.match = match
         self.message = message
+        self.consequence = consequence
         self.enabled = enabled
         self.examples = examples
     }

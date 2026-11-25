@@ -82,6 +82,22 @@ final class LocalizationTests: XCTestCase {
         }
     }
 
+    func testEveryRuleHasAConsequenceInEveryLanguage() throws {
+        let rules = try RuleCatalog.builtIn()
+        XCTAssertEqual(rules.count, 28)
+        for rule in rules {
+            for language in languages {
+                let text = try XCTUnwrap(
+                    RuleLocalization.text(forRule: rule.id, language: language), "\(rule.id) \(language)")
+                XCTAssertFalse(text.consequence.isEmpty, "\(rule.id) \(language)")
+                XCTAssertNotEqual(text.consequence, text.title, "\(rule.id) \(language)")
+                XCTAssertLessThanOrEqual(text.consequence.count, 60, "\(rule.id) \(language)")
+                XCTAssertFalse(text.consequence.contains(rule.id), "\(rule.id) \(language)")
+            }
+            XCTAssertFalse((rule.consequence ?? "").isEmpty, "\(rule.id) fallback")
+        }
+    }
+
     func testRuleTextDiffersBetweenLanguages() {
         // A title copied across languages without translating it is the failure
         // mode this catches: German must not be identical to English for all rules.

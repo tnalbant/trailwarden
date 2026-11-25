@@ -96,6 +96,28 @@ final class AppModel: ObservableObject {
                 self?.openEvent(event, in: session)
             }
         }
+        NotificationCenter.default.addObserver(
+            forName: .trailwardenOpenInbox,
+            object: nil,
+            queue: .main)
+        { [weak self] _ in
+            MainActor.assumeIsolated {
+                self?.openInbox()
+            }
+        }
+        NotificationCenter.default.addObserver(
+            forName: .trailwardenFindingAnswered,
+            object: nil,
+            queue: .main)
+        { [weak self] note in
+            let action = note.userInfo?["action"] as? String
+            let key = note.userInfo?["key"] as? String
+            let cwd = note.userInfo?["cwd"] as? String
+            MainActor.assumeIsolated {
+                guard let key, let action else { return }
+                Task { await self?.answerFinding(key: key, action: action, cwd: cwd) }
+            }
+        }
         // A Dock click or ⌘-Tab on a windowless app asks for the dashboard; the
         // menu bar label owns `openWindow`, so it reacts to this counter.
         NotificationCenter.default.addObserver(
@@ -134,6 +156,25 @@ final class AppModel: ObservableObject {
     func openInbox() {
         inboxRequested += 1
         windowRequested += 1
+    }
+
+    /// A notification button: "Reviewed", or "Expected in this project", which
+    /// allows the rule in that project forever and marks the finding only once
+    /// the allowance is stored (the same order the inbox uses).
+    func answerFinding(key: String, action: String, cwd: String?) async {
+        var state = ReviewState.reviewed
+        if action == LiveMonitor.expectedAction {
+            guard let cwd, let ruleId = FindingKey.ruleID(of: key) else { return }
+            let stored = await allow(Allowance(ruleId: ruleId, scope: .projectRule(project: cwd), until: nil))
+            guard stored else { return }
+            state = .expected
+        }
+        do {
+            try EventStore(url: databaseURL).setReview(state, for: key)
+            refresh()
+        } catch {
+            errorMessage = TechnicalDetails.errorText(error)
+        }
     }
 
     // MARK: - Reading
@@ -518,6 +559,8 @@ final class AppModel: ObservableObject {
 extension Notification.Name {
     /// Posted by the notification delegate with `session` and `event` in userInfo.
     static let trailwardenOpenEvent = Notification.Name("app.trailwarden.openEvent")
+    static let trailwardenOpenInbox = Notification.Name("app.trailwarden.openInbox")
+    static let trailwardenFindingAnswered = Notification.Name("app.trailwarden.findingAnswered")
     /// Posted when the Dock tile or ⌘-Tab asks for the window: the app is open,
     /// but nothing of it is on screen.
     static let trailwardenShowDashboard = Notification.Name("app.trailwarden.showDashboard")

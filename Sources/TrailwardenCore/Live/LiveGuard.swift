@@ -60,26 +60,22 @@ public struct LiveAlert: Sendable, Equatable {
     public let title: String
     public let subtitle: String
     public let body: String
+    /// The finding this alert is about (the worst active hit), for the notification's actions.
+    public let findingKey: String?
 
     public init(event: Event, localizer: Localizer) {
         let worst = event.activeRisk.max { lhs, rhs in
             lhs.severity == rhs.severity ? lhs.ruleId > rhs.ruleId : lhs.severity < rhs.severity
         }
-        let rule = worst.flatMap { hit in
-            RuleLocalization.text(forRule: hit.ruleId, language: localizer.language)
-        }
-        let ruleName = worst.map { EventPresentation.ruleTitle($0, localizer: localizer) } ?? ""
-        title = "\(event.agent.displayName) · \(ruleName)"
-        subtitle = rule?.message ?? worst?.message ?? ""
+        findingKey = worst.map { FindingKey.event(event.id, rule: $0.ruleId) }
+        let consequence = worst.map { $0.localizedConsequence(localizer) } ?? ""
+        title = "\(event.agent.displayName) · \(consequence)"
+        subtitle = ActivityDigest.project(from: event.cwd) ?? ""
         var what = event.command ?? event.paths.first ?? event.preview ?? ""
         what = what.replacingOccurrences(of: "\n", with: " ⏎ ")
         if what.count > 140 {
             what = String(what.prefix(139)) + "…"
         }
-        if let project = ActivityDigest.project(from: event.cwd) {
-            body = "\(what)\n\(project)"
-        } else {
-            body = what
-        }
+        body = what
     }
 }

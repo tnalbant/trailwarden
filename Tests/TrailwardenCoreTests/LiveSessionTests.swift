@@ -38,7 +38,7 @@ final class LiveSessionTests: XCTestCase {
         XCTAssertTrue(try store.activeSessionIDs().isEmpty)
     }
 
-    func testLiveAlertTitleUsesTheRuleTitle() throws {
+    func testLiveAlertTitleNamesTheConsequenceNotTheRuleId() throws {
         let localizer = Localizer(language: .english)
         let hit = RiskHit(ruleId: "R1", severity: .critical, message: "stored message")
         let event = Event(
@@ -53,9 +53,9 @@ final class LiveSessionTests: XCTestCase {
             preview: "ls",
             risk: [hit],
             rawJSON: nil)
-        let title = try XCTUnwrap(RuleLocalization.text(forRule: "R1", language: .english)).title
+        let consequence = try XCTUnwrap(RuleLocalization.text(forRule: "R1", language: .english)).consequence
         let alert = LiveAlert(event: event, localizer: localizer)
-        XCTAssertEqual(alert.title, "Claude Code · \(title)")
+        XCTAssertEqual(alert.title, "Claude Code · \(consequence)")
         XCTAssertFalse(alert.title.contains("R1"))
     }
 }

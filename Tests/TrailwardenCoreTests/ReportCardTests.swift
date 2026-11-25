@@ -148,7 +148,41 @@ final class LiveGuardTests: XCTestCase {
             ])
         let alert = LiveAlert(event: event, localizer: Localizer(language: .english))
 
-        XCTAssertEqual(alert.title, "Claude Code · Destructive delete")
-        XCTAssertEqual(alert.body, "rm -rf ~\naurora")
+        XCTAssertEqual(alert.title, "Claude Code · Deletes your whole home folder or a system folder")
+        XCTAssertEqual(alert.subtitle, "aurora")
+        XCTAssertEqual(alert.body, "rm -rf ~")
+        XCTAssertEqual(alert.findingKey, "event:e:R1")
+    }
+
+    func testLiveAlertLeadsWithTheConsequence() {
+        let long = String(repeating: "x", count: 400)
+        let event = Event(
+            id: "e", ts: Date(), agent: .codex, sessionId: "s", kind: .toolCall,
+            cwd: "/Users/demo/dev/aurora", tool: "Bash", command: long,
+            risk: [RiskHit(ruleId: "R1", severity: .critical, message: "m")])
+        let localizer = Localizer(language: .turkish)
+        let alert = LiveAlert(event: event, localizer: localizer)
+        let consequence = RuleLocalization.text(forRule: "R1", language: .turkish)?.consequence ?? ""
+
+        XCTAssertFalse(consequence.isEmpty)
+        XCTAssertTrue(alert.title.contains(consequence))
+        XCTAssertFalse(alert.title.contains("R1"))
+        XCTAssertFalse(alert.subtitle.contains("R1"))
+        XCTAssertLessThanOrEqual(alert.body.count, 140)
+    }
+
+    func testAllowedFindingIsNotNew() throws {
+        let start = Date(timeIntervalSince1970: 1_800_000_000)
+        let store = try EventStore(inMemory: true)
+        let allowedHit = RiskHit(ruleId: "R1", severity: .critical, message: "m", allowed: true)
+        try store.insert(events: [
+            Event(
+                id: "allowed", ts: start.addingTimeInterval(5), agent: .codex, sessionId: "s",
+                kind: .toolCall, tool: "Bash", command: "x", risk: [allowedHit]),
+            finding("real", at: start.addingTimeInterval(6))
+        ])
+        var guardState = LiveGuard(threshold: .critical, startedAt: start)
+
+        XCTAssertEqual(try guardState.newFindings(in: store).map(\.id), ["real"])
     }
 }

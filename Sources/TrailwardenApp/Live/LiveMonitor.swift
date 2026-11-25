@@ -18,6 +18,33 @@ final class LiveMonitor: ObservableObject {
     static let enabledKey = "trailwarden.live.enabled"
     static let thresholdKey = "trailwarden.live.threshold"
 
+    /// Notification categories: the answer buttons of a finding. A finding with no
+    /// project folder gets no "expected in this project" button.
+    nonisolated static let findingCategory = "trailwarden.finding"
+    nonisolated static let findingNoProjectCategory = "trailwarden.finding.noproject"
+    nonisolated static let reviewedAction = "reviewed"
+    nonisolated static let expectedAction = "expected"
+    nonisolated static let openAction = "open"
+
+    /// Registers the categories in the current language; safe to call again
+    /// after the language changes.
+    static func registerCategories() {
+        let localizer = LocalizationStore.current
+        let reviewed = UNNotificationAction(identifier: reviewedAction, title: localizer.text(.inboxReviewed))
+        let expected = UNNotificationAction(
+            identifier: expectedAction, title: localizer.text(.inboxExpectedHere))
+        let open = UNNotificationAction(
+            identifier: openAction, title: localizer.text(.inboxOpen), options: [.foreground])
+        UNUserNotificationCenter.current().setNotificationCategories([
+            UNNotificationCategory(
+                identifier: findingCategory, actions: [reviewed, expected, open],
+                intentIdentifiers: [], options: []),
+            UNNotificationCategory(
+                identifier: findingNoProjectCategory, actions: [reviewed, open],
+                intentIdentifiers: [], options: [])
+        ])
+    }
+
     /// What the system says about banners. The app can ask, and it can read the
     /// answer back after the reader changes it in System Settings.
     enum NotificationPermission: Sendable {
@@ -40,6 +67,7 @@ final class LiveMonitor: ObservableObject {
         self.databaseURL = databaseURL
         self.onPass = onPass
         UserDefaults.standard.register(defaults: [Self.enabledKey: true, Self.thresholdKey: "critical"])
+        Self.registerCategories()
         readNotificationSettings()
         // A grant made in System Settings has to show up without a restart.
         NotificationCenter.default.addObserver(
@@ -211,7 +239,16 @@ private final class LiveWorker: @unchecked Sendable {
         content.body = alert.body
         content.sound = event.activeRisk.contains { $0.severity == .critical } ? .default : nil
         content.threadIdentifier = event.sessionId
-        content.userInfo = ["event": event.id, "session": event.sessionId]
+        var info: [String: Any] = ["event": event.id, "session": event.sessionId]
+        if let key = alert.findingKey {
+            info["key"] = key
+        }
+        if let cwd = event.cwd, !cwd.isEmpty {
+            info["cwd"] = cwd
+        }
+        content.userInfo = info
+        content.categoryIdentifier = info["cwd"] == nil
+            ? LiveMonitor.findingNoProjectCategory : LiveMonitor.findingCategory
         let request = UNNotificationRequest(identifier: event.id, content: content, trigger: nil)
         UNUserNotificationCenter.current().add(request)
     }
@@ -220,6 +257,7 @@ private final class LiveWorker: @unchecked Sendable {
         let content = UNMutableNotificationContent()
         content.title = "Trailwarden"
         content.body = LocalizationStore.current.format(.liveMoreFindings, extra)
+        content.userInfo = ["inbox": true]
         UNUserNotificationCenter.current().add(
             UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: nil))
     }
