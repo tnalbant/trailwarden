@@ -26,8 +26,7 @@ final class LiveMonitor: ObservableObject {
     nonisolated static let expectedAction = "expected"
     nonisolated static let openAction = "open"
 
-    /// Registers the categories in the current language; safe to call again
-    /// after the language changes.
+    /// Registers the categories in the language current at launch.
     static func registerCategories() {
         let localizer = LocalizationStore.current
         let reviewed = UNNotificationAction(identifier: reviewedAction, title: localizer.text(.inboxReviewed))

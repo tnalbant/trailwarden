@@ -152,6 +152,7 @@ final class LiveGuardTests: XCTestCase {
         XCTAssertEqual(alert.subtitle, "aurora")
         XCTAssertEqual(alert.body, "rm -rf ~")
         XCTAssertEqual(alert.findingKey, "event:e:R1")
+        XCTAssertEqual(alert.detailLine, "rm -rf ~  ·  aurora")
     }
 
     func testLiveAlertLeadsWithTheConsequence() {

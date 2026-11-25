@@ -63,6 +63,12 @@ public struct LiveAlert: Sendable, Equatable {
     /// The finding this alert is about (the worst active hit), for the notification's actions.
     public let findingKey: String?
 
+    /// The command and its project on one line, for the command line.
+    public var detailLine: String {
+        let flat = body.replacingOccurrences(of: "\n", with: "  ·  ")
+        return subtitle.isEmpty ? flat : "\(flat)  ·  \(subtitle)"
+    }
+
     public init(event: Event, localizer: Localizer) {
         let worst = event.activeRisk.max { lhs, rhs in
             lhs.severity == rhs.severity ? lhs.ruleId > rhs.ruleId : lhs.severity < rhs.severity

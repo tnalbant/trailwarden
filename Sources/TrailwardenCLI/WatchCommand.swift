@@ -104,7 +104,7 @@ private final class WatchSession: @unchecked Sendable {
         let severity = event.activeRisk.map(\.severity).max()?.rawValue.uppercased() ?? "-"
         let ids = event.activeRisk.map(\.ruleId).joined(separator: ",")
         return "\(WhoCommand.stamp(event.ts))  \(severity) \(ids)  \(alert.title)\n"
-            + "    \(alert.body.replacingOccurrences(of: "\n", with: "  ·  "))"
+            + "    \(alert.detailLine)"
     }
 
     private static func json(_ event: Event) -> String {
