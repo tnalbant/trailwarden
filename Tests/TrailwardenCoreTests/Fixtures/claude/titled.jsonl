@@ -3,3 +3,4 @@
 {"type":"user","sessionId":"sess-title-1","uuid":"t-2","cwd":"/tmp/demo","gitBranch":"main","version":"2.0.0","timestamp":"2026-11-25T08:00:01.000Z","message":{"role":"user","content":[{"type":"text","text":"rename the notes folder to archive"}]}}
 {"type":"assistant","sessionId":"sess-title-1","uuid":"t-3","cwd":"/tmp/demo","gitBranch":"main","version":"2.0.0","timestamp":"2026-11-25T08:00:02.000Z","message":{"role":"assistant","content":[{"type":"text","text":"Renaming it now."}]}}
 {"type":"ai-title","sessionId":"sess-title-1","title":"Rename notes to archive"}
+{"type":"custom-title","customTitle":"Archive the notes","sessionId":"sess-title-1"}
