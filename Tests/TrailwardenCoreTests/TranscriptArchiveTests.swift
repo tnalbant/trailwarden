@@ -284,4 +284,51 @@ final class TranscriptArchiveTests: XCTestCase {
         XCTAssertEqual(report.filesUnchanged, 1)
         XCTAssertEqual(try decompressed(copy(1, session: "late", stem: "late")), line)
     }
+
+    func testConcurrentArchiversNeverLoseOrShrinkACopy() throws {
+        let dbURL = directory.appendingPathComponent("index.sqlite")
+        let stores = try (0 ..< 8).map { _ in try EventStore(url: dbURL) }
+        let url = try source("line 0\n")
+        let root = directory.appendingPathComponent("Archive")
+        let box = Unchecked(stores)
+        let failures = Unchecked([String]())
+        let gate = NSLock()
+        DispatchQueue.concurrentPerform(iterations: 8) { index in
+            gate.lock()
+            let text = (0 ... index).map { "line \($0)\n" }.joined()
+            try? Data(text.utf8).write(to: url)
+            gate.unlock()
+            do {
+                _ = try TranscriptArchive(root: root).update(
+                    source: url, agent: .claudeCode, sessionID: "race", store: box.value[index])
+            } catch {
+                gate.lock()
+                failures.value.append("\(error)")
+                gate.unlock()
+            }
+        }
+        XCTAssertEqual(failures.value, [])
+        let statement = try stores[0].database.prepare(
+            "SELECT version, archive_path, source_size FROM archive_copies ORDER BY version")
+        var rowPaths: Set<String> = []
+        while try statement.step() {
+            let path = try XCTUnwrap(statement.text(1))
+            rowPaths.insert(path)
+            let stored = try (Data(contentsOf: URL(fileURLWithPath: path)) as NSData)
+                .decompressed(using: .lzfse) as Data
+            XCTAssertEqual(stored.count, statement.int(2))
+        }
+        let files = try FileManager.default.subpathsOfDirectory(
+            atPath: root.appendingPathComponent("claude-code/race").path)
+            .filter { $0.hasSuffix(".lzfse") }
+        XCTAssertFalse(rowPaths.isEmpty)
+        XCTAssertEqual(files.count, rowPaths.count)
+    }
+}
+
+private final class Unchecked<Value>: @unchecked Sendable {
+    var value: Value
+    init(_ value: Value) {
+        self.value = value
+    }
 }
