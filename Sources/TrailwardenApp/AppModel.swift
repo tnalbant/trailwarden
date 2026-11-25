@@ -261,6 +261,8 @@ final class AppModel: ObservableObject {
                         shown = percent
                         Task { @MainActor in publish(progress) }
                     }
+                // Settings files are checked once per full scan, never on the live path.
+                try? AgentSettingsScan.refresh(store: store)
                 let failure = report.failures.first.map { TechnicalDetails.errorText(raw: $0) }
                 return (report.eventsStored, failure)
             } catch {

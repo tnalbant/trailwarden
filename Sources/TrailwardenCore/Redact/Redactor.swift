@@ -176,6 +176,21 @@ public struct Redactor: Sendable {
         return result
     }
 
+    /// The lines of `text` that hold a secret, with the line number (1-based)
+    /// and the line as redacted. A line is a hit when redaction changes it.
+    public func secretLines(in text: String) -> [(line: Int, redacted: String)] {
+        var result: [(line: Int, redacted: String)] = []
+        var number = 0
+        text.enumerateLines { line, _ in
+            number += 1
+            let redacted = redact(line)
+            if redacted != line {
+                result.append((number, redacted))
+            }
+        }
+        return result
+    }
+
     /// `/Users/<name>/work` -> `~/work` (and `/home/<name>` on Linux exports).
     public func shortenHome(_ path: String) -> String {
         let range = NSRange(path.startIndex..., in: path)
