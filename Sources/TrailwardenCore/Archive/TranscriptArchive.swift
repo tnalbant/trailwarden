@@ -17,6 +17,9 @@ public struct TranscriptArchive: Sendable {
 
     private let root: URL
     private static let chunkSize = 1 << 20
+    /// One writer at a time in this process: the app's manual scan and the live
+    /// watcher both archive, and decide, write and record must not interleave.
+    private static let writer = NSLock()
 
     public init(root: URL, store _: EventStore? = nil) {
         self.root = root
@@ -49,6 +52,9 @@ public struct TranscriptArchive: Sendable {
     @discardableResult
     public func update(source: URL, agent: Agent, sessionID: String?, store: EventStore) throws -> Outcome {
         guard Self.archived.contains(agent) else { return .unchanged }
+        Self.writer.lock()
+        defer { Self.writer.unlock() }
+        // Read inside the lock, so the decision sees the newest row.
         let last = try lastCopy(of: source.standardizedFileURL.path, store: store)
         // Cheap exit: same size and same bytes as the copy that is on disk.
         if let last, FileManager.default.fileExists(atPath: last.path),
@@ -118,19 +124,23 @@ public struct TranscriptArchive: Sendable {
             if plan.replaceLast, let last {
                 version = last.version
                 target = URL(fileURLWithPath: last.path)
+                if rename(temporary.path, target.path) != 0 {
+                    throw CocoaError(.fileWriteUnknown, userInfo: [NSFilePathErrorKey: target.path])
+                }
             } else {
-                // Never rename over a file the index does not know about.
+                // Exclusive rename: another process (the CLI) can never be
+                // clobbered; on a name that is taken, try the next version.
                 var next = (last?.version ?? 0) + 1
                 var candidate = folder.appendingPathComponent(Self.fileName(next, source))
-                while FileManager.default.fileExists(atPath: candidate.path) {
+                while renamex_np(temporary.path, candidate.path, UInt32(RENAME_EXCL)) != 0 {
+                    guard errno == EEXIST else {
+                        throw CocoaError(.fileWriteUnknown, userInfo: [NSFilePathErrorKey: candidate.path])
+                    }
                     next += 1
                     candidate = folder.appendingPathComponent(Self.fileName(next, source))
                 }
                 version = next
                 target = candidate
-            }
-            if rename(temporary.path, target.path) != 0 {
-                throw CocoaError(.fileWriteUnknown, userInfo: [NSFilePathErrorKey: target.path])
             }
             try record(
                 key: key, copy: (version, target.path, result.size, result.digest),
