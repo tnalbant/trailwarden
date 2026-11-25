@@ -66,7 +66,7 @@ public final class EventStore {
     }
 
     /// The schema `migrate()` brings an index to; `doctor` compares against it.
-    public static let schemaVersion = 8
+    public static let schemaVersion = 9
 
     public convenience init(url: URL) throws {
         let fileManager = FileManager.default
@@ -228,6 +228,11 @@ public final class EventStore {
         // v8: a small key/value table for facts about the index itself, such as
         // which built-in rule catalogue last graded it.
         try database.execute("CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT NOT NULL)")
+        // v9: reviews, allowances, file findings, the archive index and session
+        // titles. Everything 0.3 adds to the index lives in this block.
+        if try userVersion() < 9 {
+            try migrateToNine()
+        }
         try database.execute("PRAGMA user_version = \(Self.schemaVersion)")
     }
 
@@ -236,7 +241,7 @@ public final class EventStore {
         try database.prepare(sql)
     }
 
-    private func columnExists(_ column: String, in table: String) throws -> Bool {
+    func columnExists(_ column: String, in table: String) throws -> Bool {
         let statement = try database.prepare("PRAGMA table_info(\(table))")
         while try statement.step() {
             if statement.text(1) == column {
