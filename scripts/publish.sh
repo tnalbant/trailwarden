@@ -1,6 +1,6 @@
 #!/bin/bash
 # SPDX-License-Identifier: Apache-2.0
-# Copyright (c) 2026 Turgay Nalbant
+# Copyright (c) 2026 tnalbant
 #
 # Publishes a release that `scripts/release.sh` already built. Every step is
 # external, so nothing runs without an explicit flag — dry run is the default.

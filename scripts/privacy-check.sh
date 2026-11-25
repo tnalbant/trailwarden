@@ -1,6 +1,6 @@
 #!/bin/bash
 # SPDX-License-Identifier: Apache-2.0
-# Copyright (c) 2026 Turgay Nalbant
+# Copyright (c) 2026 tnalbant
 #
 # Privacy gate: nothing that identifies the machine a release was made on may
 # reach the repository, its history or a shipped file. Exits non-zero on any
@@ -88,7 +88,7 @@ RULES = [
 ALLOWED_EMAIL = re.compile(
     rb"(?i)(?:@(?:[a-z0-9-]+\.)*example(?:\.com|\.org|\.net|\.test)$"
     rb"|@(?:[a-z0-9-]+\.)*example\.test$|@[a-z0-9.-]+\.test$"
-    rb"|@users\.noreply\.github\.com$|^(?:noreply|support)@github\.com$|^git@github\.com$"
+    rb"|@users\.noreply\.github\.com$|^(?:noreply|support)@github\.com$|^git@github\.com$|^dev@tnalbant\.com$"
     rb"|@[0-9]x\.(?:png|jpg|pdf)$)")
 
 denylist = []  # (label, compiled)

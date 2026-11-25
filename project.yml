@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-# Copyright (c) 2026 Turgay Nalbant
+# Copyright (c) 2026 tnalbant
 #
 # XcodeGen spec for the menu-bar app. The Core/CLI/MCP targets live in
 # Package.swift; the app consumes Core through the local Swift package.
@@ -56,6 +56,6 @@ targets:
         CFBundleIconName: AppIcon
         NSPrincipalClass: NSApplication
         LSUIElement: true
-        NSHumanReadableCopyright: "Copyright (c) 2026 Turgay Nalbant. Apache-2.0."
+        NSHumanReadableCopyright: "Copyright (c) 2026 tnalbant · dev@tnalbant.com · Apache-2.0"
     scheme:
       gatherCoverageData: false

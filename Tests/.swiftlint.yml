@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-# Copyright (c) 2026 Turgay Nalbant
+# Copyright (c) 2026 tnalbant
 
 # Tests carry table-driven cases and inline JSON fixtures: a 300-character payload
 # on one line is data, not code. Length rules stay on for Sources/.

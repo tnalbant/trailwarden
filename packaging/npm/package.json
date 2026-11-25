@@ -3,7 +3,7 @@
   "version": "0.3.0",
   "description": "Local audit trail for coding agents (Claude Code, Codex, Gemini CLI, opencode, Cursor, GitHub Copilot, Hermes) over MCP. Nothing leaves your Mac.",
   "license": "Apache-2.0",
-  "author": "Turgay Nalbant",
+  "author": "tnalbant <dev@tnalbant.com>",
   "homepage": "https://github.com/tnalbant/trailwarden",
   "repository": {
     "type": "git",

@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-# Copyright (c) 2026 Turgay Nalbant
+# Copyright (c) 2026 tnalbant
 #
 # Cask for the menu-bar app. Lives in tnalbant/homebrew-trailwarden, so users run:
 #   brew tap tnalbant/trailwarden && brew install --cask trailwarden
