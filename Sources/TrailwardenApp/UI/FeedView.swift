@@ -13,11 +13,15 @@ struct FeedView: View {
     @ObservedObject var model: FeedModel
     /// Clicking a row hands the event to the timeline, which shows it in full.
     var onOpen: (ActivityItem) -> Void
+    /// Inside the inbox the feed has no scroll view or header of its own.
+    var embedded = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            header
-            Hairline()
+            if !embedded {
+                header
+                Hairline()
+            }
             if let error = model.errorMessage {
                 Text(error)
                     .font(Tokens.Typography.font(.body))
@@ -25,21 +29,29 @@ struct FeedView: View {
                     .padding(.horizontal, Tokens.Metrics.gutter)
                     .padding(.vertical, 8)
             }
-            ScrollView {
-                LazyVStack(alignment: .leading, spacing: 20) {
-                    if model.sections.isEmpty {
-                        emptyState
-                    }
-                    ForEach(model.sections) { section in
-                        sectionView(section)
-                    }
+            if embedded {
+                sections
+            } else {
+                ScrollView {
+                    sections
                 }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 12)
+                .background(Tokens.Palette.paper)
             }
-            .background(Tokens.Palette.paper)
         }
         .background(Tokens.Palette.paper)
+    }
+
+    private var sections: some View {
+        LazyVStack(alignment: .leading, spacing: 20) {
+            if model.sections.isEmpty {
+                emptyState
+            }
+            ForEach(model.sections) { section in
+                sectionView(section)
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
     }
 
     private var header: some View {

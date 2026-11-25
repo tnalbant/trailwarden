@@ -8,7 +8,7 @@ import SwiftUI
 /// of opening a window of its own, so there is still exactly one place where the
 /// story is told.
 enum DashboardTab: String, CaseIterable, Identifiable {
-    case today
+    case inbox
     case timeline
     case report
     case usage
@@ -21,7 +21,7 @@ enum DashboardTab: String, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
-        case .today: L(.todayFeed)
+        case .inbox: L(.inboxTab)
         case .timeline: L(.timelineTab)
         case .report: L(.windowReport)
         case .usage: L(.windowUsage)
@@ -32,7 +32,7 @@ enum DashboardTab: String, CaseIterable, Identifiable {
 
     /// The five sections the View menu offers with ⌘1…⌘5. Settings keeps ⌘,.
     static var menuTabs: [DashboardTab] {
-        [.today, .timeline, .report, .usage, .rules]
+        [.inbox, .timeline, .report, .usage, .rules]
     }
 }
 
@@ -40,7 +40,7 @@ enum DashboardTab: String, CaseIterable, Identifiable {
 /// menu commands. Whoever asks for a section sets it here and opens the window.
 @MainActor
 final class DashboardRouter: ObservableObject {
-    @Published var tab: DashboardTab = .today
+    @Published var tab: DashboardTab = .inbox
     /// Bumped on every request so a window that is already open still reacts when
     /// the same section is asked for twice.
     @Published private(set) var requests = 0
