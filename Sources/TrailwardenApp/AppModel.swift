@@ -466,7 +466,8 @@ final class AppModel: ObservableObject {
 
     /// Deletes events older than the retention window; file signatures are kept,
     /// so a later scan does not bring them back.
-    func prune(retentionDays: Int) async {
+    func prune(retention: RetentionChoice) async {
+        guard let retentionDays = retention.days else { return }
         let url = databaseURL
         let message = await Task.detached(priority: .utility) { () -> String in
             do {

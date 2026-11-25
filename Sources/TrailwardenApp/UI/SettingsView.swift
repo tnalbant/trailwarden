@@ -16,7 +16,9 @@ struct SettingsView: View {
     @AppStorage(AppearanceMode.storageKey) private var appearance = AppearanceMode.system.rawValue
     @AppStorage(TextSize.storageKey) private var textSize = TextSize.standard.rawValue
     @AppStorage(LocalizationStore.defaultsKey) private var language = AppLanguage.system.rawValue
-    @AppStorage("trailwarden.retentionDays") private var retentionDays = 90
+    @AppStorage(RetentionChoice.storageKey) private var retentionStored = RetentionChoice.forever.rawValue
+    @AppStorage(ArchiveSetting.enabledKey) private var archiveEnabled = false
+    @State private var archiveBytes: Int64 = 0
     @AppStorage("trailwarden.exportFormat") private var exportFormat = AuditFormat.markdown.rawValue
     @State private var roots: [TranscriptRoot] = AppModel.transcriptRoots()
     @AppStorage(LiveMonitor.enabledKey) private var liveEnabled = true
@@ -170,26 +172,71 @@ struct SettingsView: View {
         }
     }
 
+    private var retention: RetentionChoice {
+        RetentionChoice.resolve(stored: retentionStored)
+    }
+
+    private var archiveRoot: URL {
+        TranscriptArchive.archiveRoot(databaseURL: model.databaseURL)
+    }
+
+    private func retentionLabel(_ choice: RetentionChoice) -> String {
+        switch choice {
+        case .forever: L(.retentionForever)
+        case .oneYear: L(.retentionOneYear)
+        case .ninetyDays: L(.retentionNinetyDays)
+        }
+    }
+
+    private func refreshArchiveSize() {
+        let root = archiveRoot
+        archiveBytes = (try? TranscriptArchive(root: root).usedBytes()) ?? 0
+    }
+
     private var retentionSection: some View {
         VStack(alignment: .leading, spacing: 7) {
             SectionLabel(text: L(.retention))
             HStack(spacing: 8) {
-                Stepper(value: $retentionDays, in: 30 ... 365, step: 30) {
-                    Text(Lf(.retentionDays, [retentionDays]))
-                        .font(Tokens.Typography.font(.body))
+                Picker(L(.retentionKeep), selection: $retentionStored) {
+                    ForEach(RetentionChoice.allCases, id: \.rawValue) { choice in
+                        Text(retentionLabel(choice)).tag(choice.rawValue)
+                    }
                 }
+                .font(Tokens.Typography.font(.body))
                 Button(L(.cleanupNow)) {
-                    Task { await model.prune(retentionDays: retentionDays) }
+                    Task { await model.prune(retention: retention) }
                 }
                 .buttonStyle(.plain)
                 .font(Tokens.Typography.font(.callout, weight: .medium))
                 .foregroundStyle(Tokens.Palette.accentText)
+                .disabled(retention == .forever)
             }
             Text(L(.retentionHint))
                 .font(Tokens.Typography.font(.caption))
                 .foregroundStyle(Tokens.Palette.secondary)
                 .fixedSize(horizontal: false, vertical: true)
+            Toggle(L(.archiveToggle), isOn: $archiveEnabled)
+                .font(Tokens.Typography.font(.body))
+            HStack(spacing: 8) {
+                Text(Lf(
+                    .archiveUsed,
+                    [ByteCountFormatter.string(fromByteCount: archiveBytes, countStyle: .file)]))
+                    .font(Tokens.Typography.font(.caption))
+                    .foregroundStyle(Tokens.Palette.secondary)
+                Spacer(minLength: 6)
+                Button(L(.showArchiveInFinder)) {
+                    try? FileManager.default.createDirectory(
+                        at: archiveRoot, withIntermediateDirectories: true,
+                        attributes: [.posixPermissions: 0o700])
+                    NSWorkspace.shared.activateFileViewerSelecting([archiveRoot])
+                }
+                .buttonStyle(.plain)
+                .font(Tokens.Typography.font(.callout, weight: .medium))
+                .foregroundStyle(Tokens.Palette.accentText)
+            }
         }
+        .onAppear { refreshArchiveSize() }
+        .onChange(of: archiveEnabled) { _, _ in refreshArchiveSize() }
     }
 
     private var exportSection: some View {

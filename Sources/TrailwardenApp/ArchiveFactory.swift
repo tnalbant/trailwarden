@@ -8,9 +8,11 @@ extension TranscriptArchive {
     /// The archive next to the index, or nil while the setting is off.
     static func ifEnabled(databaseURL: URL, store: EventStore) -> TranscriptArchive? {
         guard UserDefaults.standard.bool(forKey: ArchiveSetting.enabledKey) else { return nil }
-        let root = databaseURL.deletingLastPathComponent().appendingPathComponent(
-            "Archive",
-            isDirectory: true)
-        return TranscriptArchive(root: root, store: store)
+        return TranscriptArchive(root: archiveRoot(databaseURL: databaseURL), store: store)
+    }
+
+    /// Where full copies live: an `Archive` folder next to the index.
+    static func archiveRoot(databaseURL: URL) -> URL {
+        databaseURL.deletingLastPathComponent().appendingPathComponent("Archive", isDirectory: true)
     }
 }
