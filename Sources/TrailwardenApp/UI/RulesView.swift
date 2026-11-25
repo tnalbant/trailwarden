@@ -179,25 +179,7 @@ struct RulesView: View {
                     .foregroundStyle(Tokens.Palette.secondary)
             } else {
                 ForEach(model.allowances) { allowance in
-                    HStack(spacing: 8) {
-                        Text(allowanceName(allowance))
-                            .font(Tokens.Typography.font(.codeSmall, weight: .medium))
-                            .foregroundStyle(Tokens.Palette.accentText)
-                        Text(scopeText(allowance.scope))
-                            .font(Tokens.Typography.font(.codeSmall))
-                            .lineLimit(1)
-                            .truncationMode(.middle)
-                        Spacer(minLength: 6)
-                        Text(remainingText(allowance))
-                            .font(Tokens.Typography.font(.caption))
-                            .foregroundStyle(Tokens.Palette.secondary)
-                        Button(L(.removeMute)) {
-                            Task { await model.removeAllowance(allowance) }
-                        }
-                        .buttonStyle(.plain)
-                        .font(Tokens.Typography.font(.caption, weight: .medium))
-                        .foregroundStyle(Tokens.Palette.accentText)
-                    }
+                    allowanceRow(allowance)
                 }
             }
         }
@@ -212,17 +194,69 @@ struct RulesView: View {
         return rule?.localizedTitle(LocalizationStore.current) ?? allowance.ruleId
     }
 
-    private func scopeText(_ scope: AllowanceScope) -> String {
+    private func allowanceRow(_ allowance: Allowance) -> some View {
+        HStack(spacing: 8) {
+            Text(allowanceName(allowance))
+                .font(Tokens.Typography.font(.codeSmall, weight: .medium))
+                .foregroundStyle(Tokens.Palette.accentText)
+            Text(scopeKind(allowance.scope))
+                .font(Tokens.Typography.font(.caption))
+                .foregroundStyle(Tokens.Palette.secondary)
+            Text(scopeValue(allowance.scope))
+                .font(Tokens.Typography.font(.codeSmall))
+                .lineLimit(1)
+                .truncationMode(.middle)
+            Spacer(minLength: 6)
+            Menu(remainingText(allowance)) {
+                ForEach(AllowanceDuration.allCases, id: \.self) { duration in
+                    Button(AllowSheet.name(of: duration)) {
+                        let now = Date()
+                        Task {
+                            await model.allow(Allowance(
+                                id: allowance.id,
+                                ruleId: allowance.ruleId,
+                                scope: allowance.scope,
+                                until: duration.until(from: now),
+                                created: allowance.created))
+                        }
+                    }
+                }
+            }
+            .menuStyle(.borderlessButton)
+            .fixedSize()
+            .font(Tokens.Typography.font(.caption))
+            .accessibilityLabel(L(.allowDurationLabel))
+            .accessibilityValue(remainingText(allowance))
+            Button(L(.removeMute)) {
+                Task { await model.removeAllowance(allowance) }
+            }
+            .buttonStyle(.plain)
+            .font(Tokens.Typography.font(.caption, weight: .medium))
+            .foregroundStyle(Tokens.Palette.accentText)
+        }
+        .accessibilityElement(children: .contain)
+    }
+
+    private func scopeKind(_ scope: AllowanceScope) -> String {
+        switch scope {
+        case .command: L(.kindCommand)
+        case .projectRule: L(.kindProject)
+        case .pattern: L(.kindPattern)
+        case .everywhere: L(.kindEverywhere)
+        }
+    }
+
+    private func scopeValue(_ scope: AllowanceScope) -> String {
         switch scope {
         case let .command(command): command
-        case let .projectRule(project): project
+        case let .projectRule(project): technical ? project : AllowSheet.folderName(project)
         case let .pattern(glob): glob
-        case .everywhere: "*"
+        case .everywhere: L(.allowEverywhereValue)
         }
     }
 
     private func remainingText(_ allowance: Allowance) -> String {
-        guard let until = allowance.until else { return "" }
+        guard let until = allowance.until else { return L(.allowForeverRemaining) }
         let days = Int(ceil(until.timeIntervalSinceNow / 86400))
         return days > 0 ? Lf(.daysLeft, [days]) : L(.muteExpired)
     }

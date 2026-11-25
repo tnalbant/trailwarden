@@ -35,7 +35,7 @@ struct TimelineView: View {
     @AppStorage(LocalizationStore.defaultsKey) private var language = AppLanguage.system.rawValue
     @AppStorage(TechnicalDetails.storageKey) private var technical = false
     @ObservedObject var model: TimelineModel
-    var onMute: ((RiskHit, Event) -> Void)?
+    var onAllow: ((RiskHit, Event) -> Void)?
     var liveSessionIDs: Set<String> = []
     @FocusState private var focusedPane: Pane?
 
@@ -68,7 +68,7 @@ struct TimelineView: View {
                 if let event = model.selectedEvent {
                     EventDetailView(
                         event: event,
-                        onMute: onMute,
+                        onAllow: onAllow,
                         databaseURL: model.databaseURL,
                         onOpen: { other in
                             model.selection = .session(other.sessionId)

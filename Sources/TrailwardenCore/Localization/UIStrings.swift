@@ -40,7 +40,13 @@ public enum UIString: String, CaseIterable, Sendable {
     /// Plain verbs for what an event did
     case verbRan, verbEdited, verbWrote, verbRead, verbSearched, verbSaid, verbThought, verbOther
     case labelCommand, labelText, labelDiff, labelPaths, labelRaw
-    case resumeSession, copy, copied, whyFlagged, muteThirtyDays, muteThirtyDaysHint
+    case resumeSession, copy, copied, whyFlagged
+    // Allow sheet and allowance list
+    case allowEllipsis, allowHint, allowSheetTitle, allowScopeLabel, allowPatternLabel, allowPatternHint
+    case scopeCommand, scopeProject, scopePattern, scopeEverywhere
+    case kindCommand, kindProject, kindPattern, kindEverywhere, allowEverywhereValue
+    case allowDurationLabel, durationOneDay, durationThirtyDays, durationForever, allowForeverRemaining
+    case allowConfirm, cancel, allowedBadge, allowedAccessibility
     // Rules
     case rulesIntro, disableRule, enableRule, ruleHits, ruleMatchesAll, ruleTool
     case mutedRules, noMutes, removeMute, daysLeft, muteExpired, reapplying, reapply
@@ -191,8 +197,6 @@ public enum UITranslations {
         .copy: "Copy",
         .copied: "Copied",
         .whyFlagged: "Why it was flagged",
-        .muteThirtyDays: "Mute for 30 days",
-        .muteThirtyDaysHint: "Stop flagging this for 30 days",
 
         .rulesIntro: "Turning a rule off, or changing its severity, re-evaluates the index right away — past events are re-flagged under the new setting.",
         .disableRule: "Turn rule off",
@@ -200,11 +204,35 @@ public enum UITranslations {
         .ruleHits: "%d events",
         .ruleMatchesAll: "every event",
         .ruleTool: "tool: %@",
-        .mutedRules: "Muted",
-        .noMutes: "Nothing muted. Open an event and choose 'Mute for 30 days' to add one.",
+        .mutedRules: "Allowed",
+        .noMutes: "Nothing allowed yet. Open a finding and choose “Allow…” to add one.",
         .removeMute: "Remove",
         .daysLeft: "%d days",
         .muteExpired: "expired",
+        .allowEllipsis: "Allow…",
+        .allowHint: "Tell Trailwarden this is expected, for a scope and a time you choose",
+        .allowSheetTitle: "Allow this finding",
+        .allowScopeLabel: "Where should it be allowed?",
+        .allowPatternLabel: "Pattern",
+        .allowPatternHint: "* stays inside one folder, ** crosses folders.",
+        .scopeCommand: "This exact command",
+        .scopeProject: "Everything this rule flags in %@",
+        .scopePattern: "Anything matching a pattern",
+        .scopeEverywhere: "Everywhere, for every project",
+        .kindCommand: "Command",
+        .kindProject: "Project",
+        .kindPattern: "Pattern",
+        .kindEverywhere: "Everywhere",
+        .allowEverywhereValue: "every match of this rule",
+        .allowDurationLabel: "For how long?",
+        .durationOneDay: "1 day",
+        .durationThirtyDays: "30 days",
+        .durationForever: "Forever",
+        .allowForeverRemaining: "no end",
+        .allowConfirm: "Allow",
+        .cancel: "Cancel",
+        .allowedBadge: "Allowed",
+        .allowedAccessibility: "Allowed: %@",
         .reapplying: "Re-evaluating the index…",
         .reapply: "Re-evaluate",
 

@@ -73,9 +73,15 @@ struct EventRowView: View {
                                 .font(Tokens.Typography.font(.codeSmall, weight: .medium))
                         }
                         ForEach(event.risk, id: \.ruleId) { hit in
-                            Text(badge(for: hit))
-                                .font(Tokens.Typography.font(.caption, weight: .medium))
-                                .foregroundStyle(hit.severity.textTint)
+                            if hit.allowed {
+                                Text("\(badge(for: hit)) · \(L(.allowedBadge))")
+                                    .font(Tokens.Typography.font(.caption))
+                                    .foregroundStyle(Tokens.Palette.secondary)
+                            } else {
+                                Text(badge(for: hit))
+                                    .font(Tokens.Typography.font(.caption, weight: .medium))
+                                    .foregroundStyle(hit.severity.textTint)
+                            }
                         }
                         if EventPresentation.touchesOutsideProject(event) {
                             Text(L(.outsideProject))

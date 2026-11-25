@@ -225,4 +225,22 @@ final class AllowanceTests: XCTestCase {
         XCTAssertEqual(allowance.id, Allowance(
             ruleId: "R1", scope: .projectRule(project: "/Users/demo/app"), until: nil).id)
     }
+
+    func testScopesOfferedForAnEventWithoutCwd() {
+        let event = makeEvent(command: "rm -rf   ~/dist")
+        let hit = RiskHit(ruleId: "R1", severity: .critical, message: "m")
+        let scopes = AllowanceChoice.scopes(for: event, hit: hit)
+        XCTAssertEqual(scopes, [.command("rm -rf ~/dist"), .pattern(glob: "rm -rf ~/dist"), .everywhere])
+    }
+
+    func testScopesOfferedForAShellEvent() {
+        let event = makeEvent(command: "rm -rf ~/dist", cwd: "/Users/demo/app")
+        let hit = RiskHit(ruleId: "R1", severity: .critical, message: "m")
+        let scopes = AllowanceChoice.scopes(for: event, hit: hit)
+        XCTAssertEqual(scopes.count, 4)
+        XCTAssertEqual(scopes.first, .command("rm -rf ~/dist"))
+        XCTAssertEqual(scopes[1], .projectRule(project: "/Users/demo/app"))
+        XCTAssertEqual(scopes[2], .pattern(glob: "rm -rf ~/dist"))
+        XCTAssertEqual(scopes[3], .everywhere)
+    }
 }

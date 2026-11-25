@@ -18,6 +18,7 @@ struct MainWindowView: View {
     @ObservedObject var loginItem: LoginItem
 
     @StateObject private var timeline: TimelineModel
+    @State private var allowRequest: AllowRequest?
     @StateObject private var feed: FeedModel
     @StateObject private var inbox: InboxModel
     @FocusState private var searchFocused: Bool
@@ -278,18 +279,24 @@ struct MainWindowView: View {
     }
 
     private var timelineView: some View {
-        TimelineView(model: timeline, onMute: { hit, event in
-            let target = RuleEngine.target(for: event)
-            Task {
-                let now = Date()
-                await model.allow(Allowance(
-                    ruleId: hit.ruleId,
-                    scope: .command(target),
-                    until: AllowanceDuration.thirtyDays.until(from: now),
-                    created: now))
-                timeline.reload()
-            }
+        TimelineView(model: timeline, onAllow: { hit, event in
+            allowRequest = AllowRequest(hit: hit, event: event)
         }, liveSessionIDs: model.liveSessions)
+            .sheet(item: $allowRequest) { request in
+                AllowSheet(
+                    request: request,
+                    ruleTitle: model.rules.first { $0.id == request.hit.ruleId }?
+                        .localizedTitle(LocalizationStore.current) ?? request.hit.ruleId,
+                    onAllow: { allowance in
+                        allowRequest = nil
+                        Task {
+                            if await model.allow(allowance) {
+                                timeline.reload()
+                            }
+                        }
+                    },
+                    onCancel: { allowRequest = nil })
+            }
     }
 
     /// "2 critical" is an invitation, not a label: it opens the timeline with the
