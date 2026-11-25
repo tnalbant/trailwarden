@@ -18,6 +18,8 @@ struct EventDetailView: View {
     var onAllow: ((RiskHit, Event) -> Void)?
     /// Where to look up other agents' work on the same file.
     var databaseURL: URL?
+    /// The agent deleted this session's file; there is nothing to resume.
+    var sourceDeleted = false
     var onOpen: ((Event) -> Void)?
     @State private var copiedResume = false
 
@@ -66,7 +68,7 @@ struct EventDetailView: View {
             // text happens to end, leaving the rest of the column empty below it.
             if let resumeCommand {
                 Hairline()
-                resumeSection(resumeCommand)
+                resumeSection(resumeCommand, sourceDeleted: sourceDeleted)
                     .padding(.horizontal, 18)
                     .padding(.vertical, 12)
                     .background(Tokens.Palette.paper)
@@ -126,9 +128,15 @@ struct EventDetailView: View {
     // MARK: - Resume
 
     /// The one action people ask a history browser for: carry on from here.
-    private func resumeSection(_ command: String) -> some View {
+    private func resumeSection(_ command: String, sourceDeleted: Bool) -> some View {
         VStack(alignment: .leading, spacing: 6) {
             SectionLabel(text: L(.resumeSession))
+            if sourceDeleted {
+                Text(L(.resumeSourceDeleted))
+                    .font(Tokens.Typography.font(.caption))
+                    .foregroundStyle(Tokens.Palette.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
             HStack(alignment: .top, spacing: 8) {
                 Text(command)
                     .font(Tokens.Typography.font(.codeSmall))
@@ -145,6 +153,8 @@ struct EventDetailView: View {
                 .font(Tokens.Typography.font(.callout, weight: .medium))
                 .foregroundStyle(Tokens.Palette.accentText)
             }
+            .disabled(sourceDeleted)
+            .opacity(sourceDeleted ? 0.5 : 1)
         }
     }
 

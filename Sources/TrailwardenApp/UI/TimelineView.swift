@@ -70,6 +70,8 @@ struct TimelineView: View {
                         event: event,
                         onAllow: onAllow,
                         databaseURL: model.databaseURL,
+                        sourceDeleted: model.sessions.first { $0.id == event.sessionId }?
+                            .sourceDeleted ?? false,
                         onOpen: { other in
                             model.selection = .session(other.sessionId)
                             model.selectedEventID = other.id
@@ -152,6 +154,9 @@ struct TimelineView: View {
         if isLive {
             spoken.append(L(.liveTooltip))
         }
+        if session.sourceDeleted {
+            spoken.append(L(.sourceDeleted))
+        }
         let accessibilityText = spoken.joined(separator: ", ")
         return HStack(spacing: 6) {
             VStack(alignment: .leading, spacing: 1) {
@@ -164,6 +169,13 @@ struct TimelineView: View {
                     .foregroundStyle(Tokens.Palette.secondary)
                     .lineLimit(1)
                     .truncationMode(.middle)
+                if session.sourceDeleted {
+                    Text(L(.sourceDeleted))
+                        .font(Tokens.Typography.font(.caption))
+                        .foregroundStyle(Tokens.Palette.accentText)
+                        .lineLimit(1)
+                        .truncationMode(.tail)
+                }
             }
             Spacer(minLength: 2)
             if isLive {
