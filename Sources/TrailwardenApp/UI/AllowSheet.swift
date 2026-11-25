@@ -73,6 +73,13 @@ struct AllowSheet: View {
             Text(TechnicalDetails.badge(title: ruleTitle, ruleId: request.hit.ruleId, technical: technical))
                 .font(Tokens.Typography.font(.callout, weight: .medium))
                 .foregroundStyle(Tokens.Palette.secondary)
+            if !technical {
+                Text(EventPresentation.summary(for: request.event, localizer: LocalizationStore.current))
+                    .font(Tokens.Typography.font(.callout))
+                    .lineLimit(3)
+                    .truncationMode(.middle)
+                    .foregroundStyle(Tokens.Palette.secondary)
+            }
             VStack(alignment: .leading, spacing: 6) {
                 SectionLabel(text: L(.allowScopeLabel))
                 Picker(L(.allowScopeLabel), selection: $scopeIndex) {

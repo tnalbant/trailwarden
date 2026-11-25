@@ -150,6 +150,10 @@ struct EventDetailView: View {
 
     // MARK: - Sections
 
+    private func badgeTitle(_ hit: RiskHit) -> String {
+        EventPresentation.ruleTitle(hit, localizer: LocalizationStore.current)
+    }
+
     private var riskSection: some View {
         VStack(alignment: .leading, spacing: 5) {
             SectionLabel(text: L(.whyFlagged))
@@ -169,6 +173,7 @@ struct EventDetailView: View {
                         Text(L(.allowedBadge))
                             .font(Tokens.Typography.font(.caption, weight: .medium))
                             .foregroundStyle(Tokens.Palette.secondary)
+                            .accessibilityLabel(Lf(.allowedAccessibility, [badgeTitle(hit)]))
                     } else if let onAllow {
                         Button(L(.allowEllipsis)) { onAllow(hit, event) }
                             .buttonStyle(.plain)

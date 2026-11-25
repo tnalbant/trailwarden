@@ -10,6 +10,8 @@ struct RulesView: View {
     @AppStorage(LocalizationStore.defaultsKey) private var language = AppLanguage.system.rawValue
     @AppStorage(TechnicalDetails.storageKey) private var technical = false
     @ObservedObject var model: AppModel
+    @State private var rescoping: Allowance?
+    @State private var glob = ""
 
     var body: some View {
         VStack(spacing: 0) {
@@ -207,6 +209,20 @@ struct RulesView: View {
                 .lineLimit(1)
                 .truncationMode(.middle)
             Spacer(minLength: 6)
+            Menu(L(.scopeEditLabel)) {
+                Button(L(.scopeEditPattern)) {
+                    glob = allowance.patternPrefill
+                    rescoping = allowance
+                }
+                Button(L(.scopeEditEverywhere)) {
+                    Task { await rescope(allowance, to: .everywhere) }
+                }
+                .disabled(allowance.scope == .everywhere)
+            }
+            .menuStyle(.borderlessButton)
+            .fixedSize()
+            .font(Tokens.Typography.font(.caption))
+            .accessibilityLabel(L(.scopeEditLabel))
             Menu(remainingText(allowance)) {
                 ForEach(AllowanceDuration.allCases, id: \.self) { duration in
                     Button(AllowSheet.name(of: duration)) {
@@ -235,6 +251,50 @@ struct RulesView: View {
             .foregroundStyle(Tokens.Palette.accentText)
         }
         .accessibilityElement(children: .contain)
+        .popover(isPresented: Binding(
+            get: { rescoping?.id == allowance.id },
+            set: {
+                if !$0 {
+                    rescoping = nil
+                }
+            })) {
+                globEditor
+        }
+    }
+
+    private func rescope(_ allowance: Allowance, to scope: AllowanceScope) async {
+        let moved = allowance.rescoped(to: scope)
+        guard moved.id != allowance.id else { return }
+        if await model.allow(moved) {
+            await model.removeAllowance(allowance)
+        }
+    }
+
+    private var globEditor: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            TextField(L(.allowPatternLabel), text: $glob)
+                .textFieldStyle(.roundedBorder)
+                .font(Tokens.Typography.font(.code))
+                .accessibilityLabel(L(.allowPatternLabel))
+                .frame(width: Tokens.Metrics.scaled(300))
+            Text(L(.allowPatternHint))
+                .font(Tokens.Typography.font(.caption))
+                .foregroundStyle(Tokens.Palette.secondary)
+            HStack {
+                Spacer()
+                Button(L(.cancel)) { rescoping = nil }
+                    .keyboardShortcut(.cancelAction)
+                Button(L(.scopeEditApply)) {
+                    guard let target = rescoping else { return }
+                    let pattern = glob.trimmingCharacters(in: .whitespaces)
+                    rescoping = nil
+                    Task { await rescope(target, to: .pattern(glob: pattern)) }
+                }
+                .keyboardShortcut(.defaultAction)
+                .disabled(glob.trimmingCharacters(in: .whitespaces).isEmpty)
+            }
+        }
+        .padding(14)
     }
 
     private func scopeKind(_ scope: AllowanceScope) -> String {
