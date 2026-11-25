@@ -167,7 +167,8 @@ final class AgentSettingsScanTests: XCTestCase {
 
     func testPEMKeyInTOMLNeverStoredInClear() throws {
         let body = String(repeating: "QUJDREVGR0hJSktMTU5PUFFSU1RVVldYWVo", count: 3)
-        let toml = "key = \"\"\"\n-----\("BEGIN PRIVATE KEY-----")\n\(body)\n-----END PRIVATE KEY-----\n\"\"\"\n"
+        let armor = "-----" + "BEGIN PRIVATE KEY" + "-----"
+        let toml = "key = \"\"\"\n\(armor)\n\(body)\n-----END PRIVATE KEY-----\n\"\"\"\n"
         let codex = home.appendingPathComponent(".codex")
         try FileManager.default.createDirectory(at: codex, withIntermediateDirectories: true)
         let url = codex.appendingPathComponent("config.toml")

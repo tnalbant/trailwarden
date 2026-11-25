@@ -26,7 +26,7 @@ final class ShareSummaryTests: XCTestCase {
         let text = try ShareSummary.text(store: store, version: "0.3.0", osVersion: "Version 15.0")
         XCTAssertFalse(text.contains(token))
         XCTAssertFalse(text.contains("/Users"))
-        XCTAssertFalse(text.contains("someone"))
+        XCTAssertFalse(text.contains("demo/project"))
         XCTAssertFalse(text.contains("session-private"))
         XCTAssertFalse(text.contains("curl"))
         XCTAssertTrue(text.contains("R4: 2"))
