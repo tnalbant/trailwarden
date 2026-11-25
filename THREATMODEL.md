@@ -38,23 +38,26 @@ lets you export a redacted record.
   pattern is caught, and an export test asserts a token never reaches the file.
 - **Accidental disclosure in a shared file.** Home paths become `~`, exports
   are 0600, and the JSON contract carries no raw transcript line.
-- **Losing the record when an agent cleans up.** Off by default, the archive keeps a
-  compressed copy of Claude Code, Codex, Gemini CLI and Copilot transcripts under
-  `~/Library/Application Support/Trailwarden/Archive/`. Files are 0600 and folders
-  0700. It is append-only: a transcript that is shortened or rewritten keeps its
-  earlier copy as a version. It is a copy of what the agents wrote, redacted no
-  further, so it holds whatever secrets the transcripts hold; that is why it is
-  opt-in. Cursor, opencode and Hermes are not archived.
+- **Losing the record when an agent cleans up.** Off by default, the archive
+  keeps a compressed copy of Claude Code, Codex, Gemini CLI and Copilot
+  transcripts under `~/Library/Application Support/Trailwarden/Archive/`. Files
+  are 0600 and folders 0700. It is append-only: a transcript that is shortened
+  or rewritten keeps its earlier copy as a version. The copy is unredacted and
+  unencrypted: it holds whatever secrets the transcripts hold, readable by
+  anything that runs as your user. That is why it is opt-in. Cursor, opencode
+  and Hermes are not archived.
 - **Secrets left in agent settings.** Rule R29 reads `~/.claude/settings*.json`,
-  project `.claude/settings*.json`, `~/.codex/config.toml` and `~/.gemini/settings.json`
-  read-only, and stores only a redacted preview. A finding is keyed by file, rule
-  and a digest of the redacted line, so a secret rotated on the same line keeps the
-  same key: a finding you reviewed stays reviewed.
+  project `.claude/settings*.json`, `~/.codex/config.toml` and
+  `~/.gemini/settings.json` read-only, and stores only a redacted preview. A
+  finding is keyed by file, rule and a digest of the redacted line, so a secret
+  rotated on the same line keeps the same key: a finding you reviewed stays
+  reviewed.
 - **Silent rewriting of the record.** Events have stable ids derived from their
   transcript, so re-reading a file replaces the same rows instead of adding or
-  dropping any. Rows are removed only by an explicit `prune` or the retention you choose (Forever by default), and rule hits are
-  rewritten only when the rules change. Trailwarden does not make the index
-  tamper-proof: the owner of the account can edit it like any other file.
+  dropping any. Rows are removed only by an explicit `prune` or the retention
+  you choose (Forever by default), and rule hits are rewritten only when the
+  rules change. Trailwarden does not make the index tamper-proof: the owner of
+  the account can edit it like any other file.
 
 ## What it does not protect against
 
