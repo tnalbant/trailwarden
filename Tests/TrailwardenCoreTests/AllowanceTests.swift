@@ -26,7 +26,7 @@ final class AllowanceTests: XCTestCase {
 
     private func ruleID(for command: String) throws -> String {
         let engine = try RuleEngine.builtIn()
-        return try XCTUnwrap(engine.hits(for: makeEvent(command: command), now: now).first).ruleId
+        return try XCTUnwrap(engine.hits(for: makeEvent(command: command)).first).ruleId
     }
 
     func testCommandAllowanceMarksTheHitAllowed() throws {
@@ -36,11 +36,11 @@ final class AllowanceTests: XCTestCase {
             Allowance(ruleId: rule, scope: .command(command), until: nil, created: now)
         ])
 
-        let hits = engine.hits(for: makeEvent(command: command), now: now)
+        let hits = engine.hits(for: makeEvent(command: command))
         XCTAssertEqual(hits.map(\.ruleId), [rule])
         XCTAssertTrue(try XCTUnwrap(hits.first).allowed)
 
-        let other = engine.hits(for: makeEvent(command: "rm -rf ~/src"), now: now)
+        let other = engine.hits(for: makeEvent(command: "rm -rf ~/src"))
         XCTAssertEqual(other.map(\.ruleId), [rule])
         XCTAssertFalse(try XCTUnwrap(other.first).allowed)
     }
@@ -80,7 +80,7 @@ final class AllowanceTests: XCTestCase {
         let engine = try RuleEngine.builtIn(allowances: [
             Allowance(ruleId: rule, scope: .command(command), until: now.addingTimeInterval(-1), created: now)
         ])
-        let hits = engine.hits(for: makeEvent(command: command), now: now)
+        let hits = engine.hits(for: makeEvent(command: command))
         XCTAssertEqual(hits.map(\.ruleId), [rule])
         XCTAssertFalse(try XCTUnwrap(hits.first).allowed)
     }
@@ -128,7 +128,7 @@ final class AllowanceTests: XCTestCase {
             Allowance(ruleId: rule, scope: .command(command), until: nil, created: now)
         ])
         let event = makeEvent(id: "e1", command: command)
-        try store.insert(events: engine.annotate([event], now: now))
+        try store.insert(events: engine.annotate([event]))
 
         let stored = try XCTUnwrap(store.events(ids: ["e1"]).first)
         XCTAssertEqual(stored.risk.count, 1)
@@ -194,7 +194,7 @@ final class AllowanceTests: XCTestCase {
         let inside = makeEvent(command: command, cwd: "/Users/demo/app")
         let outside = makeEvent(command: command, cwd: "/Users/demo/other")
 
-        let annotated = engine.annotate([inside, outside], now: now)
+        let annotated = engine.annotate([inside, outside])
 
         XCTAssertEqual(annotated[0].risk.map(\.allowed), [true])
         XCTAssertEqual(annotated[1].risk.map(\.allowed), [false])

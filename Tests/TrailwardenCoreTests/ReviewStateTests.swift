@@ -85,12 +85,12 @@ final class ReviewStateTests: XCTestCase {
     func testReviewSurvivesCatalogueReapply() throws {
         try store.insert(events: [event(id: "e1", ts: now, risk: [])])
         let engine = try RuleEngine.builtIn()
-        try engine.reapply(to: store, now: now)
+        try engine.reapply(to: store)
         let rule = try XCTUnwrap(store.events(ids: ["e1"]).first?.risk.first).ruleId
         let key = FindingKey.event("e1", rule: rule)
         try store.setReview(.reviewed, for: key, at: now)
 
-        try engine.reapply(to: store, now: now)
+        try engine.reapply(to: store)
 
         XCTAssertEqual(try store.reviewStates(for: [key]), [key: .reviewed])
     }

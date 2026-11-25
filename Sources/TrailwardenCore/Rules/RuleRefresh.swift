@@ -20,13 +20,13 @@ public extension RuleEngine {
     /// hits changed. Turning a rule off, re-grading it or allowing a situation only
     /// takes effect in the timeline once this has run.
     @discardableResult
-    func reapply(to store: EventStore, now: Date = Date()) throws -> RuleRefreshReport {
+    func reapply(to store: EventStore) throws -> RuleRefreshReport {
         let started = Date()
         let events = try store.eventsForReevaluation()
         var changed: [String: [RiskHit]] = [:]
 
         for event in events {
-            let hits = hits(for: event, now: now)
+            let hits = hits(for: event)
             if !Self.sameHits(hits, event.risk) {
                 changed[event.id] = hits
             }

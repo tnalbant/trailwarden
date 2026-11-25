@@ -143,7 +143,10 @@ public struct RuleEngine: Sendable {
 
     // MARK: - Evaluation
 
-    public func hits(for event: Event, now: Date = Date()) -> [RiskHit] {
+    /// An allowance is judged at the event's own time: one that has run out
+    /// still covers what happened before its end, so a later re-grade never
+    /// brings back a hit the reader already allowed.
+    public func hits(for event: Event) -> [RiskHit] {
         // Heredoc bodies are file content (`cat > x <<EOF`), not commands — unless
         // they are fed to a shell, which `withoutHeredocBodies` keeps.
         if event.kind == .toolResult {
@@ -169,7 +172,7 @@ public struct RuleEngine: Sendable {
             else {
                 continue
             }
-            let allowed = isAllowed(rule.id, target: target, cwd: event.cwd, now: now)
+            let allowed = isAllowed(rule.id, target: target, cwd: event.cwd, at: event.ts)
             result.append(RiskHit(
                 ruleId: rule.id,
                 severity: rule.severity,
@@ -197,11 +200,11 @@ public struct RuleEngine: Sendable {
     }
 
     /// Returns the events with `risk` filled in, one hit per situation.
-    public func annotate(_ events: [Event], now: Date = Date()) -> [Event] {
+    public func annotate(_ events: [Event]) -> [Event] {
         var seen = Set<String>()
         return events.map { event in
             let target = Self.target(for: event)
-            let hits = hits(for: event, now: now).filter { hit in
+            let hits = hits(for: event).filter { hit in
                 seen.insert("\(hit.ruleId)|\(event.sessionId)|\(target)|\(hit.allowed)").inserted
             }
             return event.withRisk(hits)
@@ -225,7 +228,7 @@ public struct RuleEngine: Sendable {
             preview: command,
             risk: [],
             rawJSON: nil)
-        return hits(for: event, now: now)
+        return hits(for: event)
     }
 
     // MARK: - Matching helpers
@@ -586,7 +589,7 @@ public struct RuleEngine: Sendable {
         return value
     }
 
-    private func isAllowed(_ ruleId: String, target: String, cwd: String?, now: Date) -> Bool {
-        allowances.contains { $0.isActive(at: now) && $0.covers(ruleId: ruleId, target: target, cwd: cwd) }
+    private func isAllowed(_ ruleId: String, target: String, cwd: String?, at date: Date) -> Bool {
+        allowances.contains { $0.isActive(at: date) && $0.covers(ruleId: ruleId, target: target, cwd: cwd) }
     }
 }

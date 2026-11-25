@@ -79,9 +79,7 @@ struct RulesApply: ParsableCommand {
         let database = try store.open()
         let builtIn = try RuleCatalog.builtIn()
         let stored = try (try? RulePreferences.defaultURL()).map { try RulePreferences.load(from: $0) } ?? []
-        let engine = try RuleEngine(
-            rules: RulePreferences.apply(stored, to: builtIn),
-            allowances: database.allowances())
+        let engine = try RuleEngine.grading(database, rules: RulePreferences.apply(stored, to: builtIn))
         let report = try engine.reapply(to: database)
         print(String(
             format: "%d events checked, %d changed, %.2f s",

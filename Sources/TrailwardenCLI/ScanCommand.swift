@@ -49,11 +49,11 @@ struct ScanCommand: ParsableCommand {
         let sinceDate = try TimeWindow.parse(since)
         let agents = agent.agents
         let database = try store.open()
-        let engine = try RuleEngine.builtIn(allowances: database.allowances())
+        let engine = try RuleEngine.grading(database, rules: RuleCatalog.builtIn())
         // After an update that changed the built-in rules, the history is
         // re-graded once, with the reader's preferences, before the scan.
         try database.reapplyRulesIfCatalogueChanged(
-            engine: RuleEngine(rules: RulePreferences.effectiveRules(), allowances: database.allowances()))
+            engine: RuleEngine.grading(database, rules: RulePreferences.effectiveRules()))
         let scanner = TranscriptScanner(store: database, rules: engine)
 
         // A progress line on a terminal only: scripts and CI read stdout and a

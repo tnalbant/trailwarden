@@ -46,7 +46,7 @@ struct ExportCommand: ParsableCommand {
 
         // Make sure the record reflects the transcripts as they are now; the second
         // scan of an unchanged tree costs milliseconds (size + mtime signatures).
-        let engine = try RuleEngine.builtIn(allowances: database.allowances())
+        let engine = try RuleEngine.grading(database, rules: RuleCatalog.builtIn())
         _ = try TranscriptScanner(store: database, rules: engine)
             .scan(roots: ScanRoot.standard(agents: agents))
 
