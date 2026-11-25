@@ -10,11 +10,16 @@ import Foundation
 /// read as command allowances.
 public extension EventStore {
     func addAllowance(_ allowance: Allowance) throws {
+        let (kind, value, project) = Self.columns(for: allowance.scope)
+        // One row per (rule, scope, value): re-allowing replaces a migrated mute row too.
+        let clear = try database
+            .prepare("DELETE FROM allowances WHERE rule_id = ? AND scope = ? AND value = ?")
+        try clear.bind([.text(allowance.ruleId), .text(kind), .text(value)])
+        try clear.step()
         let statement = try database.prepare("""
         INSERT OR REPLACE INTO allowances (id, rule_id, scope, value, project, until, created)
         VALUES (?,?,?,?,?,?,?)
         """)
-        let (kind, value, project) = Self.columns(for: allowance.scope)
         try statement.bind([
             .text(allowance.id),
             .text(allowance.ruleId),
@@ -57,8 +62,8 @@ public extension EventStore {
         return result
     }
 
-    /// Drops allowances that have run out; called at the start of a scan.
-    /// Returns how many were removed.
+    /// Drops allowances that have run out and returns how many were removed.
+    /// Nothing calls it yet: expired rows are already ignored by `allowances(now:)`.
     @discardableResult
     func removeExpiredAllowances(now: Date = Date()) throws -> Int {
         let before = try allowanceRowCount()
