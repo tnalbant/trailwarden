@@ -66,8 +66,9 @@ public enum Inbox {
         let firstLaunch = try firstLaunchDate(store, now: now)
         var candidates: [InboxFinding] = []
 
-        let events = try store.events(matching: EventQuery(onlyFindings: true, includeRawJSON: false))
-        for event in events {
+        // Only events with at least one hit still waiting are decoded: a long
+        // history of reviewed findings costs a SQL filter, not a JSON decode each.
+        for event in try store.eventsWithUnreviewedFindings() {
             for hit in event.activeRisk {
                 candidates.append(InboxFinding(
                     id: FindingKey.event(event.id, rule: hit.ruleId),
@@ -97,7 +98,10 @@ public enum Inbox {
                 if $0.severity.rank != $1.severity.rank {
                     return $0.severity.rank > $1.severity.rank
                 }
-                return $0.at > $1.at
+                if $0.at != $1.at {
+                    return $0.at > $1.at
+                }
+                return $0.id < $1.id
             }
 
         var backlog: Int?
@@ -115,33 +119,27 @@ public enum Inbox {
             } ?? 0)
     }
 
-    /// How many unreviewed critical findings there are, without building events
-    /// or the list: only rows whose stored hits mention `critical` are looked at.
-    /// Counts the same (event, hit) pairs and file findings as `load`.
+    /// How many unreviewed critical findings there are, counted in SQL: no
+    /// event is decoded. Counts the same (event, hit) pairs and file findings
+    /// as `load`.
     public static func unreviewedCriticalCount(in store: EventStore) throws -> Int {
-        var keys: [String] = []
-        let events = try store.database.prepare("""
-        SELECT id, risk FROM events WHERE risk LIKE '%"critical"%'
+        let decided = ReviewState.allCases.filter { $0 != .new }.map { "'\($0.rawValue)'" }
+            .joined(separator: ",")
+        let statement = try store.database.prepare("""
+        SELECT COUNT(*) FROM (
+            SELECT 'event:' || events.id || ':' || json_extract(hit.value, '$.ruleId') AS finding_key
+            FROM events, json_each(events.risk) AS hit
+            WHERE events.risk LIKE '%"critical"%'
+              AND json_extract(hit.value, '$.severity') = 'critical'
+              AND COALESCE(json_extract(hit.value, '$.allowed'), 0) = 0
+            UNION
+            SELECT finding_key FROM file_findings WHERE severity = 'critical'
+        ) AS open
+        WHERE NOT EXISTS (
+            SELECT 1 FROM finding_reviews AS review
+            WHERE review.finding_key = open.finding_key AND review.state IN (\(decided)))
         """)
-        let decoder = JSONDecoder()
-        while try events.step() {
-            guard let id = events.text(0), let json = events.text(1),
-                  let hits = try? decoder.decode([RiskHit].self, from: Data(json.utf8))
-            else { continue }
-            for hit in hits where hit.severity == .critical && !hit.allowed {
-                keys.append(FindingKey.event(id, rule: hit.ruleId))
-            }
-        }
-        let files = try store.database.prepare("""
-        SELECT finding_key FROM file_findings WHERE severity = 'critical'
-        """)
-        while try files.step() {
-            if let key = files.text(0) {
-                keys.append(key)
-            }
-        }
-        let states = try store.reviewStates(for: keys)
-        return Set(keys).filter { (states[$0] ?? .new) == .new }.count
+        return try statement.step() ? (statement.int(0) ?? 0) : 0
     }
 
     /// The reader's one-time choice about findings from before the first 0.3
@@ -153,6 +151,8 @@ public enum Inbox {
         try store.setMetaValue("1", for: backlogResolvedKey)
     }
 
+    /// Recorded by the schema 9 migration (the upgrade moment, or the creation
+    /// of a new index); written here only for an index that somehow lacks it.
     private static func firstLaunchDate(_ store: EventStore, now: Date) throws -> Date {
         if let stored = try store.metaValue(firstLaunchKey), let seconds = Double(stored) {
             return Date(timeIntervalSince1970: seconds)
