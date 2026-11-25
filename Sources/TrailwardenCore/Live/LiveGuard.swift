@@ -62,7 +62,7 @@ public struct LiveAlert: Sendable, Equatable {
     public let body: String
 
     public init(event: Event, localizer: Localizer) {
-        let worst = event.risk.max { lhs, rhs in
+        let worst = event.activeRisk.max { lhs, rhs in
             lhs.severity == rhs.severity ? lhs.ruleId > rhs.ruleId : lhs.severity < rhs.severity
         }
         let rule = worst.flatMap { hit in

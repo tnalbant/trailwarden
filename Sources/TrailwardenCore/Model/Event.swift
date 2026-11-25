@@ -51,11 +51,28 @@ public struct RiskHit: Codable, Sendable, Hashable {
     public let ruleId: String
     public let severity: Severity
     public let message: String
+    /// An allowance covers this situation: the hit is kept for the record but
+    /// never counts as a finding.
+    public let allowed: Bool
 
-    public init(ruleId: String, severity: Severity, message: String) {
+    public init(ruleId: String, severity: Severity, message: String, allowed: Bool = false) {
         self.ruleId = ruleId
         self.severity = severity
         self.message = message
+        self.allowed = allowed
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case ruleId, severity, message, allowed
+    }
+
+    /// `allowed` is absent from hits stored before 0.3.
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        ruleId = try container.decode(String.self, forKey: .ruleId)
+        severity = try container.decode(Severity.self, forKey: .severity)
+        message = try container.decode(String.self, forKey: .message)
+        allowed = try container.decodeIfPresent(Bool.self, forKey: .allowed) ?? false
     }
 }
 
@@ -111,6 +128,11 @@ public struct Event: Codable, Identifiable, Sendable, Hashable {
         self.risk = risk
         self.rawJSON = rawJSON
         self.usage = usage
+    }
+
+    /// The hits no allowance covers: what counts as a finding.
+    public var activeRisk: [RiskHit] {
+        risk.filter { !$0.allowed }
     }
 
     /// A copy carrying fresh rule hits (the parser always produces an empty list).

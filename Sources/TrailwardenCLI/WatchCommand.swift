@@ -65,7 +65,7 @@ private final class WatchSession: @unchecked Sendable {
 
     func start() throws {
         let database = try EventStore(url: databaseURL)
-        let engine = try RuleEngine.builtIn(mutes: database.mutes())
+        let engine = try RuleEngine.builtIn(allowances: database.allowances())
         self.database = database
         self.engine = engine
         // Bring the index up to date first, so the first live pass only reads
@@ -101,8 +101,8 @@ private final class WatchSession: @unchecked Sendable {
 
     private static func text(_ event: Event) -> String {
         let alert = LiveAlert(event: event, localizer: Localizer(language: .english))
-        let severity = event.risk.map(\.severity).max()?.rawValue.uppercased() ?? "-"
-        let ids = event.risk.map(\.ruleId).joined(separator: ",")
+        let severity = event.activeRisk.map(\.severity).max()?.rawValue.uppercased() ?? "-"
+        let ids = event.activeRisk.map(\.ruleId).joined(separator: ",")
         return "\(WhoCommand.stamp(event.ts))  \(severity) \(ids)  \(alert.title)\n"
             + "    \(alert.body.replacingOccurrences(of: "\n", with: "  ·  "))"
     }
@@ -113,7 +113,7 @@ private final class WatchSession: @unchecked Sendable {
             "event": event.id,
             "agent": event.agent.rawValue,
             "session": event.sessionId,
-            "findings": event.risk.map {
+            "findings": event.activeRisk.map {
                 ["rule": $0.ruleId, "severity": $0.severity.rawValue, "message": $0.englishMessage]
             }
         ]

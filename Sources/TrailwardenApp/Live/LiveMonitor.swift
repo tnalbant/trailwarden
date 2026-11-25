@@ -157,7 +157,9 @@ private final class LiveWorker: @unchecked Sendable {
         defer { lock.unlock() }
         do {
             let store = try EventStore(url: databaseURL)
-            let engine = try RuleEngine(rules: RulePreferences.effectiveRules(), mutes: store.mutes())
+            let engine = try RuleEngine(
+                rules: RulePreferences.effectiveRules(),
+                allowances: store.allowances())
             // After an update that changed the built-in rules, the history is
             // re-graded once, before the catch-up scan.
             try store.reapplyRulesIfCatalogueChanged(engine: engine)
@@ -207,7 +209,7 @@ private final class LiveWorker: @unchecked Sendable {
         content.title = alert.title
         content.subtitle = alert.subtitle
         content.body = alert.body
-        content.sound = event.risk.contains { $0.severity == .critical } ? .default : nil
+        content.sound = event.activeRisk.contains { $0.severity == .critical } ? .default : nil
         content.threadIdentifier = event.sessionId
         content.userInfo = ["event": event.id, "session": event.sessionId]
         let request = UNNotificationRequest(identifier: event.id, content: content, trigger: nil)

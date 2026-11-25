@@ -19,7 +19,9 @@ final class SchemaNineTests: XCTestCase {
     }
 
     /// Writes a schema 8 file: the nine-only tables and columns are gone, the mute is in place.
-    private func makeSchemaEightFile(mute: Mute? = nil) throws -> URL {
+    private func makeSchemaEightFile(mute: (ruleId: String, target: String, until: Date)? = nil) throws
+        -> URL
+    {
         let url = temporaryDirectory.appendingPathComponent("trailwarden.sqlite")
         let store = try EventStore(url: url)
         for table in ["finding_reviews", "allowances", "file_findings", "archive_copies"] {
@@ -29,7 +31,14 @@ final class SchemaNineTests: XCTestCase {
         _ = try store.prepareRowStatement("ALTER TABLE sessions DROP COLUMN title_source").step()
         _ = try store.prepareRowStatement("ALTER TABLE scanned_files DROP COLUMN missing_since").step()
         if let mute {
-            try store.addMute(mute)
+            let insert = try store.prepareRowStatement(
+                "INSERT INTO mutes (rule_id, target, until) VALUES (?,?,?)")
+            try insert.bind([
+                .text(mute.ruleId),
+                .text(mute.target),
+                .double(mute.until.timeIntervalSince1970)
+            ])
+            _ = try insert.step()
         }
         _ = try store.prepareRowStatement("PRAGMA user_version = 8").step()
         return url
@@ -54,7 +63,7 @@ final class SchemaNineTests: XCTestCase {
 
     func testMutesBecomeCommandAllowances() throws {
         let until = Date(timeIntervalSince1970: 1_800_000_000)
-        let url = try makeSchemaEightFile(mute: Mute(ruleId: "R1", target: "rm -rf build", until: until))
+        let url = try makeSchemaEightFile(mute: ("R1", "rm -rf build", until))
 
         let store = try EventStore(url: url)
         let statement = try store.prepareRowStatement(
@@ -75,10 +84,7 @@ final class SchemaNineTests: XCTestCase {
 
     func testReopeningDoesNotDuplicateAllowances() throws {
         let url = try makeSchemaEightFile(
-            mute: Mute(
-                ruleId: "R1",
-                target: "rm -rf build",
-                until: Date(timeIntervalSince1970: 1_800_000_000)))
+            mute: ("R1", "rm -rf build", Date(timeIntervalSince1970: 1_800_000_000)))
         _ = try EventStore(url: url)
         let store = try EventStore(url: url)
         let count = try store.prepareRowStatement("SELECT COUNT(*) FROM allowances")

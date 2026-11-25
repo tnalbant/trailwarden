@@ -87,7 +87,7 @@ public enum ActivityDigest {
         from event: Event,
         detailLimit: Int = ActivityDigest.detailLimit) -> ActivityItem
     {
-        let hit = event.risk.max { $0.severity < $1.severity }
+        let hit = event.activeRisk.max { $0.severity < $1.severity }
         return ActivityItem(
             id: event.id,
             time: event.ts,

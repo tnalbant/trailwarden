@@ -163,11 +163,16 @@ public extension EventStore {
     func ruleHitCounts(matching query: EventQuery) throws -> [String: Int] {
         var counts: [String: Int] = [:]
         for event in try events(matching: query) {
-            for hit in event.risk {
+            for hit in event.activeRisk {
                 counts[hit.ruleId, default: 0] += 1
             }
         }
         return counts
+    }
+
+    /// Count of hits inside the query that an allowance covers.
+    func allowedHitCount(matching query: EventQuery) throws -> Int {
+        try events(matching: query).reduce(0) { $0 + $1.risk.filter(\.allowed).count }
     }
 
     // MARK: - SQL

@@ -283,7 +283,7 @@ public final class EventStore {
     private static func rowValues(for event: Event, encoder: JSONEncoder) throws -> [SQLValue] {
         let paths = try String(decoding: encoder.encode(event.paths), as: UTF8.self)
         let risk = try String(decoding: encoder.encode(event.risk), as: UTF8.self)
-        let severity: Severity? = event.risk.map(\.severity).max()
+        let severity: Severity? = event.activeRisk.map(\.severity).max()
         var values: [SQLValue] = []
         values.reserveCapacity(15 + usageColumnNames.count)
         values.append(.text(event.id))

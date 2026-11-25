@@ -138,7 +138,7 @@ final class TimelineModel: ObservableObject {
                 #if DEBUG
                     // Screenshots open on a finding, so the inspector shows a rule.
                     if ProcessInfo.processInfo.environment["TRAILWARDEN_SELECT_FINDING"] == "1",
-                       let finding = events.first(where: { !$0.risk.isEmpty })
+                       let finding = events.first(where: { !$0.activeRisk.isEmpty })
                     {
                         selectedEventID = finding.id
                     }

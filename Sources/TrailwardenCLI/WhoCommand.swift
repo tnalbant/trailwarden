@@ -86,7 +86,7 @@ struct WhoCommand: ParsableCommand {
                 "agent\(agents == 1 ? "" : "s") in \(sessions) session\(sessions == 1 ? "" : "s"), newest first:")
         for touch in touches {
             let event = touch.event
-            let flag = event.risk.map(\.severity).max().map { " [\($0.rawValue)]" } ?? ""
+            let flag = event.activeRisk.map(\.severity).max().map { " [\($0.rawValue)]" } ?? ""
             var detail = event.tool ?? "-"
             if touch.action == .command, let command = event.command {
                 detail = command.replacingOccurrences(of: "\n", with: " ⏎ ")
@@ -120,8 +120,9 @@ struct WhoCommand: ParsableCommand {
             if let cwd = event.cwd {
                 row["cwd"] = cwd
             }
-            if !event.risk.isEmpty {
-                row["findings"] = event.risk.map { ["rule": $0.ruleId, "severity": $0.severity.rawValue] }
+            if !event.activeRisk.isEmpty {
+                row["findings"] = event.activeRisk
+                    .map { ["rule": $0.ruleId, "severity": $0.severity.rawValue] }
             }
             if let resume = ResumeCommand.command(
                 agent: event.agent,

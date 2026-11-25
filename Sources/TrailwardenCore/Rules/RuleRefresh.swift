@@ -17,7 +17,7 @@ public struct RuleRefreshReport: Sendable, Equatable {
 
 public extension RuleEngine {
     /// Re-runs the rules over the stored index and writes back the events whose
-    /// hits changed. Turning a rule off, re-grading it or muting a situation only
+    /// hits changed. Turning a rule off, re-grading it or allowing a situation only
     /// takes effect in the timeline once this has run.
     @discardableResult
     func reapply(to store: EventStore, now: Date = Date()) throws -> RuleRefreshReport {
@@ -42,8 +42,8 @@ public extension RuleEngine {
     /// Order-insensitive comparison of two hit lists.
     static func sameHits(_ lhs: [RiskHit], _ rhs: [RiskHit]) -> Bool {
         guard lhs.count == rhs.count else { return false }
-        let left = lhs.map { "\($0.ruleId)|\($0.severity.rawValue)" }.sorted()
-        let right = rhs.map { "\($0.ruleId)|\($0.severity.rawValue)" }.sorted()
+        let left = lhs.map { "\($0.ruleId)|\($0.severity.rawValue)|\($0.allowed)" }.sorted()
+        let right = rhs.map { "\($0.ruleId)|\($0.severity.rawValue)|\($0.allowed)" }.sorted()
         return left == right
     }
 }

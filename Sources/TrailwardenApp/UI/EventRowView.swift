@@ -38,7 +38,7 @@ struct EventRowView: View {
     var selected = false
 
     private var worst: Severity? {
-        event.risk.map(\.severity).max()
+        event.activeRisk.map(\.severity).max()
     }
 
     var body: some View {

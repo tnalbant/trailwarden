@@ -61,10 +61,10 @@ final class AppModel: ObservableObject {
         self?.refresh()
     }
 
-    // Rules screen state: the effective rule list, the active mutes, and the
+    // Rules screen state: the effective rule list, the active allowances, and the
     // outcome of the last re-run.
     @Published private(set) var rules: [Rule] = []
-    @Published private(set) var mutes: [Mute] = []
+    @Published private(set) var allowances: [Allowance] = []
     @Published private(set) var ruleStatus: String?
     @Published private(set) var isReapplying = false
 
@@ -152,7 +152,7 @@ final class AppModel: ObservableObject {
         let startOfDay = Calendar.current.startOfDay(for: Date())
         let today = try store.events(matching: EventQuery(since: startOfDay, limit: 500))
         for event in today {
-            switch event.risk.map(\.severity).max() {
+            switch event.activeRisk.map(\.severity).max() {
             case .critical: snapshot.criticalToday += 1
             case .warn: snapshot.warnToday += 1
             default: break
@@ -163,7 +163,7 @@ final class AppModel: ObservableObject {
         // Searched across the whole day, not across the six newest rows: a
         // critical from 09:00 is still today's critical at 21:00.
         let worstToday = today
-            .filter { $0.risk.contains { $0.severity == .critical } }
+            .filter { $0.activeRisk.contains { $0.severity == .critical } }
             .max { $0.ts < $1.ts }
         snapshot.latestCritical = worstToday.map { ActivityDigest.item(from: $0) }
         return snapshot
@@ -195,7 +195,7 @@ final class AppModel: ObservableObject {
             failure: String?) in
             do {
                 let store = try EventStore(url: url)
-                let engine = try RuleEngine.builtIn(mutes: store.mutes())
+                let engine = try RuleEngine.builtIn(allowances: store.allowances())
                 // The first scan of a long history takes minutes; show it moving,
                 // but only when the whole percent changes.
                 var shown = -1
@@ -231,7 +231,7 @@ final class AppModel: ObservableObject {
             let builtIn = try RuleCatalog.builtIn()
             let stored = try preferencesURL.map { try RulePreferences.load(from: $0) } ?? []
             rules = RulePreferences.apply(stored, to: builtIn)
-            mutes = try EventStore(url: databaseURL).mutes()
+            allowances = try EventStore(url: databaseURL).allowances()
         } catch {
             errorMessage = TechnicalDetails.errorText(error)
         }
@@ -249,18 +249,14 @@ final class AppModel: ObservableObject {
         await saveAndReapply()
     }
 
-    /// Silences one rule for one situation (the normalized command, or the first
-    /// path when there is no command) for 30 days.
-    func mute(ruleId: String, target: String, days: Int = 30) async {
-        let mute = Mute(
-            ruleId: ruleId,
-            target: target,
-            until: Date().addingTimeInterval(Double(days) * 86400))
+    /// Saves an allowance (a rule's hits in one scope are expected) and re-runs
+    /// the rules so the timeline reflects it.
+    func allow(_ allowance: Allowance) async {
         rulesDirty = true
         do {
             let store = try EventStore(url: databaseURL)
-            try store.addMute(mute)
-            mutes = try store.mutes()
+            try store.addAllowance(allowance)
+            allowances = try store.allowances()
         } catch {
             errorMessage = TechnicalDetails.errorText(error)
             return
@@ -268,12 +264,12 @@ final class AppModel: ObservableObject {
         await reapplyRules()
     }
 
-    func removeMute(_ mute: Mute) async {
+    func removeAllowance(_ allowance: Allowance) async {
         rulesDirty = true
         do {
             let store = try EventStore(url: databaseURL)
-            try store.removeMute(mute)
-            mutes = try store.mutes()
+            try store.removeAllowance(id: allowance.id)
+            allowances = try store.allowances()
         } catch {
             errorMessage = TechnicalDetails.errorText(error)
             return
@@ -294,15 +290,15 @@ final class AppModel: ObservableObject {
     }
 
     /// Re-runs the rules over the whole index once after an update changed the
-    /// built-in catalogue, with the reader's preferences and mutes.
+    /// built-in catalogue, with the reader's preferences and allowances.
     func reapplyIfCatalogueChanged() async {
         let rulesCopy = rules
-        let mutesCopy = mutes
+        let allowancesCopy = allowances
         let url = databaseURL
         let changed = await Task.detached(priority: .utility) { () -> Bool in
             do {
                 let store = try EventStore(url: url)
-                let engine = try RuleEngine(rules: rulesCopy, mutes: mutesCopy)
+                let engine = try RuleEngine(rules: rulesCopy, allowances: allowancesCopy)
                 return try store.reapplyRulesIfCatalogueChanged(engine: engine)
             } catch {
                 NSLog("Trailwarden could not re-apply the rules: %@", String(describing: error))
@@ -323,12 +319,12 @@ final class AppModel: ObservableObject {
         rulesDirty = false
 
         let rulesCopy = rules
-        let mutesCopy = mutes
+        let allowancesCopy = allowances
         let url = databaseURL
         let summary = await Task.detached(priority: .userInitiated) { () -> (String, [String: Int]) in
             do {
                 let store = try EventStore(url: url)
-                let engine = try RuleEngine(rules: rulesCopy, mutes: mutesCopy)
+                let engine = try RuleEngine(rules: rulesCopy, allowances: allowancesCopy)
                 let report = try engine.reapply(to: store)
                 let counts = try store.ruleHitCounts(matching: EventQuery(onlyFindings: true))
                 let text = LocalizationStore.current.format(
@@ -344,7 +340,7 @@ final class AppModel: ObservableObject {
         refresh()
     }
 
-    /// Set when a rule or a mute changed and the stored events have not been
+    /// Set when a rule or an allowance changed and the stored events have not been
     /// re-run yet (true at launch, so the first visit fills the hit counts);
     /// the Rules tab reapplies on appear only then.
     private(set) var rulesDirty = true
