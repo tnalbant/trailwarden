@@ -6,6 +6,8 @@
 
 [English](README.md) · [Türkçe](README.tr.md) · **Deutsch** · [Español](README.es.md) · [Italiano](README.it.md) · [Français](README.fr.md)
 
+**Deine Agenten löschen ihren Verlauf. Trailwarden bewahrt ihn auf.**
+
 **Das Prüfprotokoll für deine Coding-Agenten.** Claude Code, Codex, Gemini CLI,
 opencode, Cursor, GitHub Copilot und Hermes Agent schreiben schon jetzt alles mit, was sie auf deinem Mac tun. Trailwarden liest
 diese Transkripte, sagt dir in dem Moment Bescheid, in dem ein Agent etwas Riskantes ausführt, zeigt, welcher
@@ -21,7 +23,7 @@ auf die öffentliche `prices.json` in diesem Repository, für die Kostenschätzu
 und nur per Klick. Die CI schlägt fehl, sobald irgendwo sonst in `Sources/` eine
 Netzwerk-API auftaucht.
 
-> Status: **v0.2.5** – Live-Wächter, 28 Regeln, Agent-Blame, Bericht, CI-Gate.
+> Status: **v0.3.0** – Eingang, Freigaben mit Geltungsbereich, Sitzungstitel, optionales Archiv, 28 Regeln.
 > Oberfläche auf Englisch (US), Türkisch, Deutsch, Spanisch, Italienisch und Französisch.
 
 ![Bericht](docs/screenshots/report-light.png)
@@ -55,6 +57,11 @@ sodass darin kein echtes Projekt zu sehen ist.
 
 ## Was es kann
 
+- **Eingang** – Funde, die du noch nicht angesehen hast, die schlimmsten zuerst. Markiere einen als Geprüft, In diesem Projekt erwartet oder Fehlalarm; das Badge in der Menüleiste zählt nur ungeprüfte kritische Funde.
+- **Freigaben** – sag Trailwarden, dass ein Befehl, eine Regel in einem Projekt, ein Muster oder eine Regel überall in Ordnung ist: für einen Tag, 30 Tage oder dauerhaft. Freigegebene Treffer melden sich nie und bleiben aus dem Eingang. Der Tab Regeln listet sie.
+- **Titel** – Sitzungen heißen nach ihrem Thema, die Seitenleiste gruppiert sie nach Heute, Gestern, Diese Woche, Älter. Eine Sitzung, deren Quelldatei fehlt, bleibt erhalten, markiert mit "Quelle gelöscht – in Trailwarden aufbewahrt".
+- **Archiv (standardmäßig aus)** – eine komprimierte Kopie der Transkripte von Claude Code, Codex, Gemini CLI und Copilot, damit das Aufräumen des Agenten sie nicht löscht. Privat (0600/0700), nur anfügend, unter `~/Library/Application Support/Trailwarden/Archive/`.
+- **Aufbewahrung** – das Protokoll bleibt standardmäßig für immer; in den Einstellungen wählst du 1 Jahr oder 90 Tage.
 - **Live-Wächter** – FSEvents meldet Trailwarden in dem Moment, in dem ein Agent an sein
   Transkript anhängt; die neuen Zeilen werden geparst, die Regeln laufen, und ein kritischer Befund
   wird zu einer macOS-Benachrichtigung. Ein Klick darauf öffnet die Zeitleiste an diesem Ereignis.
@@ -152,6 +159,9 @@ trailwarden scan --since 1d --fail-on warn # CI gate: exit 1 on a warning or wor
 trailwarden export --md --since 7d > audit.md
 trailwarden rules test "git push --force origin main"
 trailwarden rules apply                    # re-run the rules over the whole index
+trailwarden scan --include-reviewed       # auch bereits geprüfte Funde auflisten
+trailwarden doctor --share                 # Zahlen für einen Fehlerbericht: keine Pfade, Befehle oder Namen
+trailwarden doctor --formats               # welche Satztypen deine Agenten schreiben
 trailwarden doctor
 ```
 

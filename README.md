@@ -6,6 +6,8 @@
 
 **English** · [Türkçe](README.tr.md) · [Deutsch](README.de.md) · [Español](README.es.md) · [Italiano](README.it.md) · [Français](README.fr.md)
 
+**Your agents delete their history. Trailwarden keeps it.**
+
 **The audit trail for your coding agents.** Claude Code, Codex, Gemini CLI,
 opencode, Cursor, GitHub Copilot and Hermes Agent already write down everything they do on your Mac. Trailwarden reads
 those transcripts, tells you the moment an agent runs something risky, shows which
@@ -20,7 +22,7 @@ monthly (off by default). "Update prices" is one GET for the public
 `prices.json` in this repository, used for the cost estimate, made only when you
 click it. CI fails if a network API shows up anywhere else in `Sources/`.
 
-> Status: **v0.2.5** — live guard, 28 rules, agent blame, report card, CI gate.
+> Status: **v0.3.0** — inbox, scoped allowances, session titles, optional archive, 28 rules.
 > Interface in English (US), Turkish, German, Spanish, Italian and French.
 
 ![Report card](docs/screenshots/report-light.png)
@@ -54,6 +56,11 @@ so no real project appears in them.
 
 ## What it does
 
+- **Inbox** — findings you have not looked at yet, worst first. Mark one Reviewed, Expected in this project, or False alarm; the menu bar badge counts only unreviewed critical findings.
+- **Allowances** — tell Trailwarden a command, a rule in one project, a pattern or a rule everywhere is fine, for a day, 30 days or forever. Allowed matches never notify and stay out of the inbox. The Rules tab lists them.
+- **Titles** — sessions are named by what they were about, and the sidebar groups them Today, Yesterday, This week, Older. A session whose source file is gone stays, marked "Source deleted — kept in Trailwarden".
+- **Archive (off by default)** — a compressed copy of Claude Code, Codex, Gemini CLI and Copilot transcripts, so cleanup by the agent does not erase them. Private (0600/0700), append-only, under `~/Library/Application Support/Trailwarden/Archive/`.
+- **Retention** — the record is kept forever by default; choose 1 year or 90 days in Settings.
 - **Live guard** — FSEvents tells Trailwarden the moment an agent appends to its
   transcript; the new lines are parsed, the rules run, and a critical finding
   becomes a macOS notification. Click it and the timeline opens on that event.
@@ -151,6 +158,9 @@ trailwarden scan --since 1d --fail-on warn # CI gate: exit 1 on a warning or wor
 trailwarden export --md --since 7d > audit.md
 trailwarden rules test "git push --force origin main"
 trailwarden rules apply                    # re-run the rules over the whole index
+trailwarden scan --include-reviewed       # also list findings you already reviewed
+trailwarden doctor --share                 # counts for a bug report: no paths, commands or names
+trailwarden doctor --formats               # which record types your agents write
 trailwarden doctor
 ```
 

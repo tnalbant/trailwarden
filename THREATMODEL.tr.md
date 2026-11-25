@@ -41,9 +41,22 @@ maskelenmiş bir kaydı dışa aktarmana izin verir.
   testi de bir jetonun dosyaya asla ulaşmadığını doğrular.
 - **Paylaşılan dosyada kazara ifşa.** Ev dizini yolları `~` olur, dışa
   aktarımlar 0600'dür ve JSON sözleşmesi ham transkript satırı taşımaz.
+- **Ajan temizlik yaptığında kaydın kaybolması.** Varsayılan olarak kapalı olan arşiv,
+  Claude Code, Codex, Gemini CLI ve Copilot transkriptlerinin sıkıştırılmış bir
+  kopyasını `~/Library/Application Support/Trailwarden/Archive/` altında tutar.
+  Dosyalar 0600, klasörler 0700'dür. Yalnızca eklenir: kısaltılan ya da yeniden
+  yazılan bir transkript önceki kopyasını sürüm olarak korur. Ajanların yazdığının
+  kopyasıdır, ayrıca maskelenmez; transkriptlerde ne gizli bilgi varsa onda da
+  vardır, bu yüzden isteğe bağlıdır. Cursor, opencode ve Hermes arşivlenmez.
+- **Ajan ayarlarında unutulmuş gizli bilgiler.** R29 kuralı `~/.claude/settings*.json`,
+  proje `.claude/settings*.json`, `~/.codex/config.toml` ve `~/.gemini/settings.json`
+  dosyalarını salt okunur okur ve yalnızca maskelenmiş bir önizleme saklar. Bir bulgunun
+  anahtarı dosya, kural ve maskelenmiş satırın özetinden oluşur; aynı satırda
+  döndürülen bir gizli bilgi aynı anahtarı korur: gözden geçirdiğin bulgu
+  gözden geçirilmiş kalır.
 - **Kaydın sessizce değiştirilmesi.** Olayların kimlikleri transkriptten
   türetilir; bir dosya yeniden okunduğunda aynı satırlar yerine yazılır, satır
-  eklenmez ya da kaybolmaz. Satırlar yalnızca açıkça `prune` ile silinir, kural
+  eklenmez ya da kaybolmaz. Satırlar yalnızca açıkça `prune` ile ya da seçtiğin saklama süresiyle (varsayılan: sonsuza kadar) silinir, kural
   sonuçları da yalnızca kurallar değiştiğinde yeniden yazılır. Trailwarden
   indeksi değiştirilemez kılmaz: hesabın sahibi onu her dosya gibi düzenleyebilir.
 
