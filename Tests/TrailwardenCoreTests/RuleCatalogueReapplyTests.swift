@@ -92,8 +92,8 @@ final class RuleCatalogueReapplyTests: XCTestCase {
         }
 
         let store = try EventStore(url: url)
-        XCTAssertEqual(try store.schemaVersion(), 8)
-        XCTAssertEqual(EventStore.schemaVersion, 8)
+        XCTAssertEqual(try store.schemaVersion(), 9)
+        XCTAssertEqual(EventStore.schemaVersion, 9)
         XCTAssertNil(try store.metaValue(EventStore.ruleCatalogueKey))
         XCTAssertTrue(try store.reapplyRulesIfCatalogueChanged(engine: RuleEngine.builtIn()))
         XCTAssertEqual(try ruleIDs(store, "e1"), ["R1"])
