@@ -199,6 +199,11 @@ final class TimelineModel: ObservableObject {
             .sorted { $0.startedAt > $1.startedAt }
     }
 
+    /// A project's sessions in Today / Yesterday / This week / Older buckets.
+    func sessionGroups(inProject cwd: String) -> [(SessionAge, [SessionSummary])] {
+        SessionGrouping.group(sessions.filter { $0.cwd == cwd }, now: Date(), calendar: .current)
+    }
+
     var selectedEvent: Event? {
         guard let selectedEventID else { return nil }
         return events.first { $0.id == selectedEventID }
@@ -213,13 +218,14 @@ final class TimelineModel: ObservableObject {
     }
 
     /// What the reader is looking at, in words: "All sessions", a folder name, or
-    /// "Session local-ed…8120" — never a bare id floating in the row.
+    /// the session's title — never a bare id floating in the row.
     var selectionLabel: String {
         switch selection {
         case .all: LocalizationStore.current.text(.allSessions)
         case let .project(cwd): ProjectName.short(cwd)
         case let .session(id):
-            LocalizationStore.current.text(.labelSession) + " " + Sessions.shortID(id)
+            sessions.first { $0.id == id }?.title
+                ?? LocalizationStore.current.text(.untitledSession)
         }
     }
 

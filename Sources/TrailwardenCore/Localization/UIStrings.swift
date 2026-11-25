@@ -29,6 +29,8 @@ public enum UIString: String, CaseIterable, Sendable {
     // Counts
     case events, event, findings, sessions, eventCount, sessionMeta, sessionCritical
     case projectMeta, liveCount, liveTooltip, eventsRatio
+    /// Session sidebar: the fallback title and the day groups
+    case untitledSession, groupToday, groupYesterday, groupThisWeek, groupOlder
     // Empty states
     case noDataYet, noSessionsFound, noSessionSelected, noEventsInRange, noEventsHint
     case pickEvent, pickEventHint, loadMore
@@ -165,6 +167,11 @@ public enum UITranslations {
         .sessionMeta: "%@ · %d events",
         .sessionCritical: "%d critical",
         .projectMeta: "%d sessions · %d events",
+        .untitledSession: "Untitled session",
+        .groupToday: "Today",
+        .groupYesterday: "Yesterday",
+        .groupThisWeek: "This week",
+        .groupOlder: "Older",
         .liveCount: "%d live",
         .liveTooltip: "This session wrote in the last two minutes — the agent may still be running",
         .eventsRatio: "%d / %d events",
