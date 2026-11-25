@@ -104,7 +104,7 @@ struct TimelineView: View {
                         ForEach(model.sessionGroups(inProject: project.cwd), id: \.0) { age, sessions in
                             ageHeader(age)
                             ForEach(sessions) { session in
-                                sessionLabel(session)
+                                sessionLabel(session, age: age)
                                     .tag(TimelineSelection.session(session.id))
                             }
                         }
@@ -141,9 +141,18 @@ struct TimelineView: View {
         }
     }
 
-    private func sessionLabel(_ session: SessionSummary) -> some View {
+    private func sessionLabel(_ session: SessionSummary, age: SessionAge) -> some View {
         let title = session.title ?? L(.untitledSession)
-        let detail = sessionDetail(session)
+        let detail = sessionDetail(session, age: age)
+        let isLive = liveSessionIDs.contains(session.id)
+        var spoken = [title, detail]
+        if session.criticalCount > 0 {
+            spoken.append(Lf(.sessionCritical, [session.criticalCount]))
+        }
+        if isLive {
+            spoken.append(L(.liveTooltip))
+        }
+        let accessibilityText = spoken.joined(separator: ", ")
         return HStack(spacing: 6) {
             VStack(alignment: .leading, spacing: 1) {
                 Text(title)
@@ -157,7 +166,7 @@ struct TimelineView: View {
                     .truncationMode(.middle)
             }
             Spacer(minLength: 2)
-            if liveSessionIDs.contains(session.id) {
+            if isLive {
                 Circle()
                     .fill(Tokens.Palette.accent)
                     .frame(width: 5, height: 5)
@@ -170,13 +179,15 @@ struct TimelineView: View {
             }
         }
         .accessibilityElement(children: .combine)
-        .accessibilityLabel(session
-            .criticalCount > 0 ? "\(title), \(detail), \(session.criticalCount)" : "\(title), \(detail)")
+        .accessibilityLabel(accessibilityText)
     }
 
     /// Agent, branch and duration; the short id joins them only with technical details.
-    private func sessionDetail(_ session: SessionSummary) -> String {
+    private func sessionDetail(_ session: SessionSummary, age: SessionAge) -> String {
         var parts = [session.agent.displayName]
+        if age == .thisWeek || age == .older {
+            parts.append(EventFormatting.day(session.endedAt))
+        }
         if let branch = session.gitBranch, !branch.isEmpty {
             parts.append(branch)
         }

@@ -224,8 +224,11 @@ final class TimelineModel: ObservableObject {
         case .all: LocalizationStore.current.text(.allSessions)
         case let .project(cwd): ProjectName.short(cwd)
         case let .session(id):
-            sessions.first { $0.id == id }?.title
-                ?? LocalizationStore.current.text(.untitledSession)
+            if let session = sessions.first(where: { $0.id == id }) {
+                session.title ?? LocalizationStore.current.text(.untitledSession)
+            } else {
+                Sessions.shortID(id)
+            }
         }
     }
 
